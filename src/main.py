@@ -1,13 +1,12 @@
 from ppml_datasets import MnistDataset
 
+from model import CNNModel
+
 
 def main():
-    ds = MnistDataset([1, 1, 1], builds_ds_info=False)
-    ds.load_dataset()
-    ds.build_ds_info()
-    ds.prepare_datasets()
-    print("done loading!")
-    print(ds.ds_info)
+    cnn_model = CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10)
+    cnn_model.build_compile()
+    cnn_model.print_summary()
 
 
 if __name__ == "__main__":
