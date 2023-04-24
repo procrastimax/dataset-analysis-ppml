@@ -116,52 +116,33 @@ class AbstractDataset():
             print("Cannot load dataset from tfds since it is not a tfds dataset!")
             return
 
-        ds_train: Optional[tf.data.Dataset] = None
-        ds_val: Optional[tf.data.Dataset] = None
-        ds_test: Optional[tf.data.Dataset] = None
-
-        train_split = self.train_val_test_split[0] * 100
-        val_split = self.train_val_test_split[1] * 100
-        test_split = self.train_val_test_split[2] * 100
+        train_split = self.train_val_test_split[0]
+        val_split = self.train_val_test_split[1]
+        test_split = self.train_val_test_split[2]
 
         if self.dataset_path is not None:
             data_dir = os.path.join(self.dataset_path, self.dataset_name)
         else:
             data_dir = None
 
-        if train_split > 0:
-            ds_train = tfds.load(
-                name=self.dataset_name,
-                split=f"train[0%:{train_split:.0f}%]",
-                data_dir=data_dir,
-                as_supervised=True,
-                with_info=False
-            )
+        ds = tfds.load(
+            name=self.dataset_name,
+            data_dir=data_dir,
+            split="train+test",
+            as_supervised=True,
+            with_info=False
+        )
 
-        if test_split > 0:
-            ds_test = tfds.load(
-                name=self.dataset_name,
-                split=f"test[0%:{train_split:.0f}%]",
-                data_dir=data_dir,
-                as_supervised=True,
-                with_info=False
-            )
+        self.ds_train, right_ds = tf.keras.utils.split_dataset(
+            ds, left_size=train_split,
+            shuffle=False, seed=self.random_seed)
 
-        if val_split > 0:
-            ds_val = tfds.load(
-                name=self.dataset_name,
-                split=f"validation[0%:{train_split:.0f}%]",
-                data_dir=data_dir,
-                as_supervised=True,
-                with_info=False
-            )
-
-        if ds_train is not None:
-            self.ds_train = ds_train
-        if ds_val is not None:
-            self.ds_val = ds_val
-        if ds_test is not None:
-            self.ds_test = ds_test
+        if test_split == 0.0:
+            self.ds_val = right_ds
+        else:
+            # shuffling once should be enough
+            self.ds_val, self.ds_test = tf.keras.utils.split_dataset(
+                right_ds, left_size=val_split/(val_split+test_split), shuffle=False)
 
     def set_class_names(self, class_names: List[str]):
         self.class_names = class_names

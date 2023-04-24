@@ -1,6 +1,8 @@
 from ppml_datasets import MnistDataset
 from model import CNNModel
 
+import tensorflow as tf
+
 
 def train_model():
 
@@ -27,9 +29,24 @@ def load_model():
     cnn_model.print_summary()
 
 
+def test_dataset():
+    mnist = MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=(0.75, 0.20, 0.05))
+    mnist.load_dataset()
+    mnist.build_ds_info()
+    print(f"{mnist.ds_train} - {len(mnist.ds_train)}")
+    print(f"{mnist.ds_val} - {len(mnist.ds_val)}")
+
+    mnist.prepare_datasets()
+
+    print(f"{mnist.ds_train} - {len(mnist.ds_train)}")
+    print(f"{mnist.ds_val} - {len(mnist.ds_val)}")
+    print(f"{mnist.ds_test} - {len(mnist.ds_test)}")
+
+    print(mnist.ds_info)
+
+
 def main():
-    train_model()
-    load_model()
+    test_dataset()
 
 
 if __name__ == "__main__":
