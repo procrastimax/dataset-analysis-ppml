@@ -10,7 +10,9 @@ class CNNModel():
                  conv_layer_filter_dim_list: List[int] = [16, 32, 64],
                  conv_layer_kernel_dim_list: List[int] = [3, 3, 3],
                  dense_layer_dimension: int = 128,
-                 optimizer="adam"):
+                 batch_size=32,
+                 optimizer="adam",
+                 model_path="data/models/cnn_model"):
         """Initialize the model."""
         self.img_height = img_width
         self.img_width = img_width
@@ -29,21 +31,26 @@ class CNNModel():
         self.conv_activation: str = "relu"
         self.dense_activation: str = "relu"
 
+        self.batch_size = batch_size
+
         self.optimizer = optimizer
 
         self.model: keras.Sequential = keras.Sequential()
 
         self.history: tf.keras.callbacks.History | None = None
 
-    def build_model(self):
+        self.model_path = model_path
 
-        self.model.add(layers.Rescaling(
-            1./255, input_shape=(self.img_height, self.img_width, self.color_channels)))
+    def build_model(self):
+        print("Building model")
+
+        self.model.add(keras.Input(shape=(self.img_height, self.img_width,
+                       self.color_channels), batch_size=self.batch_size))
 
         for (i, (filter_dim, kernel_dim)) in enumerate(zip(self.filter_dim_list,
                                                            self.kernel_dim_list)):
             self.model.add(layers.Conv2D(filter_dim, kernel_dim,
-                           padding=self.padding, activation=self.conv_activation))
+                                         padding=self.padding, activation=self.conv_activation))
             self.model.add(layers.MaxPooling2D())
 
         self.model.add(layers.Flatten())
@@ -51,6 +58,7 @@ class CNNModel():
         self.model.add(layers.Dense(self.num_classes))
 
     def compile_model(self):
+        print("Compiling model")
         self.model.compile(optimizer=self.optimizer,
                            loss=tf.keras.losses.SparseCategoricalCrossentropy(
                                from_logits=True), metrics=["accuracy"])
@@ -60,13 +68,25 @@ class CNNModel():
         self.compile_model()
 
     def print_summary(self):
+        print("Model summary:")
         self.model.summary()
 
     def train_model(self, train_ds: tf.data.Dataset,
                     val_ds: tf.data.Dataset,
                     epochs: int) -> tf.keras.callbacks.History:
-        self.history = self.model.fit(train_ds, validation_data=val_ds, epochs=epochs)
+        self.history = self.model.fit(train_ds,  validation_data=val_ds, epochs=epochs)
         return self.history
+
+    def test_model(self, test_ds: tf.data.Dataset):
+        test_loss, test_acc = self.model.evaluate(x=test_ds, batch_size=self.batch_size)
+
+        print('\nTest accuracy:', test_acc)
 
     def get_history(self) -> tf.keras.callbacks.History:
         return self.history
+
+    def save_model(self):
+        self.model.save(filepath=self.model_path, save_format="tf")
+
+    def load_model(self):
+        self.model = tf.keras.models.load_model(filepath=self.model_path)
