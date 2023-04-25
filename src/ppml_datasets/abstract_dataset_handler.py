@@ -128,7 +128,7 @@ class AbstractDataset():
         ds = tfds.load(
             name=self.dataset_name,
             data_dir=data_dir,
-            split="train+test",
+            split="all",
             as_supervised=True,
             with_info=False
         )
@@ -142,7 +142,7 @@ class AbstractDataset():
         else:
             # shuffling once should be enough
             self.ds_val, self.ds_test = tf.keras.utils.split_dataset(
-                right_ds, left_size=val_split/(val_split+test_split), shuffle=False)
+                right_ds, left_size=val_split / (val_split + test_split), shuffle=False)
 
     def set_class_names(self, class_names: List[str]):
         self.class_names = class_names
@@ -181,7 +181,8 @@ class AbstractDataset():
             self.ds_test = self.prepare_ds(self.ds_test, cache=True, resize_rescale=True, img_shape=self.model_img_shape, batch_size=self.batch_size,
                                            convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=False, augment=False)
 
-    def prepare_ds(self, ds: tf.data.Dataset, resize_rescale: bool, img_shape: Tuple[int, int, int], batch_size: Optional[int], convert_to_rgb: bool, preprocessing_func: Optional[Callable[[float], tf.Tensor]], shuffle: bool, augment: bool, cache: Union[str, bool] = True) -> tf.data.Dataset:
+    def prepare_ds(self, ds: tf.data.Dataset, resize_rescale: bool, img_shape: Tuple[int, int, int], batch_size: Optional[int], convert_to_rgb: bool, preprocessing_func: Optional[Callable[[float], tf.Tensor]],
+                   shuffle: bool, augment: bool, cache: Union[str, bool] = True) -> tf.data.Dataset:
         """Prepare datasets for training and validation for the ResNet50 model.
 
         This function applies image resizing, resnet50-preprocessing to the dataset. Optionally the data can be shuffled or further get augmented (random flipping, etc.)
@@ -191,14 +192,7 @@ class AbstractDataset():
         ds: tf.data.Dataset - dataset used for preparation steps
         resize_rescale: bool - if True, resizes the dataset to 'img_shape' and rescales all pixel values to a value between 0 and 255
         img_shape: Tuple[int, int, int] - if resize_rescale is True, than this value is used to rescale the image data to this size, consist of [height, width, color channel] -> only width and height are used for rescaling
- plt.figure(figsize=(10, 10))
-for images, labels in train_ds.take(1):
-  for i in range(9):
-    ax = plt.subplot(3, 3, i + 1)
-    plt.imshow(images[i].numpy().astype("uint8"))
-    plt.title(class_names[labels[i]])
-    plt.axis("off")
-       batch_size: int | None - batch size specified by integer value, if None is passed, no batching is applied to the data
+        batch_size: int | None - batch size specified by integer value, if None is passed, no batching is applied to the data
         convert_to_rgb: bool - if True, the data is converted vom grayscale to rgb values
         preprocessing: bool - if True, model specific preprocessing is applied to the data (currently resnet50_preprocessing)
         shuffle: bool - if True, the data is shuffled, the used shuffle buffer for this has the size of the data

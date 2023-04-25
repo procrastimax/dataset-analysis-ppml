@@ -2,7 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 
-from typing import List
+from typing import List, Optional
 
 
 class CNNModel():
@@ -10,9 +10,10 @@ class CNNModel():
                  conv_layer_filter_dim_list: List[int] = [16, 32, 64],
                  conv_layer_kernel_dim_list: List[int] = [3, 3, 3],
                  dense_layer_dimension: int = 128,
-                 batch_size=32,
-                 optimizer="adam",
-                 model_path="data/models/cnn_model"):
+                 batch_size: int = 32,
+                 optimizer: str = "adam",
+                 model_path: str = "data/models/cnn_model",
+                 dropout: Optional[float] = 0.2):
         """Initialize the model."""
         self.img_height = img_width
         self.img_width = img_width
@@ -41,17 +42,22 @@ class CNNModel():
 
         self.model_path = model_path
 
+        self.dropout: Optional[float] = dropout
+
     def build_model(self):
         print("Building model")
 
         self.model.add(keras.Input(shape=(self.img_height, self.img_width,
-                       self.color_channels), batch_size=self.batch_size))
+                                          self.color_channels), batch_size=self.batch_size))
 
         for (i, (filter_dim, kernel_dim)) in enumerate(zip(self.filter_dim_list,
                                                            self.kernel_dim_list)):
             self.model.add(layers.Conv2D(filter_dim, kernel_dim,
                                          padding=self.padding, activation=self.conv_activation))
             self.model.add(layers.MaxPooling2D())
+
+        if self.dropout is not None:
+            self.model.add(layers.Dropout(self.dropout))
 
         self.model.add(layers.Flatten())
         self.model.add(layers.Dense(self.dense_layer_dimension, activation=self.dense_activation))
@@ -74,7 +80,7 @@ class CNNModel():
     def train_model(self, train_ds: tf.data.Dataset,
                     val_ds: tf.data.Dataset,
                     epochs: int) -> tf.keras.callbacks.History:
-        self.history = self.model.fit(train_ds,  validation_data=val_ds, epochs=epochs)
+        self.history = self.model.fit(train_ds, validation_data=val_ds, epochs=epochs)
         return self.history
 
     def test_model(self, test_ds: tf.data.Dataset):
