@@ -30,22 +30,16 @@ def visualize_training(history: tf.keras.callbacks.History, epochs: int,
 
 def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
 
-    class_names = None
-
-    if hasattr(ds, "class_names"):
-        print("dataset has set class names")
-        print(ds.class_names)
-        class_names = ds.class_names
-
     plt.figure(figsize=(10, 10))
-    for images, labels in ds.take(1):
-        for i in range(9):
-            ax = plt.subplot(3, 3, i + 1)
-            print(images[i].numpy)
-            plt.imshow(images[i].numpy().astype("uint8"))
-            if class_names is not None:
-                plt.title(class_names[labels[i]])
-            else:
-                plt.title(i)
-            plt.axis("off")
-            plt.savefig(file_name)
+
+    ds_it = ds.as_numpy_iterator()
+
+    for i in range(9):
+        (image, label) = ds_it.next()
+        plt.subplot(3, 3, i + 1)
+        plt.imshow(image[0])
+        plt.title(label[0])
+    plt.axis("off")
+    plt.savefig(file_name)
+
+    return

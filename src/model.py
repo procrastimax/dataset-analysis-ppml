@@ -11,9 +11,10 @@ class CNNModel():
                  conv_layer_kernel_dim_list: List[int] = [3, 3, 3],
                  dense_layer_dimension: int = 128,
                  batch_size: int = 32,
-                 optimizer: str = "adam",
                  model_path: str = "data/models/cnn_model",
-                 dropout: Optional[float] = 0.2):
+                 dropout: Optional[float] = 0.2,
+                 learning_rate: float = 0.01,
+                 momentum: float = 0.0):
         """Initialize the model."""
         self.img_height = img_width
         self.img_width = img_width
@@ -34,8 +35,6 @@ class CNNModel():
 
         self.batch_size = batch_size
 
-        self.optimizer = optimizer
-
         self.model: keras.Sequential = keras.Sequential()
 
         self.history: tf.keras.callbacks.History | None = None
@@ -43,6 +42,11 @@ class CNNModel():
         self.model_path = model_path
 
         self.dropout: Optional[float] = dropout
+
+        self.learning_rate: float = learning_rate
+        self.momentum: float = momentum
+
+        self.optimizer: tf.keras.optimizers.Optimizer = tf.keras.optimizers.SGD(learning_rate=self.learning_rate, momentum=self.momentum)
 
     def build_model(self):
         print("Building model")

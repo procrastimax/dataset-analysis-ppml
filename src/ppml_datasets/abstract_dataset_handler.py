@@ -94,6 +94,9 @@ class AbstractDataset():
     ds_attack_train: tf.data.Dataset = field(init=False, repr=False, default=None)
     ds_attack_test: tf.data.Dataset = field(init=False, repr=False, default=None)
 
+    # how much of the data should get loaded -> currently only works for tfds datasets
+    percentage_loaded_data: int = field(default=100)
+
     def _load_dataset(self):
         """Load dataset from tfds library.
 
@@ -160,9 +163,6 @@ class AbstractDataset():
                                                batch_size=1, convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=False, augment=False)
         if self.ds_test is not None:
             self.ds_attack_test = self.prepare_ds(self.ds_test, cache=True, resize_rescale=True, img_shape=self.model_img_shape,
-                                                  batch_size=1, convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=False, augment=False)
-        elif self.ds_val is not None:
-            self.ds_attack_test = self.prepare_ds(self.ds_val, cache=True, resize_rescale=True, img_shape=self.model_img_shape,
                                                   batch_size=1, convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=False, augment=False)
 
         dataset_path: str = ""

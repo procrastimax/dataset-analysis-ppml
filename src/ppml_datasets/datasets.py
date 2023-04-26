@@ -13,14 +13,16 @@ class MnistDataset(AbstractDataset):
     def __init__(self, model_img_shape: Tuple[int, int, int], builds_ds_info: bool = False,
                  batch_size: int = 32,
                  preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
-                 train_val_test_split: Tuple[float, float, float] = (0.7, 0.2, 0.1)):
+                 train_val_test_split: Tuple[float, float, float] = (0.7, 0.2, 0.1),
+                 percentage_loaded_data: int = 100):
         """Initialize the MNIST dataset from AbstractDataset class."""
         super().__init__(dataset_name="mnist", dataset_path="data", dataset_img_shape=(28, 28, 1),
                          model_img_shape=model_img_shape, train_val_test_split=train_val_test_split,
                          batch_size=batch_size,
                          imbalance_ratio=1.5, convert_to_rgb=True, augment_train=True,
                          preprocessing_function=preprocessing_func, shuffle=True, is_tfds_ds=True,
-                         builds_ds_info=builds_ds_info)
+                         builds_ds_info=builds_ds_info,
+                         percentage_loaded_data=percentage_loaded_data)
 
         variants: List[Dict[str, Optional[str]]] = [
             {'activation': 'relu', 'pretraining': None},

@@ -1,17 +1,23 @@
 from ppml_datasets import MnistDataset
 from model import CNNModel
 from util import visualize_training
+from mia_attack import MiaAttack
+
+from typing import Tuple
+
+
+epochs: int = 40
+train_val_test_split: Tuple[float, float, float] = (0.75, 0.20, 0.05)
+batch: int = 30
 
 
 def train_model():
 
-    mnist = MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=(0.75, 0.20, 0.05))
+    mnist = MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=train_val_test_split, batch_size=batch)
     mnist.load_dataset()
     mnist.prepare_datasets()
 
-    epochs: int = 40
-
-    cnn_model = CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10)
+    cnn_model = CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10, batch_size=batch)
     cnn_model.build_compile()
     cnn_model.print_summary()
 
@@ -26,20 +32,35 @@ def train_model():
 
 def load_and_test_model():
 
-    mnist = MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=(0.75, 0.20, 0.05))
+    mnist = MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=train_val_test_split, batch_size=batch)
     mnist.load_dataset()
     mnist.prepare_datasets()
 
-    cnn_model = CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10)
+    cnn_model = CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10, batch_size=batch)
     cnn_model.load_model()
     cnn_model.print_summary()
 
     cnn_model.test_model(mnist.ds_test)
 
 
+def run_attack():
+    mnist = MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=train_val_test_split, batch_size=batch)
+    mnist.load_dataset()
+    mnist.prepare_datasets()
+
+    cnn_model = CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10, batch_size=batch)
+    cnn_model.load_model()
+
+    mia = MiaAttack(model=cnn_model, dataset=mnist)
+    mia.initialize_data()
+    mia.run_mia_attack()
+
+
 def main():
-    train_model()
-    load_and_test_model()
+    # train_model()
+    # load_and_test_model()
+
+    run_attack()
 
 
 if __name__ == "__main__":
