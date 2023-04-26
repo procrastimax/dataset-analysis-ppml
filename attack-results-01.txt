@@ -1,0 +1,69 @@
+Best-performing attacks over all slices
+  THRESHOLD_ATTACK (with 1161 training and 96 test examples) achieved an AUC of 0.53 on slice CORRECTLY_CLASSIFIED=False
+  LOGISTIC_REGRESSION (with 1161 training and 96 test examples) achieved an advantage of 0.25 on slice CORRECTLY_CLASSIFIED=False
+  LOGISTIC_REGRESSION (with 5160 training and 332 test examples) achieved a positive predictive value of 1.00 on slice CLASS=8
+
+Best-performing attacks over slice: "Entire dataset"
+  THRESHOLD_ATTACK (with 52500 training and 3500 test examples) achieved an AUC of 0.50
+  LOGISTIC_REGRESSION (with 52500 training and 3500 test examples) achieved an advantage of 0.03
+  THRESHOLD_ATTACK (with 52500 training and 3500 test examples) achieved a positive predictive value of 0.96
+
+Best-performing attacks over slice: "CLASS=0"
+  LOGISTIC_REGRESSION (with 5216 training and 321 test examples) achieved an AUC of 0.50
+  LOGISTIC_REGRESSION (with 5216 training and 321 test examples) achieved an advantage of 0.20
+  LOGISTIC_REGRESSION (with 5216 training and 321 test examples) achieved a positive predictive value of 1.00
+
+Best-performing attacks over slice: "CLASS=1"
+  THRESHOLD_ATTACK (with 5877 training and 405 test examples) achieved an AUC of 0.49
+  LOGISTIC_REGRESSION (with 5877 training and 405 test examples) achieved an advantage of 0.08
+  THRESHOLD_ATTACK (with 5877 training and 405 test examples) achieved a positive predictive value of 0.99
+
+Best-performing attacks over slice: "CLASS=2"
+  LOGISTIC_REGRESSION (with 5243 training and 365 test examples) achieved an AUC of 0.52
+  LOGISTIC_REGRESSION (with 5243 training and 365 test examples) achieved an advantage of 0.12
+  THRESHOLD_ATTACK (with 5243 training and 365 test examples) achieved a positive predictive value of 0.98
+
+Best-performing attacks over slice: "CLASS=3"
+  THRESHOLD_ATTACK (with 5299 training and 350 test examples) achieved an AUC of 0.50
+  LOGISTIC_REGRESSION (with 5299 training and 350 test examples) achieved an advantage of 0.15
+  LOGISTIC_REGRESSION (with 5299 training and 350 test examples) achieved a positive predictive value of 1.00
+
+Best-performing attacks over slice: "CLASS=4"
+  THRESHOLD_ATTACK (with 5117 training and 359 test examples) achieved an AUC of 0.50
+  LOGISTIC_REGRESSION (with 5117 training and 359 test examples) achieved an advantage of 0.17
+  LOGISTIC_REGRESSION (with 5117 training and 359 test examples) achieved a positive predictive value of 1.00
+
+Best-performing attacks over slice: "CLASS=5"
+  LOGISTIC_REGRESSION (with 4756 training and 334 test examples) achieved an AUC of 0.51
+  LOGISTIC_REGRESSION (with 4756 training and 334 test examples) achieved an advantage of 0.20
+  THRESHOLD_ATTACK (with 4756 training and 334 test examples) achieved a positive predictive value of 0.96
+
+Best-performing attacks over slice: "CLASS=6"
+  THRESHOLD_ATTACK (with 5134 training and 328 test examples) achieved an AUC of 0.52
+  LOGISTIC_REGRESSION (with 5134 training and 328 test examples) achieved an advantage of 0.16
+  LOGISTIC_REGRESSION (with 5134 training and 328 test examples) achieved a positive predictive value of 1.00
+
+Best-performing attacks over slice: "CLASS=7"
+  LOGISTIC_REGRESSION (with 5448 training and 359 test examples) achieved an AUC of 0.53
+  LOGISTIC_REGRESSION (with 5448 training and 359 test examples) achieved an advantage of 0.13
+  LOGISTIC_REGRESSION (with 5448 training and 359 test examples) achieved a positive predictive value of 1.00
+
+Best-performing attacks over slice: "CLASS=8"
+  THRESHOLD_ATTACK (with 5160 training and 332 test examples) achieved an AUC of 0.50
+  LOGISTIC_REGRESSION (with 5160 training and 332 test examples) achieved an advantage of 0.11
+  LOGISTIC_REGRESSION (with 5160 training and 332 test examples) achieved a positive predictive value of 1.00
+
+Best-performing attacks over slice: "CLASS=9"
+  THRESHOLD_ATTACK (with 5250 training and 347 test examples) achieved an AUC of 0.53
+  LOGISTIC_REGRESSION (with 5250 training and 347 test examples) achieved an advantage of 0.18
+  LOGISTIC_REGRESSION (with 5250 training and 347 test examples) achieved a positive predictive value of 0.95
+
+Best-performing attacks over slice: "CORRECTLY_CLASSIFIED=True"
+  LOGISTIC_REGRESSION (with 51339 training and 3404 test examples) achieved an AUC of 0.50
+  LOGISTIC_REGRESSION (with 51339 training and 3404 test examples) achieved an advantage of 0.06
+  THRESHOLD_ATTACK (with 51339 training and 3404 test examples) achieved a positive predictive value of 0.95
+
+Best-performing attacks over slice: "CORRECTLY_CLASSIFIED=False"
+  THRESHOLD_ATTACK (with 1161 training and 96 test examples) achieved an AUC of 0.53
+  LOGISTIC_REGRESSION (with 1161 training and 96 test examples) achieved an advantage of 0.25
+  LOGISTIC_REGRESSION (with 1161 training and 96 test examples) achieved a positive predictive value of 1.00
