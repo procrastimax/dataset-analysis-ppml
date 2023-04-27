@@ -9,7 +9,6 @@ from collections import defaultdict
 from typing import Tuple, Dict, Any, Optional, List, Union, Callable
 import scipy.stats
 import os
-import glob
 
 import math
 
@@ -96,7 +95,7 @@ class AbstractDataset():
     ds_attack_train: tf.data.Dataset = field(init=False, repr=False, default=None)
     ds_attack_test: tf.data.Dataset = field(init=False, repr=False, default=None)
 
-    # how much of the data should get loaded -> currently only works for tfds datasets
+    # how much of the data should get loaded -> currently only works for tfds datasets!
     percentage_loaded_data: int = field(default=100)
 
     def _load_dataset(self):
@@ -146,7 +145,9 @@ class AbstractDataset():
             ds, left_size=train_split,
             shuffle=False, seed=self.random_seed)
 
-        if test_split == 0.0:
+        if val_split == 0.0:
+            self.ds_test = right_ds
+        elif test_split == 0.0:
             self.ds_val = right_ds
         else:
             # shuffling once should be enough
@@ -165,30 +166,48 @@ class AbstractDataset():
         """
         # prepare attack datasets
         # we need to first prepare the attack DS since they depend on the unmodified original datasets
-        self.ds_attack_train = self.prepare_ds(self.ds_train, cache=True, resize_rescale=True, img_shape=self.model_img_shape,
-                                               batch_size=1, convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=False, augment=False)
+        self.ds_attack_train = self.prepare_ds(self.ds_train, cache=True, resize_rescale=True,
+                                               img_shape=self.model_img_shape,
+                                               batch_size=1, convert_to_rgb=self.convert_to_rgb,
+                                               preprocessing_func=self.preprocessing_function,
+                                               shuffle=False, augment=False)
         if self.ds_test is not None:
-            self.ds_attack_test = self.prepare_ds(self.ds_test, cache=True, resize_rescale=True, img_shape=self.model_img_shape,
-                                                  batch_size=1, convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=False, augment=False)
+            self.ds_attack_test = self.prepare_ds(self.ds_test, cache=True, resize_rescale=True,
+                                                  img_shape=self.model_img_shape,
+                                                  batch_size=1, convert_to_rgb=self.convert_to_rgb,
+                                                  preprocessing_func=self.preprocessing_function,
+                                                  shuffle=False, augment=False)
 
-        dataset_path: str = ""
-        # prepare non-attack datasets
-        if self.dataset_path:
-            dataset_path = self.dataset_path
-
-        self.ds_train = self.prepare_ds(self.ds_train, cache=os.path.join(dataset_path, 'data.tfcache.' + self.dataset_name), resize_rescale=True, img_shape=self.model_img_shape,
-                                        batch_size=self.batch_size, convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=self.shuffle, augment=self.augment_train)
+        self.ds_train = self.prepare_ds(self.ds_train, cache=True, resize_rescale=True,
+                                        img_shape=self.model_img_shape,
+                                        batch_size=self.batch_size, convert_to_rgb=self.convert_to_rgb,
+                                        preprocessing_func=self.preprocessing_function,
+                                        shuffle=self.shuffle, augment=self.augment_train)
 
         if self.ds_val is not None:
-            self.ds_val = self.prepare_ds(self.ds_val, cache=True, resize_rescale=True, img_shape=self.model_img_shape, batch_size=self.batch_size,
-                                          convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=False, augment=False)
+            self.ds_val = self.prepare_ds(self.ds_val, cache=True, resize_rescale=True,
+                                          img_shape=self.model_img_shape,
+                                          batch_size=self.batch_size,
+                                          convert_to_rgb=self.convert_to_rgb,
+                                          preprocessing_func=self.preprocessing_function,
+                                          shuffle=False, augment=False)
 
         if self.ds_test is not None:
-            self.ds_test = self.prepare_ds(self.ds_test, cache=True, resize_rescale=True, img_shape=self.model_img_shape, batch_size=self.batch_size,
-                                           convert_to_rgb=self.convert_to_rgb, preprocessing_func=self.preprocessing_function, shuffle=False, augment=False)
+            self.ds_test = self.prepare_ds(self.ds_test, cache=True, resize_rescale=True,
+                                           img_shape=self.model_img_shape, batch_size=self.batch_size,
+                                           convert_to_rgb=self.convert_to_rgb,
+                                           preprocessing_func=self.preprocessing_function,
+                                           shuffle=False, augment=False)
 
-    def prepare_ds(self, ds: tf.data.Dataset, resize_rescale: bool, img_shape: Tuple[int, int, int], batch_size: Optional[int], convert_to_rgb: bool, preprocessing_func: Optional[Callable[[float], tf.Tensor]],
-                   shuffle: bool, augment: bool, cache: Union[str, bool] = True) -> tf.data.Dataset:
+    def prepare_ds(self, ds: tf.data.Dataset,
+                   resize_rescale: bool,
+                   img_shape: Tuple[int, int, int],
+                   batch_size: Optional[int],
+                   convert_to_rgb: bool,
+                   preprocessing_func: Optional[Callable[[float], tf.Tensor]],
+                   shuffle: bool,
+                   augment: bool,
+                   cache: Union[str, bool] = True) -> tf.data.Dataset:
         """Prepare datasets for training and validation for the ResNet50 model.
 
         This function applies image resizing, resnet50-preprocessing to the dataset. Optionally the data can be shuffled or further get augmented (random flipping, etc.)
@@ -224,10 +243,6 @@ class AbstractDataset():
 
         if cache:
             if isinstance(cache, str):
-                reset_cache = False
-                if reset_cache:
-                    for filename in glob.glob(cache + '*'):
-                        os.remove(filename)
                 ds = ds.cache(cache)
             else:
                 ds = ds.cache()
@@ -426,8 +441,8 @@ class AbstractDataset():
             return None
 
         labels = []
-        for _, y in ds.as_numpy_iterator():
-            labels.append(y[0])
+        for _, y in ds.unbatch().as_numpy_iterator():
+            labels.append(y)
         return np.asarray(labels)
 
     def _get_values_from_ds(self, ds: tf.data.Dataset) -> np.ndarray:
@@ -441,41 +456,41 @@ class AbstractDataset():
         return np.asarray(values)
 
     def get_train_labels(self) -> np.ndarray:
-        """Get training labels as numpy array."""
+        """Get unbatched training labels as numpy array."""
         return self._get_labels_from_ds(self.ds_train)
 
     def get_test_labels(self) -> np.ndarray:
-        """Get test labels as numpy array."""
+        """Get unbatched test labels as numpy array."""
         return self._get_labels_from_ds(self.ds_test)
 
     def get_val_labels(self) -> np.ndarray:
-        """Get validation labels as numpy array."""
+        """Get unbatched validation labels as numpy array."""
         return self._get_labels_from_ds(self.ds_val)
 
     def get_attack_train_labels(self) -> np.ndarray:
-        """Get attack train labels as numpy array."""
+        """Get unbatched attack train labels as numpy array."""
         return self._get_labels_from_ds(self.ds_attack_train)
 
     def get_attack_test_labels(self) -> np.ndarray:
-        """Get attack test labels as numpy array."""
+        """Get unbatched attack test labels as numpy array."""
         return self._get_labels_from_ds(self.ds_attack_test)
 
     def get_train_values(self) -> np.ndarray:
-        """Get train values as unbatched numpy array."""
+        """Get unbatched train values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_train)
 
     def get_test_values(self) -> np.ndarray:
-        """Get test values as unbatched numpy array."""
+        """Get unbatched test values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_test)
 
     def get_val_values(self) -> np.ndarray:
-        """Get val values as unbatched numpy array."""
+        """Get unbatched val values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_val)
 
     def get_attack_train_values(self) -> np.ndarray:
-        """Get attack train values as unbatched numpy array."""
+        """Get unbatched attack train values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_attack_train)
 
     def get_attack_test_values(self) -> np.ndarray:
-        """Get attack test values as unbatched numpy array."""
+        """Get unbatched attack test values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_attack_test)

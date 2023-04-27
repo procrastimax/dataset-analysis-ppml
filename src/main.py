@@ -6,9 +6,14 @@ from mia_attack import MiaAttack, AmiaAttack
 from typing import Tuple
 
 
-epochs: int = 50
-train_val_test_split: Tuple[float, float, float] = (0.75, 0.20, 0.05)
-batch: int = 30
+epochs: int = 5
+
+# trian val test split for amia attacks
+train_val_test_split: Tuple[float, float, float] = (0.95, 0.0, 0.05)
+
+# trian val test split for mia attacks
+# train_val_test_split: Tuple[float, float, float] = (0.75, 0.2, 0.05)
+batch: int = 32
 
 mnist = MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=train_val_test_split, batch_size=batch, augment_train=False, percentage_loaded_data=5)
 
@@ -60,8 +65,9 @@ def run_amia_attack():
     mnist.prepare_datasets()
     cnn_model.load_model()
 
-    amia = AmiaAttack(model=cnn_model, dataset=mnist, num_classes=10)
-    amia.train_shadow_models()
+    amia = AmiaAttack(model=cnn_model, dataset=mnist, num_classes=10, num_shadow_models=1)
+    amia.train_load_shadow_models()
+    amia.attack_shadow_models_mia()
 
 
 def main():

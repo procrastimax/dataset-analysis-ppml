@@ -4,51 +4,35 @@ from tensorflow.keras import layers
 
 from typing import List, Optional
 
+from dataclasses import dataclass, field
 
+
+@dataclass
 class CNNModel():
-    def __init__(self, img_height: int, img_width: int, color_channels: int, num_classes: int,
-                 conv_layer_filter_dim_list: List[int] = [16, 32, 64],
-                 conv_layer_kernel_dim_list: List[int] = [3, 3, 3],
-                 dense_layer_dimension: int = 128,
-                 batch_size: int = 32,
-                 model_path: str = "data/models/cnn_model",
-                 dropout: Optional[float] = 0.2,
-                 learning_rate: float = 0.01,
-                 momentum: float = 0.0,
-                 epochs: int = 50):
-        """Initialize the model."""
-        self.img_height = img_width
-        self.img_width = img_width
-        self.color_channels = color_channels
+    img_height: int
+    img_width: int
+    color_channels: int
+    num_classes: int
+    batch_size: int
+    model_path: str = "data/models/cnn_model"
 
-        # sequential list of convolutional filter dimensions
-        self.filter_dim_list = conv_layer_filter_dim_list
-        # sequential list of convolutional kernel dimensions
-        self.kernel_dim_list = conv_layer_kernel_dim_list
+    # sequential list of convolutional filter dimensions
+    filter_dim_list: List[int] = field(default_factory=lambda: [16, 32, 64])
+    # sequential list of convolutional kernel dimensions
+    kernel_dim_list: List[int] = field(default_factory=lambda: [3, 3, 3])
+    dense_layer_dimension: int = 128
 
-        self.dense_layer_dimension = dense_layer_dimension
+    padding: str = "same"
+    conv_activation: str = "relu"
+    dense_activation: str = "relu"
+    dropout: Optional[float] = None
+    learning_rate: float = 0.01
+    momentum: float = 0.0
+    epochs: int = 50
 
-        self.num_classes = num_classes
-
-        self.padding: str = "same"
-        self.conv_activation: str = "relu"
-        self.dense_activation: str = "relu"
-
-        self.batch_size = batch_size
-
-        self.model: keras.Sequential = keras.Sequential()
-
-        self.history: tf.keras.callbacks.History | None = None
-
-        self.model_path = model_path
-
-        self.dropout: Optional[float] = dropout
-
-        self.learning_rate: float = learning_rate
-        self.momentum: float = momentum
-        self.epochs: int = epochs
-
-        self.optimizer: tf.keras.optimizers.Optimizer = tf.keras.optimizers.SGD(learning_rate=self.learning_rate, momentum=self.momentum)
+    model: keras.Sequential = field(init=False, repr=False, default=keras.Sequential())
+    history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
+    optimizer: tf.keras.optimizers.Optimizer = field(init=False, default=tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum))
 
     def build_model(self):
         print("Building model")
@@ -75,7 +59,17 @@ class CNNModel():
                            loss=tf.keras.losses.SparseCategoricalCrossentropy(
                                from_logits=True), metrics=["accuracy"])
 
+    def reset_model_optimizer(self):
+        """Reset tensorflow model, optimizer and history by overwriting old instances with new initialization.
+
+        Should only be called after a copy of CNNModel class was created.
+        """
+        self.model = keras.Sequential()
+        self.optimizer = tf.keras.optimizers.SGD(learning_rate=self.learning_rate, momentum=self.momentum)
+        self.history = None
+
     def build_compile(self):
+        """Build and compile CNN model."""
         self.build_model()
         self.compile_model()
 
@@ -89,7 +83,7 @@ class CNNModel():
         return self.history
 
     def test_model(self, test_ds: tf.data.Dataset):
-        test_loss, test_acc = self.model.evaluate(x=test_ds, batch_size=self.batch_size)
+        test_loss, test_acc = self.model.evaluate(x=test_ds)
 
         print('\nTest accuracy:', test_acc)
 
