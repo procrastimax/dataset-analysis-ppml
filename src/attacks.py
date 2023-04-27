@@ -155,6 +155,97 @@ class MiaAttack():
             attacks_result.get_result_with_max_auc().roc_curve)
         fig.savefig("mia_attcks.png")
 
+
+class MembershipProbability():
+    """Implementation for calculating membership probability.
+
+    Labels are encoded as multi-class labels, so no one-hot encoding -> a sparse_categorical_crossentropy is used
+    """
+
+    def __init__(self, model: CNNModel, dataset: AbstractDataset, num_classes: Optional[int] = None):
+        """Initialize MiaAttack class.
+
+        Paramter:
+        ---------
+        model : CNNModel
+        dataset : AbstractDataset
+        num_classes : int | None - needed for visualizing the membership Probability
+        """
+        self.cnn_model: CNNModel = model
+
+        if dataset.ds_train is None:
+            print("Error: Dataset needs to have an initialized train dataset!")
+            sys.exit(1)
+
+        if dataset.ds_test is None:
+            print("Error: Dataset needs to have an initialized test dataset!")
+            sys.exit(1)
+
+        self.ds_classes: int = 0
+
+        self.ds = dataset
+        if self.ds.ds_info is not None and "classes" in self.ds.ds_info.keys():
+            self.ds_classes: int = self.ds.ds_info["classes"]
+        else:
+            if num_classes is not None:
+                self.ds_classes = num_classes
+            else:
+                print("ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
+                sys.exit(1)
+
+        self.logits_train = None
+        self.logits_test = None
+
+        self.prob_train = None
+        self.prob_test = None
+
+        self.scce = tf.keras.backend.sparse_categorical_crossentropy
+        self.constant = tf.keras.backend.constant
+
+        self.loss_train = None
+        self.loss_test = None
+
+        self.train_labels = None
+        self.test_labels = None
+
+        self.train_images = None
+        self.test_images = None
+
+        self.input: AttackInputData = AttackInputData()
+
+    def initialize_data(self):
+        """Initialize and calculate logits, probabilities and loss values for training and test sets."""
+        print("Predict on train data...")
+        self.logits_train = self.cnn_model.model.predict(self.ds.ds_attack_train, batch_size=self.cnn_model.batch_size)
+
+        print("Predict on unseen test data...")
+        self.logits_test = self.cnn_model.model.predict(self.ds.ds_attack_test, batch_size=self.cnn_model.batch_size)
+
+        print("Apply softmax to get probabilities from logits")
+        self.prob_train = special.softmax(self.logits_train, axis=1)
+        self.prob_test = special.softmax(self.logits_test, axis=1)
+
+        print("Get labels from dataset")
+        self.train_labels = self.ds.get_attack_train_labels()
+        self.test_labels = self.ds.get_attack_test_labels()
+
+        print("Get images from dataset")
+        self.train_images = self.ds.get_attack_train_values()
+        self.test_images = self.ds.get_attack_test_values()
+
+        print("Compute losses")
+        self.loss_train = self.scce(self.constant(self.train_labels), self.constant(self.prob_train), from_logits=False).numpy()
+        self.loss_test = self.scce(self.constant(self.test_labels), self.constant(self.prob_test), from_logits=False).numpy()
+
+        self.input = AttackInputData(
+            logits_train=self.logits_train,
+            logits_test=self.logits_test,
+            loss_train=self.loss_train,
+            loss_test=self.loss_test,
+            labels_train=self.train_labels,
+            labels_test=self.test_labels
+        )
+
     def calc_membership_probability(self, plot_training_samples: bool = True, num_images: int = 5):
         """Calculate Membership Probability also called Privacy Risk Score."""
         print("Calculating membership probability")

@@ -1,7 +1,7 @@
 from ppml_datasets import MnistDataset
 from model import CNNModel
 from util import visualize_training
-from mia_attack import MiaAttack, AmiaAttack
+from attacks import MiaAttack, AmiaAttack, MembershipProbability
 
 from typing import Tuple
 
@@ -55,9 +55,17 @@ def run_mia_attack():
 
     mia = MiaAttack(model=cnn_model, dataset=mnist, num_classes=10)
     mia.initialize_data()
+    mia.run_mia_attack()
 
-    # mia.run_mia_attack()
-    # mia.calc_membership_probability(plot_training_samples=True)
+
+def calculate_membership_probability():
+    mnist.load_dataset()
+    mnist.prepare_datasets()
+    cnn_model.load_model()
+
+    mp = MembershipProbability(model=cnn_model, dataset=mnist, num_classes=10)
+    mp.initialize_data()
+    mp.calc_membership_probability()
 
 
 def run_amia_attack():
@@ -74,8 +82,9 @@ def main():
     # train_model()
     # load_and_test_model()
     # run_mia_attack()
+    # run_amia_attack()
 
-    run_amia_attack()
+    calculate_membership_probability()
 
 
 if __name__ == "__main__":
