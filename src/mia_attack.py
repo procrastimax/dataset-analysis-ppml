@@ -7,13 +7,15 @@ import numpy as np
 
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData, SlicingSpec, AttackType, SingleSliceSpec, SlicingFeature
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.dataset_slicing import get_slice
-
+from tensorflow_privacy.privacy.privacy_tests import utils
 import tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.plotting as plotting
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import membership_inference_attack as mia
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import advanced_mia as amia
 
 import matplotlib.pyplot as plt
 
 from os import sys
+import os
 
 
 class MiaAttack():
@@ -31,7 +33,7 @@ class MiaAttack():
         dataset : AbstractDataset
         num_classes : int | None - needed for visualizing the membership Probability
         """
-        self.cnn_model = model
+        self.cnn_model: CNNModel = model
 
         if dataset.ds_train is None:
             print("Error: Dataset needs to have an initialized train dataset!")
@@ -198,3 +200,110 @@ class MiaAttack():
                 plt.axis("off")
                 plt.imshow(low_risk_images[i])
             plt.savefig(f"low_risk_images_class_{c}.png")
+
+
+class AmiaAttack():
+    """Implementation for multi class advanced mia attack.
+
+    Labels are encoded as multi-class labels, so no one-hot encoding -> a sparse_categorical_crossentropy is used
+
+
+    Code mostly copied from: https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/privacy_tests/membership_inference_attack/advanced_mia_example.py
+    """
+
+    def __init__(self, model: CNNModel, dataset: AbstractDataset, shadow_model_dir: str = "data/models/amia/shadow_models", num_shadow_models: int = 10, num_classes: Optional[int] = None):
+        """Initialize MiaAttack class.
+
+        Paramter:
+        ---------
+        model : CNNModel
+        dataset : AbstractDataset
+        num_classes : int | None - needed for visualizing the membership Probability
+        """
+        self.cnn_model: CNNModel = model
+
+        if dataset.ds_train is None:
+            print("Error: Dataset needs to have an initialized train dataset!")
+            sys.exit(1)
+
+        if dataset.ds_test is None:
+            print("Error: Dataset needs to have an initialized test dataset!")
+            sys.exit(1)
+
+        self.ds = dataset
+        if self.ds.ds_info is not None and "classes" in self.ds.ds_info.keys():
+            self.ds_classes: int = self.ds.ds_info["classes"]
+        else:
+            if num_classes is not None:
+                self.ds_classes = num_classes
+            else:
+                print("ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
+                sys.exit(1)
+
+        self.ds_classes: int = 0
+
+        # copy training values from original model
+        self.models_dir: str = shadow_model_dir
+        self.num_shadow_models: int = num_shadow_models
+        self.learning_rate: float = self.cnn_model.learning_rate
+        self.batch_size: int = self.cnn_model.batch_size
+        self.epochs: int = self.cnn_model.epochs
+        self.momentum: float = self.cnn_model.momentum
+
+    def train_shadow_models(self):
+
+        if not os.path.exists(self.models_dir):
+            print(f"Creating directory: {self.models_dir}")
+            os.makedirs(self.models_dir)
+
+        n: int = self.ds.ds_attack_train.cardinality().numpy()
+
+        # Train the target and shadow models. We will use one of the model in `models`
+        # as target and the rest as shadow.
+        # Here we use the same architecture and optimizer. In practice, they might
+        # differ between the target and shadow models.
+        in_indices = []  # a list of in-training indices for all models
+        stat = []  # a list of statistics for all models
+        losses = []  # a list of losses for all models
+        for i in range(self.num_shadow_models):
+            model_path = os.path.join(self.models_dir,
+                                      f"shadow_model_{i}_lr{self.learning_rate}_b{self.batch_size}_e{self.epochs}")
+
+        in_indices.append(np.random.binomial(1, 0.5, n).astype(bool))
+
+    def _get_stat_and_loss_aug(self,
+                               batch_size: int,
+                               sample_weight: Optional[np.ndarray] = None):
+        """Get the statistics and losses.
+
+        Paramter
+        --------
+          model: model to make prediction
+          x: samples
+          y: true labels of samples (integer valued)
+          sample_weight: a vector of weights of shape (n_samples, ) that are
+            assigned to individual samples. If not provided, then each sample is
+            given unit weight. Only the LogisticRegressionAttacker and the
+            RandomForestAttacker support sample weights.
+          batch_size: the batch size for model.predict
+
+        Returns
+        -------
+          the statistics and cross-entropy losses
+
+        """
+        x = self.train_images
+        y = self.train_labels
+
+        losses, stat = [], []
+        for data in [x, x[:, :, ::-1, :]]:
+            prob = amia.convert_logit_to_prob(
+                self.cnn_model.model.predict(data, batch_size=batch_size))
+            losses.append(utils.log_loss(y, prob, sample_weight=sample_weight))
+            stat.append(
+                amia.calculate_statistic(
+                    prob, y, sample_weight=sample_weight))
+        return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)
+
+    def run_amia_attack(self):
+        pass

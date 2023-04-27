@@ -14,7 +14,8 @@ class CNNModel():
                  model_path: str = "data/models/cnn_model",
                  dropout: Optional[float] = 0.2,
                  learning_rate: float = 0.01,
-                 momentum: float = 0.0):
+                 momentum: float = 0.0,
+                 epochs: int = 50):
         """Initialize the model."""
         self.img_height = img_width
         self.img_width = img_width
@@ -45,6 +46,7 @@ class CNNModel():
 
         self.learning_rate: float = learning_rate
         self.momentum: float = momentum
+        self.epochs: int = epochs
 
         self.optimizer: tf.keras.optimizers.Optimizer = tf.keras.optimizers.SGD(learning_rate=self.learning_rate, momentum=self.momentum)
 
@@ -82,9 +84,8 @@ class CNNModel():
         self.model.summary()
 
     def train_model(self, train_ds: tf.data.Dataset,
-                    val_ds: tf.data.Dataset,
-                    epochs: int) -> tf.keras.callbacks.History:
-        self.history = self.model.fit(train_ds, validation_data=val_ds, epochs=epochs)
+                    val_ds: tf.data.Dataset) -> tf.keras.callbacks.History:
+        self.history = self.model.fit(train_ds, validation_data=val_ds, epochs=self.epochs)
         return self.history
 
     def test_model(self, test_ds: tf.data.Dataset):

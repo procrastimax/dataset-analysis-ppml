@@ -420,7 +420,7 @@ class AbstractDataset():
             'normed_max_entropy': normed_entropy_values[2],
         }
 
-    def _get_labels_from_ds(self, ds: tf.data.Dataset) -> np.array:
+    def _get_labels_from_ds(self, ds: tf.data.Dataset) -> np.ndarray:
         if ds is None:
             print("Error: Cannot get labels, dataset is not initialized!")
             return None
@@ -430,7 +430,7 @@ class AbstractDataset():
             labels.append(y[0])
         return np.asarray(labels)
 
-    def _get_values_from_ds(self, ds: tf.data.Dataset) -> np.array:
+    def _get_values_from_ds(self, ds: tf.data.Dataset) -> np.ndarray:
         if ds is None:
             print("Error: Cannot get values, dataset is not initialized!")
             return None
@@ -440,42 +440,42 @@ class AbstractDataset():
             values.append(x)
         return np.asarray(values)
 
-    def get_train_labels(self) -> np.array:
+    def get_train_labels(self) -> np.ndarray:
         """Get training labels as numpy array."""
         return self._get_labels_from_ds(self.ds_train)
 
-    def get_test_labels(self) -> np.array:
+    def get_test_labels(self) -> np.ndarray:
         """Get test labels as numpy array."""
         return self._get_labels_from_ds(self.ds_test)
 
-    def get_val_labels(self) -> np.array:
+    def get_val_labels(self) -> np.ndarray:
         """Get validation labels as numpy array."""
         return self._get_labels_from_ds(self.ds_val)
 
-    def get_attack_train_labels(self) -> np.array:
+    def get_attack_train_labels(self) -> np.ndarray:
         """Get attack train labels as numpy array."""
         return self._get_labels_from_ds(self.ds_attack_train)
 
-    def get_attack_test_labels(self) -> np.array:
+    def get_attack_test_labels(self) -> np.ndarray:
         """Get attack test labels as numpy array."""
         return self._get_labels_from_ds(self.ds_attack_test)
 
-    def get_train_values(self) -> np.array:
+    def get_train_values(self) -> np.ndarray:
         """Get train values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_train)
 
-    def get_test_values(self) -> np.array:
+    def get_test_values(self) -> np.ndarray:
         """Get test values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_test)
 
-    def get_val_values(self) -> np.array:
+    def get_val_values(self) -> np.ndarray:
         """Get val values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_val)
 
-    def get_attack_train_values(self) -> np.array:
+    def get_attack_train_values(self) -> np.ndarray:
         """Get attack train values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_attack_train)
 
-    def get_attack_test_values(self) -> np.array:
+    def get_attack_test_values(self) -> np.ndarray:
         """Get attack test values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_attack_test)
