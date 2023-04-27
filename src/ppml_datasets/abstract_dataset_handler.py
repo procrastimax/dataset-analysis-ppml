@@ -11,6 +11,8 @@ import scipy.stats
 import os
 import glob
 
+import math
+
 
 class GrayscaleToRgb(Layer):
     """Layer for converting 1-channel grayscale input to 3-channel rgb."""
@@ -135,6 +137,10 @@ class AbstractDataset():
             as_supervised=True,
             with_info=False
         )
+
+        if self.percentage_loaded_data != 100:
+            new_ds_size = math.ceil(len(ds) * (self.percentage_loaded_data / 100.0))
+            ds = ds.take(new_ds_size)
 
         self.ds_train, right_ds = tf.keras.utils.split_dataset(
             ds, left_size=train_split,
@@ -413,3 +419,63 @@ class AbstractDataset():
             'normed_min_entropy': normed_entropy_values[1],
             'normed_max_entropy': normed_entropy_values[2],
         }
+
+    def _get_labels_from_ds(self, ds: tf.data.Dataset) -> np.array:
+        if ds is None:
+            print("Error: Cannot get labels, dataset is not initialized!")
+            return None
+
+        labels = []
+        for _, y in ds.as_numpy_iterator():
+            labels.append(y[0])
+        return np.asarray(labels)
+
+    def _get_values_from_ds(self, ds: tf.data.Dataset) -> np.array:
+        if ds is None:
+            print("Error: Cannot get values, dataset is not initialized!")
+            return None
+
+        values = []
+        for x, _ in ds.unbatch().as_numpy_iterator():
+            values.append(x)
+        return np.asarray(values)
+
+    def get_train_labels(self) -> np.array:
+        """Get training labels as numpy array."""
+        return self._get_labels_from_ds(self.ds_train)
+
+    def get_test_labels(self) -> np.array:
+        """Get test labels as numpy array."""
+        return self._get_labels_from_ds(self.ds_test)
+
+    def get_val_labels(self) -> np.array:
+        """Get validation labels as numpy array."""
+        return self._get_labels_from_ds(self.ds_val)
+
+    def get_attack_train_labels(self) -> np.array:
+        """Get attack train labels as numpy array."""
+        return self._get_labels_from_ds(self.ds_attack_train)
+
+    def get_attack_test_labels(self) -> np.array:
+        """Get attack test labels as numpy array."""
+        return self._get_labels_from_ds(self.ds_attack_test)
+
+    def get_train_values(self) -> np.array:
+        """Get train values as unbatched numpy array."""
+        return self._get_values_from_ds(self.ds_train)
+
+    def get_test_values(self) -> np.array:
+        """Get test values as unbatched numpy array."""
+        return self._get_values_from_ds(self.ds_test)
+
+    def get_val_values(self) -> np.array:
+        """Get val values as unbatched numpy array."""
+        return self._get_values_from_ds(self.ds_val)
+
+    def get_attack_train_values(self) -> np.array:
+        """Get attack train values as unbatched numpy array."""
+        return self._get_values_from_ds(self.ds_attack_train)
+
+    def get_attack_test_values(self) -> np.array:
+        """Get attack test values as unbatched numpy array."""
+        return self._get_values_from_ds(self.ds_attack_test)
