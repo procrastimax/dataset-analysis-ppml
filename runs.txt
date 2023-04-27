@@ -1,6 +1,8 @@
 01 CNN Mnist:
     - MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=(0.75, 0.20, 0.05))
     - CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10)
+    - no dropout
+    - uses augmentation
     - Test-Acc: 0.9834285974502563
     - Adam Optimizer (default values)
 
@@ -8,7 +10,8 @@
     - MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=(0.75, 0.20, 0.05))
     - CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10)
     - Test-Acc: 0.9779999852180481
-    - dropout implemented
+    - no dropout
+    - uses augmentation
     - Adam Optimizer (default values)
 
 03 CNN Mnist:
@@ -16,6 +19,19 @@
     - CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10)
     - Test-Acc: 0.9725714325904846
     - dropout implemented
+    - uses augmentation
     - SGD Optimizer
         - lr: 0.02
         - momentum: 0.0
+    - Attack: 01
+
+04 CNN Mnist:
+    - MnistDataset([24, 24, 3], builds_ds_info=False, train_val_test_split=train_val_test_split, batch_size=batch, augment_train=False)
+    - CNNModel(img_height=24, img_width=24, color_channels=3, num_classes=10, batch_size=batch, dropout=False)
+    - Test-Acc: 0.9871428608894348
+    - no dropout implemented
+    - no augmentation
+    - SGD Optimizer
+        - lr: 0.02
+        - momentum: 0.0
+    - Attack: 02
