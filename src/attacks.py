@@ -55,7 +55,8 @@ class MiaAttack():
             if num_classes is not None:
                 self.ds_classes = num_classes
             else:
-                print("ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
+                print(
+                    "ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
                 sys.exit(1)
 
         self.logits_train = None
@@ -81,10 +82,12 @@ class MiaAttack():
     def initialize_data(self):
         """Initialize and calculate logits, probabilities and loss values for training and test sets."""
         print("Predict on train data...")
-        self.logits_train = self.cnn_model.model.predict(self.ds.ds_attack_train, batch_size=self.cnn_model.batch_size)
+        self.logits_train = self.cnn_model.model.predict(
+            self.ds.ds_attack_train, batch_size=self.cnn_model.batch_size)
 
         print("Predict on unseen test data...")
-        self.logits_test = self.cnn_model.model.predict(self.ds.ds_attack_test, batch_size=self.cnn_model.batch_size)
+        self.logits_test = self.cnn_model.model.predict(
+            self.ds.ds_attack_test, batch_size=self.cnn_model.batch_size)
 
         print("Apply softmax to get probabilities from logits")
         self.prob_train = special.softmax(self.logits_train, axis=1)
@@ -99,8 +102,10 @@ class MiaAttack():
         self.test_images = self.ds.get_attack_test_values()
 
         print("Compute losses")
-        self.loss_train = self.scce(self.constant(self.train_labels), self.constant(self.prob_train), from_logits=False).numpy()
-        self.loss_test = self.scce(self.constant(self.test_labels), self.constant(self.prob_test), from_logits=False).numpy()
+        self.loss_train = self.scce(self.constant(self.train_labels),
+                                    self.constant(self.prob_train), from_logits=False).numpy()
+        self.loss_test = self.scce(self.constant(self.test_labels),
+                                   self.constant(self.prob_test), from_logits=False).numpy()
 
         # Suppose we have the labels as integers starting from 0
         # labels_train  shape: (n_train, )
@@ -190,7 +195,8 @@ class MembershipProbability():
             if num_classes is not None:
                 self.ds_classes = num_classes
             else:
-                print("ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
+                print(
+                    "ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
                 sys.exit(1)
 
         self.logits_train = None
@@ -216,10 +222,12 @@ class MembershipProbability():
     def initialize_data(self):
         """Initialize and calculate logits, probabilities and loss values for training and test sets."""
         print("Predict on train data...")
-        self.logits_train = self.cnn_model.model.predict(self.ds.ds_attack_train, batch_size=self.cnn_model.batch_size)
+        self.logits_train = self.cnn_model.model.predict(
+            self.ds.ds_attack_train, batch_size=self.cnn_model.batch_size)
 
         print("Predict on unseen test data...")
-        self.logits_test = self.cnn_model.model.predict(self.ds.ds_attack_test, batch_size=self.cnn_model.batch_size)
+        self.logits_test = self.cnn_model.model.predict(
+            self.ds.ds_attack_test, batch_size=self.cnn_model.batch_size)
 
         print("Apply softmax to get probabilities from logits")
         self.prob_train = special.softmax(self.logits_train, axis=1)
@@ -234,8 +242,10 @@ class MembershipProbability():
         self.test_images = self.ds.get_attack_test_values()
 
         print("Compute losses")
-        self.loss_train = self.scce(self.constant(self.train_labels), self.constant(self.prob_train), from_logits=False).numpy()
-        self.loss_test = self.scce(self.constant(self.test_labels), self.constant(self.prob_test), from_logits=False).numpy()
+        self.loss_train = self.scce(self.constant(self.train_labels),
+                                    self.constant(self.prob_train), from_logits=False).numpy()
+        self.loss_test = self.scce(self.constant(self.test_labels),
+                                   self.constant(self.prob_test), from_logits=False).numpy()
 
         self.input = AttackInputData(
             logits_train=self.logits_train,
@@ -259,7 +269,8 @@ class MembershipProbability():
                                    by_percentiles=False,
                                    by_classification_correctness=False)  # setting this to True, somehow does not work
 
-        membership_probability_results = mia.run_membership_probability_analysis(self.input, slicing_spec=slicing_spec)
+        membership_probability_results = mia.run_membership_probability_analysis(
+            self.input, slicing_spec=slicing_spec)
         print(membership_probability_results.summary(threshold_list=[1, 0.9, 0.8, 0.7, 0.6, 0.5]))
 
         if plot_training_samples:
@@ -273,10 +284,12 @@ class MembershipProbability():
             class_input_slice = get_slice(self.input, class_slice_spec)
             class_dataset_idx = np.argwhere(self.input.labels_train == c).flatten()
 
-            class_train_membership_probs = mia._compute_membership_probability(class_input_slice).train_membership_probs
+            class_train_membership_probs = mia._compute_membership_probability(
+                class_input_slice).train_membership_probs
 
             class_high_risk_idx = np.argsort(class_train_membership_probs)[::-1][:num_images]
-            class_low_risk_idx = np.argsort(np.absolute(class_train_membership_probs - 0.5))[:num_images]
+            class_low_risk_idx = np.argsort(np.absolute(
+                class_train_membership_probs - 0.5))[:num_images]
 
             high_risk_images = self.train_images[class_dataset_idx[class_high_risk_idx]]
             low_risk_images = self.train_images[class_dataset_idx[class_low_risk_idx]]
@@ -331,7 +344,8 @@ class AmiaAttack():
             if num_classes is not None:
                 self.ds_classes = num_classes
             else:
-                print("ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
+                print(
+                    "ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
                 sys.exit(1)
 
         self.num_shadow_models = num_shadow_models
@@ -372,7 +386,8 @@ class AmiaAttack():
                                       f"cnn_model_{i}_lr{self.cnn_model.learning_rate}_b{self.cnn_model.batch_size}_e{self.cnn_model.epochs}")
 
             # Generate a binary array indicating which example to include for training
-            self.in_indices.append(np.random.binomial(1, 0.5, self.num_training_samples).astype(bool))
+            self.in_indices.append(np.random.binomial(
+                1, 0.5, self.num_training_samples).astype(bool))
 
             # we want to create an exact copy of the already trained model, but change model path
             shadow_model: CNNModel = copy.copy(self.cnn_model)
@@ -402,7 +417,8 @@ class AmiaAttack():
                 shadow_model.save_model()
                 print(f"Trained and saved model: {model_path}")
 
-            stat_temp, loss_temp = self._get_stat_and_loss_aug(shadow_model, train_values, train_labels, sample_weight=self.sample_weight)
+            stat_temp, loss_temp = self._get_stat_and_loss_aug(
+                shadow_model, train_values, train_labels, sample_weight=self.sample_weight)
             self.stat.append(stat_temp)
             self.losses.append(loss_temp)
 
@@ -432,8 +448,10 @@ class AmiaAttack():
             # (2 in our case).
             stat_shadow = np.array(self.stat[:idx] + self.stat[idx + 1:])
             in_indices_shadow = np.array(self.in_indices[:idx] + self.in_indices[idx + 1:])
-            stat_in = [stat_shadow[:, j][in_indices_shadow[:, j]] for j in range(self.num_training_samples)]
-            stat_out = [stat_shadow[:, j][~in_indices_shadow[:, j]] for j in range(self.num_training_samples)]
+            stat_in = [stat_shadow[:, j][in_indices_shadow[:, j]]
+                       for j in range(self.num_training_samples)]
+            stat_out = [stat_shadow[:, j][~in_indices_shadow[:, j]]
+                        for j in range(self.num_training_samples)]
 
             # compute the scores and use them for  MIA
             scores = amia.compute_score_lira(stat_target, stat_in, stat_out, fix_variance=True)
@@ -475,18 +493,18 @@ class AmiaAttack():
                   f'auc = {result_baseline.get_auc():.4f}',
                   f'adv = {result_baseline.get_attacker_advantage():.4f}')
 
-            if plot_auc_curve:
-                print("Generating AUC curve plot")
-                # Plot and save the AUC curves for the three methods.
-                _, ax = plt.subplots(1, 1, figsize=(5, 5))
-                for res, title in zip([result_baseline, result_lira, result_offset],
-                                      ['baseline', 'LiRA', 'offset']):
-                    label = f'{title} auc={res.get_auc():.4f}'
-                    plotting.plot_roc_curve(
-                        res.roc_curve,
-                        functools.partial(self._plot_curve_with_area, ax=ax, label=label))
-                plt.legend()
-                plt.savefig(plot_filename)
+        if plot_auc_curve:
+            print("Generating AUC curve plot")
+            # Plot and save the AUC curves for the three methods.
+            _, ax = plt.subplots(1, 1, figsize=(5, 5))
+            for res, title in zip([result_baseline, result_lira, result_offset],
+                                  ['baseline', 'LiRA', 'offset']):
+                label = f'{title} auc={res.get_auc():.4f}'
+                plotting.plot_roc_curve(
+                    res.roc_curve,
+                    functools.partial(self._plot_curve_with_area, ax=ax, label=label))
+            plt.legend()
+            plt.savefig(plot_filename)
 
     def _get_stat_and_loss_aug(self,
                                cnn_model: CNNModel,
