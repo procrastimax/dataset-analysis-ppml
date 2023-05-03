@@ -1,9 +1,11 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from keras.regularizers import l2
+from keras.callbacks import EarlyStopping
+import numpy as np
 
-from typing import List, Optional
-
+from typing import List, Optional, Union
 from dataclasses import dataclass, field
 
 
@@ -27,7 +29,10 @@ class CNNModel():
     dense_activation: str = "relu"
     dropout: Optional[float] = None
     learning_rate: float = 0.01
-    momentum: float = 0.0
+    l2_regularization: float = 0.0005
+    use_l2: bool = True
+    use_early_stopping: bool = True
+    momentum: float = 0.09
     epochs: int = 50
 
     model: keras.Sequential = field(init=False, repr=False, default=keras.Sequential())
@@ -42,15 +47,29 @@ class CNNModel():
 
         for (i, (filter_dim, kernel_dim)) in enumerate(zip(self.filter_dim_list,
                                                            self.kernel_dim_list)):
-            self.model.add(layers.Conv2D(filter_dim, kernel_dim,
-                                         padding=self.padding, activation=self.conv_activation))
+
+            if self.use_l2:
+                self.model.add(layers.Conv2D(filter_dim, kernel_dim,
+                                             padding=self.padding, activation=self.conv_activation,
+                                             kernel_regularizer=l2(self.l2_regularization),
+                                             bias_regularizer=l2(self.l2_regularization)))
+            else:
+                self.model.add(layers.Conv2D(filter_dim, kernel_dim,
+                                             padding=self.padding, activation=self.conv_activation))
+
             self.model.add(layers.MaxPooling2D())
 
         if self.dropout is not None:
             self.model.add(layers.Dropout(self.dropout))
 
         self.model.add(layers.Flatten())
-        self.model.add(layers.Dense(self.dense_layer_dimension, activation=self.dense_activation))
+        if self.use_l2:
+            self.model.add(layers.Dense(self.dense_layer_dimension, activation=self.dense_activation,
+                                        kernel_regularizer=l2(self.l2_regularization),
+                                        bias_regularizer=l2(self.l2_regularization)))
+        else:
+            self.model.add(layers.Dense(self.dense_layer_dimension, activation=self.dense_activation))
+
         self.model.add(layers.Dense(self.num_classes))
 
     def compile_model(self):
@@ -77,9 +96,15 @@ class CNNModel():
         print("Model summary:")
         self.model.summary()
 
-    def train_model(self, train_ds: tf.data.Dataset,
-                    val_ds: tf.data.Dataset) -> tf.keras.callbacks.History:
-        self.history = self.model.fit(train_ds, validation_data=val_ds, epochs=self.epochs)
+    def train_model(self, train_ds: Optional[Union[tf.data.Dataset, np.ndarray]] = None,
+                    y: Optional[np.ndarray] = None,
+                    val_ds: Optional[Union[tf.data.Dataset]] = None,
+                    val_split: Optional[float] = None) -> tf.keras.callbacks.History:
+
+        es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10, restore_best_weights=True)
+
+        self.history = self.model.fit(x=train_ds, y=y, validation_data=val_ds, validation_split=val_split, epochs=self.epochs, callbacks=[es])
+
         return self.history
 
     def test_model(self, test_ds: tf.data.Dataset):

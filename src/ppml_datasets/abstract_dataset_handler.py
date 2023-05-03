@@ -13,46 +13,12 @@ import os
 import math
 
 
-class GrayscaleToRgb(Layer):
-    """Layer for converting 1-channel grayscale input to 3-channel rgb."""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def call(self, x):
-        return tf.image.grayscale_to_rgb(x)
-
-
-class RandomBrightness(Layer):
-    """Layer for random brightness augmentation in images."""
-
-    def __init__(self, factor=0.1, **kwargs):
-        super().__init__(**kwargs)
-        self.factor = factor
-
-    def call(self, x):
-        return tf.image.random_brightness(x, max_delta=self.factor)
-
-
-class ModelPreprocessing(Layer):
-    """Layer for specific model preprocessing steps."""
-
-    def __init__(self, pre_func: Callable[[float], tf.Tensor], **kwargs):
-        super().__init__(**kwargs)
-        self.pre_func = pre_func
-
-    def call(self, x):
-        return self.pre_func(x)
-
-
 @dataclass(eq=True, frozen=False)
 class AbstractDataset():
-    # image shape needed for the model (used for rescaling)
     dataset_name: str
     dataset_path: Optional[str]
     # shape that the dataset should be transformed to
     model_img_shape: Tuple[int, int, int]
-    train_val_test_split: Tuple[float, float, float]
 
     batch_size: int
     convert_to_rgb: bool
@@ -66,25 +32,28 @@ class AbstractDataset():
     # model specific preprocessing for the dataset like: tf.keras.applications.resnet50.preprocess_input
     preprocessing_function: Optional[Callable[[float], tf.Tensor]] = None
 
-    imbalance_ratio: Optional[float] = None
     variants: Optional[List[Dict]] = None
 
     # image shape of the original dataset data (currently has no real function but interesting to know)
     dataset_img_shape: Optional[Tuple[int, int, int]] = None
-    # optionally providable class_names, only for cosmtig purposes when printing out ds_info
+    # optionally providable class_names, only for cosmetic purposes when printing out ds_info
     class_names: Optional[List[str]] = None
-    random_rotation: float = 0.1
-    random_zoom: float = 0.15
-    random_flip: str = "horizontal"
-    random_brightness: float = 0.1
-    random_translation_width: float = 0.1
-    random_translation_height: float = 0.1
+
+    random_rotation: Optional[float] = 0.1
+    random_zoom: Optional[float] = 0.15
+    random_flip: Optional[str] = "horizontal"
+    random_brightness: Optional[float] = 0.1
+    random_translation_width: Optional[float] = 0.1
+    random_translation_height: Optional[float] = 0.1
+
     random_seed: int = 42
     repeat: bool = False
 
     class_labels: Optional[Tuple[Any]] = None
     class_counts: Optional[Tuple[int]] = None
     class_distribution: Optional[Tuple[int]] = None
+
+    train_val_test_split: Tuple[float, float, float] = field(init=False)
 
     # TODO: make this a dataclass instead of dict -> since we need the attributes well defined through the code
     ds_info: Dict[str, Any] = field(init=False, default_factory=dict)
@@ -94,9 +63,6 @@ class AbstractDataset():
 
     ds_attack_train: tf.data.Dataset = field(init=False, repr=False, default=None)
     ds_attack_test: tf.data.Dataset = field(init=False, repr=False, default=None)
-
-    # how much of the data should get loaded -> currently only works for tfds datasets!
-    percentage_loaded_data: int = field(default=100)
 
     def _load_dataset(self):
         """Load dataset from tfds library.
@@ -120,30 +86,64 @@ class AbstractDataset():
             print("Cannot load dataset from tfds since it is not a tfds dataset!")
             return
 
-        train_split = self.train_val_test_split[0]
-        val_split = self.train_val_test_split[1]
-        test_split = self.train_val_test_split[2]
-
         if self.dataset_path is not None:
             data_dir = os.path.join(self.dataset_path, self.dataset_name)
         else:
             data_dir = None
 
-        ds = tfds.load(
+        ds_dict: dict = tfds.load(
             name=self.dataset_name,
             data_dir=data_dir,
-            split="all",
             as_supervised=True,
             with_info=False
         )
 
-        if self.percentage_loaded_data != 100:
+        if "val" in ds_dict.keys():
+            self.ds_val = ds_dict["val"]
+            print("Loaded validation DS")
+        if "test" in ds_dict.keys():
+            self.ds_test = ds_dict["test"]
+            print("Loaded test DS")
+        if "train" in ds_dict.keys():
+            self.ds_train = ds_dict["train"]
+            print("Loaded train DS")
+
+    def split_val_from_train(self, val_split: float = 0.3) -> Tuple[int, int]:
+        """Split train dataset into validation and train dataset.
+
+        Returns new length of train and validation DS
+        """
+        self.ds_train, self.ds_val = tf.keras.utils.split_dataset(
+            self.ds_train, right_size=val_split,
+            shuffle=True, seed=self.random_seed)
+
+        return (len(self.ds_train), len(self.ds_val))
+
+    def resplit_datasets(self, train_val_test_split: Tuple[float, float, float], percentage_loaded_data: int = 100):
+        """Resplits all datasets (train, val, test) into new split values.
+
+        First all current datasets are merged into one, than the datasets are resplitted into the specified split parts.
+        If percentage_loaded_data is specified, than only this fraction of the merged dataset is used for splitting,
+        effectively reducing the number of samples in each dataset.
+        """
+        ds = self.ds_train
+        if self.ds_test is not None:
+            ds = ds.concatenate(self.ds_test)
+
+        if self.ds_val is not None:
+            ds = ds.concatenate(self.ds_val)
+
+        if percentage_loaded_data != 100:
             new_ds_size = math.ceil(len(ds) * (self.percentage_loaded_data / 100.0))
             ds = ds.take(new_ds_size)
 
+        train_split = self.train_val_test_split[0]
+        val_split = self.train_val_test_split[1]
+        test_split = self.train_val_test_split[2]
+
         self.ds_train, right_ds = tf.keras.utils.split_dataset(
             ds, left_size=train_split,
-            shuffle=False, seed=self.random_seed)
+            shuffle=True, seed=self.random_seed)
 
         if val_split == 0.0:
             self.ds_test = right_ds
@@ -153,6 +153,37 @@ class AbstractDataset():
             # shuffling once should be enough
             self.ds_val, self.ds_test = tf.keras.utils.split_dataset(
                 right_ds, left_size=val_split / (val_split + test_split), shuffle=False)
+
+    def set_augmentation_parameter(self, random_flip: Optional[str],
+                                   random_rotation: Optional[float] = 0.1,
+                                   random_zoom: Optional[float] = 0.15,
+                                   random_brightness: Optional[float] = 0.1,
+                                   random_translation_width: Optional[float] = 0.1,
+                                   random_translation_height: Optional[float] = 0.1):
+        self.random_flip = random_flip
+        self.random_rotation = random_rotation
+        self.random_zoom = random_zoom
+        self.random_brightness = random_brightness
+        self.random_translation_height = random_translation_height
+        self.random_translation_width = random_translation_width
+
+    def merge_all_datasets(self, percentage_loaded_data: int = 100) -> tf.data.Dataset:
+        """Merge all datasets (train, val, test) into train dataset.
+
+        A percentage can be specified, than only this percentage of the old data is used for the new train_ds after merging.
+        """
+        ds = self.ds_train
+        if self.ds_test is not None:
+            ds = ds.concatenate(self.ds_test)
+
+        if self.ds_val is not None:
+            ds = ds.concatenate(self.ds_val)
+
+        if percentage_loaded_data != 100:
+            new_ds_size = math.ceil(len(ds) * (self.percentage_loaded_data / 100.0))
+            ds = ds.take(new_ds_size)
+
+        self.ds_train = ds
 
     def set_class_names(self, class_names: List[str]):
         self.class_names = class_names
@@ -254,15 +285,24 @@ class AbstractDataset():
             ds = ds.batch(batch_size)
 
         if augment:
-            augmenter = tf.keras.Sequential([
-                RandomFlip(self.random_flip),
-                RandomRotation(self.random_rotation, fill_mode="constant"),
-                RandomTranslation(self.random_translation_height,
-                                  self.random_translation_width, fill_mode="constant"),
-                RandomZoom(self.random_zoom, fill_mode="constant"),
-                RandomBrightness(self.random_brightness),
-            ])
-            ds = ds.map(lambda x, y: (augmenter(x, training=True), y),
+            augmentation_layers = tf.keras.models.Sequential()
+
+            if self.random_flip:
+                augmentation_layers.add(RandomFlip(self.random_flip))
+
+            if self.random_rotation:
+                augmentation_layers.add(RandomRotation(self.random_rotation, fill_mode="constant"))
+
+            if self.random_translation_width and self.random_translation_height:
+                augmentation_layers.add(RandomTranslation(self.random_translation_height,
+                                                          self.random_translation_width, fill_mode="constant"))
+            if self.random_zoom:
+                augmentation_layers.add(RandomZoom(self.random_zoom, fill_mode="constant"))
+
+            if self.random_brightness:
+                augmentation_layers.add(RandomBrightness(self.random_brightness))
+
+            ds = ds.map(lambda x, y: (augmentation_layers(x, training=True), y),
                         num_parallel_calls=AUTOTUNE)
 
         # Use buffered prefetching on all datasets.
@@ -494,3 +534,38 @@ class AbstractDataset():
     def get_attack_test_values(self) -> np.ndarray:
         """Get unbatched attack test values as unbatched numpy array."""
         return self._get_values_from_ds(self.ds_attack_test)
+
+
+class GrayscaleToRgb(Layer):
+    """Layer for converting 1-channel grayscale input to 3-channel rgb."""
+
+    def __init__(self, **kwargs):
+        """Initialize GrayscaleToRgb layer."""
+        super().__init__(**kwargs)
+
+    def call(self, x):
+        return tf.image.grayscale_to_rgb(x)
+
+
+class RandomBrightness(Layer):
+    """Layer for random brightness augmentation in images."""
+
+    def __init__(self, factor=0.1, **kwargs):
+        """Initialize RandomBrightness layer."""
+        super().__init__(**kwargs)
+        self.factor = factor
+
+    def call(self, x):
+        return tf.image.random_brightness(x, max_delta=self.factor)
+
+
+class ModelPreprocessing(Layer):
+    """Layer for specific model preprocessing steps."""
+
+    def __init__(self, pre_func: Callable[[float], tf.Tensor], **kwargs):
+        """Initialize layer for model preprocessing."""
+        super().__init__(**kwargs)
+        self.pre_func = pre_func
+
+    def call(self, x):
+        return self.pre_func(x)

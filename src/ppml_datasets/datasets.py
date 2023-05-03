@@ -14,23 +14,19 @@ class MnistDataset(AbstractDataset):
                  builds_ds_info: bool = False,
                  batch_size: int = 32,
                  preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
-                 train_val_test_split: Tuple[float, float, float] = (0.7, 0.2, 0.1),
                  augment_train: bool = True,
-                 percentage_loaded_data: int = 100):
+                 dataset_path: str = "data"):
         """Initialize the MNIST dataset from AbstractDataset class."""
         super().__init__(dataset_name="mnist",
-                         dataset_path="data",
+                         dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
                          model_img_shape=model_img_shape,
-                         train_val_test_split=train_val_test_split,
                          batch_size=batch_size,
-                         imbalance_ratio=1.5,
                          convert_to_rgb=True,
                          augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
                          shuffle=True, is_tfds_ds=True,
-                         builds_ds_info=builds_ds_info,
-                         percentage_loaded_data=percentage_loaded_data)
+                         builds_ds_info=builds_ds_info)
 
         variants: List[Dict[str, Optional[str]]] = [
             {'activation': 'relu', 'pretraining': None},
@@ -45,19 +41,19 @@ class FashionMnistDataset(AbstractDataset):
     def __init__(self, model_img_shape: Tuple[int, int, int],
                  builds_ds_info: bool = False,
                  batch_size: int = 32,
-                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None):
-        """Initialize the fashion MNIST dataset from AbstractDataset class."""
-        super().__init__(dataset_name="fashion_mnist",
-                         dataset_path="data",
+                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
+                 augment_train: bool = True,
+                 dataset_path: str = "data"):
+        """Initialize the FMNIST dataset from AbstractDataset class."""
+        super().__init__(dataset_name="fmnist",
+                         dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
                          model_img_shape=model_img_shape,
-                         train_val_test_split=(1, 0, 1),
                          batch_size=batch_size,
                          convert_to_rgb=True,
-                         augment_train=True,
+                         augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True,
-                         is_tfds_ds=True,
+                         shuffle=True, is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
 
@@ -65,19 +61,19 @@ class Cifar10Dataset(AbstractDataset):
     def __init__(self, model_img_shape: Tuple[int, int, int],
                  builds_ds_info: bool = False,
                  batch_size: int = 32,
-                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None):
-        """Initialize the Cifar100 dataset from AbstractDataset class."""
+                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
+                 augment_train: bool = True,
+                 dataset_path: str = "data"):
+        """Initialize the CIFAR10 dataset from AbstractDataset class."""
         super().__init__(dataset_name="cifar10",
-                         dataset_path="data",
+                         dataset_path=dataset_path,
                          dataset_img_shape=(32, 32, 3),
                          model_img_shape=model_img_shape,
-                         train_val_test_split=(1, 0, 1),
                          batch_size=batch_size,
                          convert_to_rgb=False,
-                         augment_train=True,
+                         augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True,
-                         is_tfds_ds=True,
+                         shuffle=True, is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
 
@@ -85,19 +81,19 @@ class Cifar100Dataset(AbstractDataset):
     def __init__(self, model_img_shape: Tuple[int, int, int],
                  builds_ds_info: bool = False,
                  batch_size: int = 32,
-                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None):
-        """Initialize the Cifar100 dataset from AbstractDataset class."""
+                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
+                 augment_train: bool = True,
+                 dataset_path: str = "data"):
+        """Initialize the CIFAR100 dataset from AbstractDataset class."""
         super().__init__(dataset_name="cifar100",
-                         dataset_path="data",
+                         dataset_path=dataset_path,
                          dataset_img_shape=(32, 32, 3),
                          model_img_shape=model_img_shape,
-                         train_val_test_split=(1, 0, 1),
                          batch_size=batch_size,
                          convert_to_rgb=False,
-                         augment_train=True,
+                         augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True,
-                         is_tfds_ds=True,
+                         shuffle=True, is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
 
