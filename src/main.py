@@ -12,7 +12,7 @@ dropout: float = 0.2
 learning_rate: float = 0.1
 weight_decay: Optional[float] = 0.0005
 
-run_number: int = 3
+run_number: int = 1
 model_name: str = f"r{run_number}_cifar10_e{epochs}_lr{learning_rate}_wd{weight_decay}"
 
 data_path: str = "data"
@@ -75,18 +75,20 @@ def load_and_test_model():
 def run_amia_attack():
     ds.load_dataset()
     ds.prepare_datasets()
-    cnn_model.load_model()
 
-    amia = AmiaAttack(model=cnn_model, dataset=ds, num_classes=10, num_shadow_models=1)
+    shadow_model_save_path: str = os.path.join(data_path, model_path, "shadow_models", "cifar10", str(run_number))
+
+    amia = AmiaAttack(model=cnn_model, dataset=ds, num_classes=10,
+                      num_shadow_models=10, shadow_model_dir=shadow_model_save_path,
+                      run_name=str(run_number))
     amia.train_load_shadow_models()
     amia.attack_shadow_models_mia()
 
 
 def main():
-    train_model()
-    load_and_test_model()
-
-    # run_amia_attack()
+    # train_model()
+    # load_and_test_model()
+    run_amia_attack()
 
 
 if __name__ == "__main__":

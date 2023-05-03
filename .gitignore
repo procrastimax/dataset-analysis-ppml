@@ -3,3 +3,4 @@ data/
 src/__pycache__/
 src/ppml_datasets/__pycache__/
 *.png
+*.pckl

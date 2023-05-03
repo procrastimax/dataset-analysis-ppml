@@ -30,6 +30,7 @@ class CNNModel():
     dense_activation: str = "relu"
     dropout: Optional[float] = None
     learning_rate: float = 0.01
+    adam_epsilon: float = 0.1
     l2_regularization: Optional[float] = None
     weight_decay: Optional[float] = None
     epochs: int = 50
@@ -41,7 +42,7 @@ class CNNModel():
     model: keras.Sequential = field(init=False, repr=False, default=keras.Sequential())
     history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
     # optimizer: tf.keras.optimizers.Optimizer = field(init=False, default=tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum, weight_decay=weight_decay))
-    optimizer: tf.keras.optimizers.Optimizer = field(init=False, default=tf.keras.optimizers.Adam(learning_rate=learning_rate, epsilon=0.1, weight_decay=weight_decay))
+    optimizer: tf.keras.optimizers.Optimizer = field(init=False, default=tf.keras.optimizers.Adam(learning_rate=learning_rate, epsilon=adam_epsilon, weight_decay=weight_decay))
 
     def build_model(self):
         print("Building model")
@@ -92,7 +93,8 @@ class CNNModel():
         Should only be called after a copy of CNNModel class was created.
         """
         self.model = keras.Sequential()
-        self.optimizer = tf.keras.optimizers.SGD(learning_rate=self.learning_rate, momentum=self.momentum)
+        # self.optimizer = tf.keras.optimizers.SGD(learning_rate=self.learning_rate, momentum=self.momentum)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate, epsilon=self.adam_epsilon, weight_decay=self.weight_decay)
         self.history = None
 
     def build_compile(self):
@@ -104,7 +106,8 @@ class CNNModel():
         print("Model summary:")
         self.model.summary()
 
-    def train_model(self, train_ds: Optional[Union[tf.data.Dataset, np.ndarray]] = None,
+    def train_model(self,
+                    train_ds: Optional[Union[tf.data.Dataset, np.ndarray]] = None,
                     y: Optional[np.ndarray] = None,
                     val_ds: Optional[Union[tf.data.Dataset]] = None,
                     val_split: Optional[float] = None) -> tf.keras.callbacks.History:
@@ -114,7 +117,7 @@ class CNNModel():
             es = EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
-        self.history = self.model.fit(x=train_ds, y=y, validation_data=val_ds, validation_split=val_split, epochs=self.epochs, callbacks=callback_list)
+        self.history = self.model.fit(x=train_ds, y=None, validation_data=val_ds, validation_split=val_split, epochs=self.epochs, callbacks=callback_list)
 
         return self.history
 
