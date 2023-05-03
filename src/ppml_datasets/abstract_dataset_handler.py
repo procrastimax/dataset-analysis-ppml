@@ -20,7 +20,7 @@ class AbstractDataset():
     # shape that the dataset should be transformed to
     model_img_shape: Tuple[int, int, int]
 
-    batch_size: int
+    batch_size: Optional[int]
     convert_to_rgb: bool
     augment_train: bool
 
