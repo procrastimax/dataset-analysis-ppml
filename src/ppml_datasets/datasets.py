@@ -45,7 +45,7 @@ class FashionMnistDataset(AbstractDataset):
                  augment_train: bool = True,
                  dataset_path: str = "data"):
         """Initialize the FMNIST dataset from AbstractDataset class."""
-        super().__init__(dataset_name="fmnist",
+        super().__init__(dataset_name="fashion_mnist",
                          dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
                          model_img_shape=model_img_shape,
