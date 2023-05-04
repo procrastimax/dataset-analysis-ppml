@@ -1,4 +1,4 @@
-from ppml_datasets import Cifar10Dataset
+from ppml_datasets import Cifar10Dataset, Cifar100Dataset
 from model import CNNModel
 from util import visualize_training
 from attacks import AmiaAttack
@@ -8,31 +8,31 @@ from typing import Optional
 
 epochs: int = 500
 batch: int = 256
-dropout: float = 0.2
-learning_rate: float = 0.1
-weight_decay: Optional[float] = 0.0005
+dropout: float = 0.4
+learning_rate: float = 0.001
+weight_decay: Optional[float] = 0.01
+model_name: str = "cifar100"
 
 run_number: int = 1
-model_name: str = f"r{run_number}_cifar10_e{epochs}_lr{learning_rate}_wd{weight_decay}"
+model_name: str = f"r{run_number}_{model_name}_e{epochs}_lr{learning_rate}_wd{weight_decay}"
 
 data_path: str = "data"
 model_path: str = "model"
 model_save_path: str = os.path.join(data_path, model_path, model_name)
 
-# ds = MnistDataset([27, 27, 3], builds_ds_info=False, batch_size=batch)
-ds = Cifar10Dataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
+# ds = MnistDataset([27, 27, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
+ds = Cifar100Dataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
+# ds = Cifar10Dataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
 
-cnn_model = CNNModel(img_height=32, img_width=32, color_channels=3, num_classes=10,
+cnn_model = CNNModel(img_height=32, img_width=32, color_channels=3,
+                     num_classes=100,
                      batch_size=batch,
                      dropout=dropout,
                      model_path=model_save_path,
                      epochs=epochs,
                      learning_rate=learning_rate,
-                     l2_regularization=None,
-                     filter_dim_list=[32, 64, 128],
-                     kernel_dim_list=[3, 3, 3],
-                     dense_layer_dimension=128,
-                     patience=100,
+                     dense_layer_dimension=512,
+                     patience=75,
                      use_early_stopping=True,
                      weight_decay=weight_decay)
 

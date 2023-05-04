@@ -1,12 +1,10 @@
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
-from keras.layers import Dropout, Dense, Conv2D, MaxPooling2D, RandomFlip, RandomTranslation
-from keras.regularizers import l2
+from keras.layers import Dropout, Dense, Conv2D, RandomFlip, RandomTranslation, Flatten, AveragePooling2D
 from keras.callbacks import EarlyStopping
 import numpy as np
 
-from typing import List, Optional, Union
+from typing import Optional, Union
 from dataclasses import dataclass, field
 
 
@@ -19,19 +17,14 @@ class CNNModel():
     batch_size: int
     model_path: str = "data/models/cnn_model"
 
-    # sequential list of convolutional filter dimensions
-    filter_dim_list: List[int] = field(default_factory=lambda: [16, 32, 64])
-    # sequential list of convolutional kernel dimensions
-    kernel_dim_list: List[int] = field(default_factory=lambda: [3, 3, 3])
     dense_layer_dimension: int = 128
 
     padding: str = "valid"
     conv_activation: str = "relu"
     dense_activation: str = "relu"
+    leaky_relu_activation = tf.keras.layers.LeakyReLU(alpha=0.01)
     dropout: Optional[float] = None
-    learning_rate: float = 0.01
-    adam_epsilon: float = 0.1
-    l2_regularization: Optional[float] = None
+    learning_rate: float = 0.001
     weight_decay: Optional[float] = None
     epochs: int = 50
 
@@ -42,15 +35,10 @@ class CNNModel():
     model: keras.Sequential = field(init=False, repr=False, default=keras.Sequential())
     history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
     # optimizer: tf.keras.optimizers.Optimizer = field(init=False, default=tf.keras.optimizers.SGD(learning_rate=learning_rate, momentum=momentum, weight_decay=weight_decay))
-    optimizer: tf.keras.optimizers.Optimizer = field(init=False, default=tf.keras.optimizers.Adam(learning_rate=learning_rate, epsilon=adam_epsilon, weight_decay=weight_decay))
+    optimizer: tf.keras.optimizers.Optimizer = field(init=False, default=tf.keras.optimizers.Adam(learning_rate=learning_rate, weight_decay=weight_decay))
 
     def build_model(self):
         print("Building model")
-
-        if self.l2_regularization:
-            regularizer = l2(self.l2_regularization)
-        else:
-            regularizer = None
 
         self.model.add(keras.Input(shape=(self.img_height, self.img_width,
                                           self.color_channels), batch_size=self.batch_size))
@@ -58,23 +46,24 @@ class CNNModel():
         self.model.add(RandomFlip(mode="horizontal"))
         self.model.add(RandomTranslation(height_factor=0.075, width_factor=0.075))
 
-        for (i, (filter_dim, kernel_dim)) in enumerate(zip(self.filter_dim_list,
-                                                           self.kernel_dim_list)):
+        self.model.add(Conv2D(32, (3, 3),
+                              padding=self.padding,
+                              activation=self.conv_activation))
+        self.model.add(AveragePooling2D((2, 2)))
 
-            self.model.add(Conv2D(filter_dim, kernel_dim,
-                                  padding=self.padding, activation=self.conv_activation,
-                                  kernel_regularizer=regularizer,
-                                  bias_regularizer=regularizer))
-            self.model.add(MaxPooling2D())
+        self.model.add(Conv2D(64, (3, 3),
+                              padding=self.padding,
+                              activation=self.conv_activation))
+        self.model.add(AveragePooling2D((2, 2)))
 
-        self.model.add(layers.Flatten())
+        self.model.add(Conv2D(64, (3, 3),
+                              padding=self.padding,
+                              activation=self.conv_activation))
 
-        self.model.add(Dropout(self.dropout))
+        self.model.add(Flatten())
 
         self.model.add(Dense(self.dense_layer_dimension,
-                             activation=self.dense_activation,
-                             kernel_regularizer=regularizer,
-                             bias_regularizer=regularizer))
+                             activation=self.dense_activation))
 
         self.model.add(Dropout(self.dropout))
 
@@ -96,8 +85,7 @@ class CNNModel():
         Should only be called after a copy of CNNModel class was created.
         """
         self.model = keras.Sequential()
-        # self.optimizer = tf.keras.optimizers.SGD(learning_rate=self.learning_rate, momentum=self.momentum)
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate, epsilon=self.adam_epsilon, weight_decay=self.weight_decay)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate, weight_decay=self.weight_decay)
         self.history = None
 
     def build_compile(self):
@@ -115,7 +103,7 @@ class CNNModel():
 
         callback_list = []
         if self.use_early_stopping:
-            es = EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=self.patience, restore_best_weights=True)
+            es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
         self.history = self.model.fit(x=train_ds, validation_data=val_ds, epochs=self.epochs, callbacks=callback_list)
