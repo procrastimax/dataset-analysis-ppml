@@ -9,8 +9,9 @@ from collections import defaultdict
 from typing import Tuple, Dict, Any, Optional, List, Union, Callable
 import scipy.stats
 import os
-
 import math
+
+from ppml_datasets.utils import get_ds_as_numpy
 
 
 @dataclass(eq=True, frozen=False)
@@ -74,11 +75,33 @@ class AbstractDataset():
         if self.is_tfds_ds:
             self.__load_from_tfds()
 
-    def load_dataset(self):
+    def load_dataset(self, fn_filter=None):
         print(f"Loading {self.dataset_name}")
         self._load_dataset()
         if self.builds_ds_info:
             self.build_ds_info()
+
+        if fn_filter is not None:
+            if self.ds_train is not None:
+                self.ds_train = self.ds_train.filter(fn_filter)
+
+                # we need to reset cardinality since is likely that the info is lost after filtering
+                ds_len = sum(1 for _ in self.ds_train)
+                self.ds_train = self.ds_train.apply(tf.data.experimental.assert_cardinality(ds_len))
+
+            if self.ds_test is not None:
+                self.ds_test = self.ds_test.filter(fn_filter)
+
+                # we need to reset cardinality since is likely that the info is lost after filtering
+                ds_len = sum(1 for _ in self.ds_test)
+                self.ds_test = self.ds_test.apply(tf.data.experimental.assert_cardinality(ds_len))
+
+            if self.ds_val is not None:
+                self.ds_val = self.ds_val.filter(fn_filter)
+
+                # we need to reset cardinality since is likely that the info is lost after filtering
+                ds_len = sum(1 for _ in self.ds_val)
+                self.ds_val = self.ds_val.apply(tf.data.experimental.assert_cardinality(ds_len))
 
     def __load_from_tfds(self):
         """Load dataset from tensorflow_datasets via 'dataset_name'."""
@@ -475,57 +498,25 @@ class AbstractDataset():
             'normed_max_entropy': normed_entropy_values[2],
         }
 
-    def _get_labels_from_ds(self, ds: tf.data.Dataset) -> np.ndarray:
-        if ds is None:
-            print("Error: Cannot get labels, dataset is not initialized!")
-            return None
-
-        labels = []
-        for _, y in ds.unbatch().as_numpy_iterator():
-            labels.append(y)
-        return np.asarray(labels)
-
-    def _get_values_from_ds(self, ds: tf.data.Dataset) -> np.ndarray:
-        if ds is None:
-            print("Error: Cannot get values, dataset is not initialized!")
-            return None
-
-        values = []
-        for x, _ in ds.unbatch().as_numpy_iterator():
-            values.append(x)
-        return np.asarray(values)
-
-    def _get_ds_as_numpy(self, ds: tf.data.Dataset) -> Tuple[np.ndarray, np.ndarray]:
-        if ds is None:
-            print("Cannot convert dataset to numpy arrays! Dataset is not initialized!")
-            return
-
-        values = []
-        labels = []
-        for x, y in self.ds_train.unbatch().as_numpy_iterator():
-            values.append(x)
-            labels.append(y)
-        return (np.asarray(values), np.asarray(labels))
-
     def get_train_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return Train Dataset as unbatched (values, labels) numpy arrays."""
-        return self._get_ds_as_numpy(self.ds_train)
+        return get_ds_as_numpy(self.ds_train)
 
     def get_test_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return Test Dataset as unbatched (values, labels) numpy arrays."""
-        return self._get_ds_as_numpy(self.ds_test)
+        return get_ds_as_numpy(self.ds_test)
 
     def get_val_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return Validation Dataset as unbatched (values, labels) numpy arrays."""
-        return self._get_ds_as_numpy(self.ds_val)
+        return get_ds_as_numpy(self.ds_val)
 
     def get_attack_train_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return Attack Train Dataset as unbatched (values, labels) numpy arrays."""
-        return self._get_ds_as_numpy(self.ds_attack_train)
+        return get_ds_as_numpy(self.ds_attack_train)
 
     def get_attack_test_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return Attack Test Dataset as unbatched (values, labels) numpy arrays."""
-        return self._get_ds_as_numpy(self.ds_attack_test)
+        return get_ds_as_numpy(self.ds_attack_test)
 
 
 class GrayscaleToRgb(Layer):

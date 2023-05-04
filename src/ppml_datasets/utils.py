@@ -1,6 +1,8 @@
 import tensorflow as tf
 import os
+import numpy as np
 import matplotlib.pyplot as plt
+from typing import Tuple
 
 
 def check_create_folder(dir: str):
@@ -23,7 +25,7 @@ def get_img(x, y):
     return img, label
 
 
-def visualize_training(history: tf.keras.callbacks.History, epochs: int,
+def visualize_training(history: tf.keras.callbacks.History,
                        img_name: str = "results.png"):
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
@@ -31,7 +33,7 @@ def visualize_training(history: tf.keras.callbacks.History, epochs: int,
     loss = history.history['loss']
     val_loss = history.history['val_loss']
 
-    epochs_range = range(epochs)
+    epochs_range = range(len(acc))
 
     plt.figure(figsize=(8, 8))
     plt.subplot(1, 2, 1)
@@ -60,7 +62,7 @@ def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
     plt.figure(figsize=(10, 10))
     for images, labels in ds.take(1):
         for i in range(9):
-            ax = plt.subplot(3, 3, i + 1)
+            plt.subplot(3, 3, i + 1)
             print(images[i].numpy)
             plt.imshow(images[i].numpy().astype("uint8"))
             if class_names is not None:
@@ -69,3 +71,46 @@ def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
                 plt.title(i)
             plt.axis("off")
             plt.savefig(file_name)
+
+
+def visualize_data_np(x: np.ndarray, y: np.ndarray, file_name: str = "data_vis_np.png"):
+    plt.figure(figsize=(10, 10))
+
+    counter: int = 0
+
+    for images, labels in zip(x, y):
+        plt.subplot(3, 3, counter + 1)
+        plt.imshow(images)
+        plt.title(labels)
+
+        counter += 1
+        if counter >= 9:
+            break
+    plt.axis("off")
+    plt.savefig(file_name)
+
+
+def filter_labels(y, allowed_classes: list):
+    """Return `True` if `y` belongs to `allowed_classes` list else `False`.
+
+    Example usage:
+        dataset.filter(lambda s: filter_classes(s['label'], [0,1,2])) # as dict
+        dataset.filter(lambda x, y: filter_classes(y, [0,1,2])) # as_supervised
+    """
+    allowed_classes = tf.constant(allowed_classes)
+    isallowed = tf.equal(allowed_classes, tf.cast(y, allowed_classes.dtype))
+    reduced_sum = tf.reduce_sum(tf.cast(isallowed, tf.float32))
+    return tf.greater(reduced_sum, tf.constant(0.))
+
+
+def get_ds_as_numpy(ds: tf.data.Dataset) -> Tuple[np.ndarray, np.ndarray]:
+    if ds is None:
+        print("Cannot convert dataset to numpy arrays! Dataset is not initialized!")
+        return
+
+    values = []
+    labels = []
+    for x, y in ds.unbatch().as_numpy_iterator():
+        values.append(x)
+        labels.append(y)
+    return (np.asarray(values), np.asarray(labels))

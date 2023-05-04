@@ -47,18 +47,17 @@ class CNNModel():
         self.model.add(RandomTranslation(height_factor=0.075, width_factor=0.075))
 
         self.model.add(Conv2D(32, (3, 3),
-                              padding=self.padding,
+                              activation=self.conv_activation))
+        self.model.add(Conv2D(64, (3, 3),
                               activation=self.conv_activation))
         self.model.add(AveragePooling2D((2, 2)))
 
         self.model.add(Conv2D(64, (3, 3),
-                              padding=self.padding,
                               activation=self.conv_activation))
-        self.model.add(AveragePooling2D((2, 2)))
 
         self.model.add(Conv2D(64, (3, 3),
-                              padding=self.padding,
                               activation=self.conv_activation))
+        self.model.add(AveragePooling2D((2, 2)))
 
         self.model.add(Flatten())
 
