@@ -93,9 +93,7 @@ class AmiaAttack():
         # Here we use the same architecture and optimizer. In practice, they might
         # differ between the target and shadow models.
 
-        train_values: np.ndarray = self.ds.get_train_values()
-        train_labels: np.ndarray = self.ds.get_train_labels()
-
+        (train_values, train_labels) = self.ds.get_train_ds_as_numpy()
         self.num_training_samples = len(train_values)
 
         loaded_indices: bool = False
@@ -125,9 +123,6 @@ class AmiaAttack():
                 # Generate a binary array indicating which example to include for training
                 self.in_indices.append(np.random.binomial(
                     1, 0.5, self.num_training_samples).astype(bool))
-                print("creating new indices!")
-            else:
-                print("not loading indices, since already loaded!")
 
             # we want to create an exact copy of the already trained model, but change model path
             shadow_model: CNNModel = copy.copy(self.cnn_model)
@@ -137,15 +132,11 @@ class AmiaAttack():
             # create Datasets for each shadow model based on the randomly selected training data
             train_value_slice = train_values[self.in_indices[i]]
             train_label_slice = train_labels[self.in_indices[i]]
-            train_ds = tf.data.Dataset.from_tensor_slices((train_value_slice, train_label_slice))
-
-            train_ds = train_ds.batch(batch_size=shadow_model.batch_size)
 
             val_value_slice = train_values[~self.in_indices[i]]
             val_label_slice = train_labels[~self.in_indices[i]]
-            val_ds = tf.data.Dataset.from_tensor_slices((val_value_slice, val_label_slice))
 
-            val_ds = val_ds.batch(batch_size=shadow_model.batch_size)
+            print(f"Using {len(train_value_slice)} training samples, and {len(val_value_slice)} validation samples")
 
             # load model if already trained, else train & save it
             if os.path.exists(model_path):
@@ -153,7 +144,9 @@ class AmiaAttack():
                 print(f"Loaded model {model_path} from disk")
             else:
                 shadow_model.build_compile()
-                shadow_model.train_model(train_ds, val_ds)
+                shadow_model.train_model_from_numpy(x=train_value_slice, y=train_label_slice,
+                                                    batch=self.ds.batch_size,
+                                                    val_x=val_value_slice, val_y=val_label_slice)
                 shadow_model.save_model()
                 print(f"Trained and saved model: {model_path}")
 

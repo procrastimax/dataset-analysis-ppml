@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
-from keras.layers import Dropout, Dense, Conv2D, MaxPooling2D
+from keras.layers import Dropout, Dense, Conv2D, MaxPooling2D, RandomFlip, RandomTranslation
 from keras.regularizers import l2
 from keras.callbacks import EarlyStopping
 import numpy as np
@@ -55,6 +55,9 @@ class CNNModel():
         self.model.add(keras.Input(shape=(self.img_height, self.img_width,
                                           self.color_channels), batch_size=self.batch_size))
 
+        self.model.add(RandomFlip(mode="horizontal"))
+        self.model.add(RandomTranslation(height_factor=0.075, width_factor=0.075))
+
         for (i, (filter_dim, kernel_dim)) in enumerate(zip(self.filter_dim_list,
                                                            self.kernel_dim_list)):
 
@@ -106,18 +109,41 @@ class CNNModel():
         print("Model summary:")
         self.model.summary()
 
-    def train_model(self,
-                    train_ds: Optional[Union[tf.data.Dataset, np.ndarray]] = None,
-                    y: Optional[np.ndarray] = None,
-                    val_ds: Optional[Union[tf.data.Dataset]] = None,
-                    val_split: Optional[float] = None) -> tf.keras.callbacks.History:
+    def train_model_from_ds(self,
+                            train_ds: Optional[Union[tf.data.Dataset, np.ndarray]] = None,
+                            val_ds: Optional[Union[tf.data.Dataset]] = None) -> tf.keras.callbacks.History:
 
         callback_list = []
         if self.use_early_stopping:
             es = EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
-        self.history = self.model.fit(x=train_ds, y=None, validation_data=val_ds, validation_split=val_split, epochs=self.epochs, callbacks=callback_list)
+        self.history = self.model.fit(x=train_ds, validation_data=val_ds, epochs=self.epochs, callbacks=callback_list)
+
+        return self.history
+
+    def train_model_from_numpy(self,
+                               x: np.ndarray,
+                               y: np.ndarray,
+                               batch: int,
+                               val_x: Optional[np.ndarray] = None,
+                               val_y: Optional[np.ndarray] = None,
+                               val_split: Optional[float] = None) -> tf.keras.callbacks.History:
+
+        callback_list = []
+        if self.use_early_stopping:
+            es = EarlyStopping(monitor='val_accuracy', mode='max', verbose=1, patience=self.patience, restore_best_weights=True)
+            callback_list.append(es)
+
+        validation_data = None
+        if val_x is not None and val_y is not None:
+            validation_data = (val_x, val_y)
+
+        self.history = self.model.fit(x=x, y=y, validation_data=validation_data,
+                                      validation_split=val_split,
+                                      epochs=self.epochs,
+                                      batch_size=batch,
+                                      callbacks=callback_list)
 
         return self.history
 

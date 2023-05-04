@@ -282,7 +282,7 @@ class AbstractDataset():
             ds = ds.shuffle(buffer_size=ds.cardinality().numpy(), seed=self.random_seed)
 
         if batch_size is not None:
-            ds = ds.batch(batch_size)
+            ds = ds.batch(batch_size, num_parallel_calls=AUTOTUNE)
 
         if augment:
             augmentation_layers = tf.keras.models.Sequential()
@@ -495,45 +495,37 @@ class AbstractDataset():
             values.append(x)
         return np.asarray(values)
 
-    def get_train_labels(self) -> np.ndarray:
-        """Get unbatched training labels as numpy array."""
-        return self._get_labels_from_ds(self.ds_train)
+    def _get_ds_as_numpy(self, ds: tf.data.Dataset) -> Tuple[np.ndarray, np.ndarray]:
+        if ds is None:
+            print("Cannot convert dataset to numpy arrays! Dataset is not initialized!")
+            return
 
-    def get_test_labels(self) -> np.ndarray:
-        """Get unbatched test labels as numpy array."""
-        return self._get_labels_from_ds(self.ds_test)
+        values = []
+        labels = []
+        for x, y in self.ds_train.unbatch().as_numpy_iterator():
+            values.append(x)
+            labels.append(y)
+        return (np.asarray(values), np.asarray(labels))
 
-    def get_val_labels(self) -> np.ndarray:
-        """Get unbatched validation labels as numpy array."""
-        return self._get_labels_from_ds(self.ds_val)
+    def get_train_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return Train Dataset as unbatched (values, labels) numpy arrays."""
+        return self._get_ds_as_numpy(self.ds_train)
 
-    def get_attack_train_labels(self) -> np.ndarray:
-        """Get unbatched attack train labels as numpy array."""
-        return self._get_labels_from_ds(self.ds_attack_train)
+    def get_test_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return Test Dataset as unbatched (values, labels) numpy arrays."""
+        return self._get_ds_as_numpy(self.ds_test)
 
-    def get_attack_test_labels(self) -> np.ndarray:
-        """Get unbatched attack test labels as numpy array."""
-        return self._get_labels_from_ds(self.ds_attack_test)
+    def get_val_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return Validation Dataset as unbatched (values, labels) numpy arrays."""
+        return self._get_ds_as_numpy(self.ds_val)
 
-    def get_train_values(self) -> np.ndarray:
-        """Get unbatched train values as unbatched numpy array."""
-        return self._get_values_from_ds(self.ds_train)
+    def get_attack_train_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return Attack Train Dataset as unbatched (values, labels) numpy arrays."""
+        return self._get_ds_as_numpy(self.ds_attack_train)
 
-    def get_test_values(self) -> np.ndarray:
-        """Get unbatched test values as unbatched numpy array."""
-        return self._get_values_from_ds(self.ds_test)
-
-    def get_val_values(self) -> np.ndarray:
-        """Get unbatched val values as unbatched numpy array."""
-        return self._get_values_from_ds(self.ds_val)
-
-    def get_attack_train_values(self) -> np.ndarray:
-        """Get unbatched attack train values as unbatched numpy array."""
-        return self._get_values_from_ds(self.ds_attack_train)
-
-    def get_attack_test_values(self) -> np.ndarray:
-        """Get unbatched attack test values as unbatched numpy array."""
-        return self._get_values_from_ds(self.ds_attack_test)
+    def get_attack_test_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+        """Return Attack Test Dataset as unbatched (values, labels) numpy arrays."""
+        return self._get_ds_as_numpy(self.ds_attack_test)
 
 
 class GrayscaleToRgb(Layer):

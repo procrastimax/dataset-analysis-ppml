@@ -20,7 +20,7 @@ model_path: str = "model"
 model_save_path: str = os.path.join(data_path, model_path, model_name)
 
 # ds = MnistDataset([27, 27, 3], builds_ds_info=False, batch_size=batch)
-ds = Cifar10Dataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=True)
+ds = Cifar10Dataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
 
 cnn_model = CNNModel(img_height=32, img_width=32, color_channels=3, num_classes=10,
                      batch_size=batch,
@@ -39,16 +39,13 @@ cnn_model = CNNModel(img_height=32, img_width=32, color_channels=3, num_classes=
 
 def train_model():
 
-    ds.set_augmentation_parameter(random_flip="horizontal", random_rotation=None,
-                                  random_zoom=None, random_brightness=None,
-                                  random_translation_width=0.05, random_translation_height=0.05)
     ds.load_dataset()
     ds.prepare_datasets()
 
     cnn_model.build_compile()
     cnn_model.print_summary()
 
-    cnn_model.train_model(train_ds=ds.ds_train, val_ds=ds.ds_test)
+    cnn_model.train_model_from_ds(train_ds=ds.ds_train, val_ds=ds.ds_test)
 
     history = cnn_model.get_history()
 
@@ -73,6 +70,7 @@ def load_and_test_model():
 
 
 def run_amia_attack():
+    ds.augment_train = False
     ds.load_dataset()
     ds.prepare_datasets()
 
@@ -86,9 +84,9 @@ def run_amia_attack():
 
 
 def main():
-    # train_model()
-    # load_and_test_model()
-    run_amia_attack()
+    train_model()
+    load_and_test_model()
+    # run_amia_attack()
 
 
 if __name__ == "__main__":
