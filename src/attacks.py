@@ -1,15 +1,14 @@
 import tensorflow as tf
-from scipy import special
 from typing import Optional
 from model import CNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
+from ppml_datasets.utils import check_create_folder, visualize_training
 import numpy as np
 import pandas as pd
 import pickle
 
 
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData, SlicingSpec, AttackType, SingleSliceSpec, SlicingFeature
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.dataset_slicing import get_slice
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData
 from tensorflow_privacy.privacy.privacy_tests import utils
 import tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.plotting as plotting
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import membership_inference_attack as mia
@@ -29,49 +28,46 @@ class AmiaAttack():
 
     Labels are encoded as multi-class labels, so no one-hot encoding -> a sparse_categorical_crossentropy is used
 
-
     Code mostly copied from: https://github.com/tensorflow/privacy/blob/master/tensorflow_privacy/privacy/privacy_tests/membership_inference_attack/advanced_mia_example.py
     """
 
-    def __init__(self, model: CNNModel, dataset: AbstractDataset,
-                 run_name: str,
+    def __init__(self,
+                 model: CNNModel,
+                 ds: AbstractDataset,
+                 run_name: int,
+                 result_path: str,
                  shadow_model_dir: str = "data/models/amia/shadow_models",
-                 num_shadow_models: int = 10,
-                 num_classes: Optional[int] = None):
+                 num_shadow_models: int = 16,
+                 ):
         """Initialize MiaAttack class.
 
         Paramter:
         ---------
         model : CNNModel
         dataset : AbstractDataset - When instatiating a Dataset, a validation dataset is not needed, instead increase the train sice when specifying the train_val_test_split
-        num_classes : int | None - needed for visualizing the membership Probability
         """
-        self.cnn_model: CNNModel = model
+        self.models_dir = os.path.join(shadow_model_dir, run_name, ds.dataset_name)
+        check_create_folder(self.models_dir)
 
+        self.result_path = result_path
+        check_create_folder(self.result_path)
+
+        self.cnn_model: CNNModel = model
         self.run_name = run_name
 
-        if dataset.ds_train is None:
+        if ds.ds_train is None:
             print("Error: Dataset needs to have an initialized train dataset!")
             sys.exit(1)
 
-        if dataset.ds_test is None:
+        if ds.ds_test is None:
             print("Error: Dataset needs to have an initialized test dataset!")
             sys.exit(1)
 
-        self.ds = dataset
-        if self.ds.ds_info is not None and "classes" in self.ds.ds_info.keys():
-            self.ds_classes: int = self.ds.ds_info["classes"]
-        else:
-            if num_classes is not None:
-                self.ds_classes = num_classes
-            else:
-                print(
-                    "ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
-                sys.exit(1)
+        self.ds = ds
+        if self.ds.num_classes is None:
+            self.ds.get_number_of_classes()
 
         self.num_shadow_models = num_shadow_models
-        self.ds_classes: int = 0
-        self.models_dir = shadow_model_dir
 
         self.in_indices = []  # a list of in-training indices for all models
         self.stat = []  # a list of statistics for all models
@@ -84,35 +80,22 @@ class AmiaAttack():
         After training/ loading the shadow models statistics and losses are calulcated over all shadow models.
 
         """
-        if not os.path.exists(self.models_dir):
-            print(f"Creating directory: {self.models_dir}")
-            os.makedirs(self.models_dir)
-
-        # Train the target and shadow models. We will use one of the model in `models`
-        # as target and the rest as shadow.
-        # Here we use the same architecture and optimizer. In practice, they might
-        # differ between the target and shadow models.
-
-        (train_values, train_labels) = self.ds.get_train_ds_as_numpy()
-        self.num_training_samples = len(train_values)
+        (train_samples, train_labels) = self.ds.get_train_ds_as_numpy()
+        self.num_training_samples = len(train_samples)
 
         loaded_indices: bool = False
         # try loading the in_indices if it was saved
-        numpy_path = os.path.join(self.models_dir, "numpy")
+        numpy_path = os.path.join(self.models_dir, "data")
         numpy_file = os.path.join(numpy_path, "in_indices.pckl")
 
-        if not os.path.exists(numpy_path):
-            os.makedirs(numpy_path)
-            print(f"Created new directory: {numpy_path}")
+        check_create_folder(numpy_path)
 
         if os.path.isfile(numpy_file):
             with open(numpy_file, "rb") as f:
                 self.in_indices = pickle.load(f)
                 loaded_indices = True
-                print(f"Loaded .pckl file {numpy_file}")
-                print(self.in_indices)
+                print(f"Loaded .pckl file for indices: {numpy_file}")
 
-            # we currently use the shadow and training models
         for i in range(self.num_shadow_models + 1):
             print(f"Creating shadow model {i}")
 
@@ -121,22 +104,20 @@ class AmiaAttack():
 
             if not loaded_indices:
                 # Generate a binary array indicating which example to include for training
-                self.in_indices.append(np.random.binomial(
-                    1, 0.5, self.num_training_samples).astype(bool))
+                keep: np.ndarray = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
+                self.in_indices.append(keep)
+            else:
+                keep = self.in_indices[i]
 
             # we want to create an exact copy of the already trained model, but change model path
             shadow_model: CNNModel = copy.copy(self.cnn_model)
             shadow_model.model_path = model_path
             shadow_model.reset_model_optimizer()
 
-            # create Datasets for each shadow model based on the randomly selected training data
-            train_value_slice = train_values[self.in_indices[i]]
-            train_label_slice = train_labels[self.in_indices[i]]
+            train_count = keep.sum()
 
-            val_value_slice = train_values[~self.in_indices[i]]
-            val_label_slice = train_labels[~self.in_indices[i]]
-
-            print(f"Using {len(train_value_slice)} training samples, and {len(val_value_slice)} validation samples")
+            print(
+                f"Using {train_count} training samples")
 
             # load model if already trained, else train & save it
             if os.path.exists(model_path):
@@ -144,14 +125,31 @@ class AmiaAttack():
                 print(f"Loaded model {model_path} from disk")
             else:
                 shadow_model.build_compile()
-                shadow_model.train_model_from_numpy(x=train_value_slice, y=train_label_slice,
-                                                    batch=self.ds.batch_size,
-                                                    val_x=val_value_slice, val_y=val_label_slice)
+                shadow_model.train_model_from_numpy(x=train_samples[keep],
+                                                    y=train_labels[keep],
+                                                    val_x=train_samples[~keep],
+                                                    val_y=train_labels[~keep],
+                                                    batch=self.cnn_model.batch_size)  # specify batch size here, since numpy data is unbatched
                 shadow_model.save_model()
                 print(f"Trained and saved model: {model_path}")
 
+                print("Saving shadow model train history as figure")
+                history = shadow_model.get_history()
+
+                history_fig_path = os.path.join(self.result_path, "sm-training", self.run_name)
+                check_create_folder(history_fig_path)
+
+                visualize_training(history=history, img_name=os.path.join(history_fig_path, f"{i}_{self.ds.dataset_name}_shadow_model_training_history.png"))
+
+                # test shadow model accuracy
+                print("Testing shadow model on test data")
+                shadow_model.test_model(self.ds.ds_test)
+                print(f"\n============================= DONE TRAINING Shadow Model: {i} =============================\n")
+
             stat_temp, loss_temp = self._get_stat_and_loss(
-                shadow_model, train_values, train_labels)
+                cnn_model=shadow_model,
+                x=train_samples,
+                y=train_labels)
             self.stat.append(stat_temp)
             self.losses.append(loss_temp)
 
@@ -171,6 +169,9 @@ class AmiaAttack():
         if len(self.stat) == 0 or len(self.losses) == 0:
             print("Error: Before attacking the shadow models with MIA, please train or load the shadow models and retrieve the statistics and losses")
             sys.exit(1)
+
+        # pd.set_option("display.max_rows", 8, "display.max_columns", None)
+        target_model_result_data = pd.DataFrame()
 
         # we currently use the shadow and training models
         for idx in range(self.num_shadow_models + 1):
@@ -206,68 +207,29 @@ class AmiaAttack():
             print("Advanced MIA attack with Gaussian:",
                   f"auc = {result_lira_single.get_auc():.4f}",
                   f"adv = {result_lira_single.get_attacker_advantage():.4f}")
+            target_model_result_data = pd.concat([target_model_result_data, result_lira.calculate_pd_dataframe()])
 
-            # We also try using `compute_score_offset` to compute the score. We take
-            # the negative of the score, because higher statistics corresponds to higher
-            # probability for in-training, which is the opposite of loss.
-            scores = -amia.compute_score_offset(stat_target, stat_in, stat_out)
-            attack_input = AttackInputData(
-                loss_train=scores[in_indices_target],
-                loss_test=scores[~in_indices_target])
-            result_offset = mia.run_attacks(attack_input)
-            result_offset_single = result_offset.single_attack_results[0]
-            print('Advanced MIA attack with offset:',
-                  f'auc = {result_offset_single.get_auc():.4f}',
-                  f'adv = {result_offset_single.get_attacker_advantage():.4f}')
+            if plot_auc_curve:
+                print(f"Generating AUC curve plot for target model {idx}")
+                # Plot and save the AUC curves for the three methods.
+                _, ax = plt.subplots(1, 1, figsize=(5, 5))
+                for res, title in zip([result_lira_single],
+                                      ['LiRA']):
+                    label = f'{title} auc={res.get_auc():.4f}'
+                    plotting.plot_roc_curve(
+                        res.roc_curve,
+                        functools.partial(self._plot_curve_with_area, ax=ax, label=label))
+                plt.legend()
+                plt_name = os.path.join(self.result_path, f"model_id{idx}_{plot_filename}")
+                plt.savefig(plt_name)
 
-            # Compare with the baseline MIA using the loss of the target model
-            loss_target = self.losses[idx][:, 0]
-            attack_input = AttackInputData(
-                loss_train=loss_target[in_indices_target],
-                loss_test=loss_target[~in_indices_target])
-            result_baseline = mia.run_attacks(attack_input)
-            result_baseline_single = result_baseline.single_attack_results[0]
-            print('Baseline MIA attack:',
-                  f'auc = {result_baseline_single.get_auc():.4f}',
-                  f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
+        # try:
+        #    result_lira.save("result_lira.pckl")
+        # except Exception as e:
+        #    print(f"could not picke results! {e}")
 
-        if plot_auc_curve:
-            print("Generating AUC curve plot")
-            # Plot and save the AUC curves for the three methods.
-            _, ax = plt.subplots(1, 1, figsize=(5, 5))
-            for res, title in zip([result_baseline_single, result_lira_single, result_offset_single],
-                                  ['baseline', 'LiRA', 'offset']):
-                label = f'{title} auc={res.get_auc():.4f}'
-                plotting.plot_roc_curve(
-                    res.roc_curve,
-                    functools.partial(self._plot_curve_with_area, ax=ax, label=label))
-            plt.legend()
-            plt.savefig(plot_filename)
-
-        pd.set_option("display.max_rows", 8, "display.max_columns", None)
         print("Lira Score results:")
-        print(result_lira.calculate_pd_dataframe())
-
-        try:
-            result_lira.save("result_lira.pckl")
-        except Exception as e:
-            print(f"could not picke results! {e}")
-
-        print("\nLira Score Threshold results:")
-        print(result_offset.calculate_pd_dataframe())
-
-        try:
-            result_offset.save("result_lira_threshold.pckl")
-        except Exception as e:
-            print(f"could not picke results! {e}")
-
-        print("\nOld MIA Threshold results:")
-        print(result_baseline.calculate_pd_dataframe())
-
-        try:
-            result_baseline.save("result_baseline.pckl")
-        except Exception as e:
-            print(f"could not picke results! {e}")
+        print(target_model_result_data)
 
     def _get_stat_and_loss(self,
                            cnn_model: CNNModel,
@@ -286,10 +248,6 @@ class AmiaAttack():
             given unit weight. Only the LogisticRegressionAttacker and the
             RandomForestAttacker support sample weights.
 
-
-        Note:   in the original code a batch_size is specified for the predict function,
-                however since we work on 'dataset' we don't need it according to the documentation
-
         Returns
         -------
           the statistics and cross-entropy losses
@@ -298,11 +256,18 @@ class AmiaAttack():
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
             prob = amia.convert_logit_to_prob(
-                cnn_model.model.predict(data))
-            losses.append(utils.log_loss(y, prob, sample_weight=sample_weight))
+                cnn_model.model.predict(data, batch_size=cnn_model.batch_size))
+            losses.append(utils.log_loss(labels=y,
+                                         pred=prob,
+                                         from_logits=False,
+                                         sample_weight=sample_weight))
             stat.append(
                 amia.calculate_statistic(
-                    prob, y, sample_weight=sample_weight))
+                    pred=prob,
+                    labels=y,
+                    is_logits=False,
+                    option="logit",
+                    sample_weight=sample_weight))
         return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)
 
     def _plot_curve_with_area(self, x, y, xlabel, ylabel, ax, label, title=None):
@@ -312,290 +277,26 @@ class AmiaAttack():
         ax.set(aspect=1, xscale='log', yscale='log')
         ax.title.set_text(title)
 
-
-class MiaAttack():
-    """Implementation for multi class mia attack.
-
-    Labels are encoded as multi-class labels, so no one-hot encoding -> a sparse_categorical_crossentropy is used
-    """
-
-    def __init__(self, model: CNNModel, dataset: AbstractDataset, num_classes: Optional[int] = None):
-        """Initialize MiaAttack class.
-
-        Paramter:
-        ---------
-        model : CNNModel
-        dataset : AbstractDataset
-        num_classes : int | None - needed for visualizing the membership Probability
-        """
-        self.cnn_model: CNNModel = model
-
-        if dataset.ds_train is None:
-            print("Error: Dataset needs to have an initialized train dataset!")
-            sys.exit(1)
-
-        if dataset.ds_test is None:
-            print("Error: Dataset needs to have an initialized test dataset!")
-            sys.exit(1)
-
-        self.ds_classes: int = 0
-
-        self.ds = dataset
-        if self.ds.ds_info is not None and "classes" in self.ds.ds_info.keys():
-            self.ds_classes: int = self.ds.ds_info["classes"]
-        else:
-            if num_classes is not None:
-                self.ds_classes = num_classes
-            else:
-                print(
-                    "ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
-                sys.exit(1)
-
-        self.logits_train = None
-        self.logits_test = None
-
-        self.prob_train = None
-        self.prob_test = None
-
-        self.scce = tf.keras.backend.sparse_categorical_crossentropy
-        self.constant = tf.keras.backend.constant
-
-        self.loss_train = None
-        self.loss_test = None
-
-        self.train_labels = None
-        self.test_labels = None
-
-        self.train_images = None
-        self.test_images = None
-
-        self.input: AttackInputData = AttackInputData()
-
-    def initialize_data(self):
-        """Initialize and calculate logits, probabilities and loss values for training and test sets."""
-        print("Predict on train data...")
-        self.logits_train = self.cnn_model.model.predict(
-            self.ds.ds_attack_train, batch_size=self.cnn_model.batch_size)
-
-        print("Predict on unseen test data...")
-        self.logits_test = self.cnn_model.model.predict(
-            self.ds.ds_attack_test, batch_size=self.cnn_model.batch_size)
-
-        print("Apply softmax to get probabilities from logits")
-        self.prob_train = special.softmax(self.logits_train, axis=1)
-        self.prob_test = special.softmax(self.logits_test, axis=1)
-
-        print("Get labels from dataset")
-        self.train_labels = self.ds.get_attack_train_labels()
-        self.test_labels = self.ds.get_attack_test_labels()
-
-        print("Get images from dataset")
-        self.train_images = self.ds.get_attack_train_values()
-        self.test_images = self.ds.get_attack_test_values()
-
-        print("Compute losses")
-        self.loss_train = self.scce(self.constant(self.train_labels),
-                                    self.constant(self.prob_train), from_logits=False).numpy()
-        self.loss_test = self.scce(self.constant(self.test_labels),
-                                   self.constant(self.prob_test), from_logits=False).numpy()
-
-        # Suppose we have the labels as integers starting from 0
-        # labels_train  shape: (n_train, )
-        # labels_test  shape: (n_test, )
-
-        # Evaluate your model on training and test examples to get
-        # logits_train  shape: (n_train, n_classes)
-        # logits_test  shape: (n_test, n_classes)
-        # loss_train  shape: (n_train, )
-        # loss_test  shape: (n_test, )
-
-        self.input = AttackInputData(
-            logits_train=self.logits_train,
-            logits_test=self.logits_test,
-            loss_train=self.loss_train,
-            loss_test=self.loss_test,
-            # probs_train=self.prob_train,
-            # probs_test=self.prob_test,
-            labels_train=self.train_labels,
-            labels_test=self.test_labels
-        )
-
-    def run_mia_attack(self):
-        print("Running MIA attacks")
-
-        if self.input is None:
-            print("Error: Please run 'initialize_data()' before! Uninitialized AttackInputData!")
-            sys.exit(1)
-
-        attack_types = [AttackType.THRESHOLD_ATTACK,
-                        AttackType.LOGISTIC_REGRESSION,
-                        AttackType.RANDOM_FOREST,
-                        AttackType.THRESHOLD_ENTROPY_ATTACK,
-                        AttackType.K_NEAREST_NEIGHBORS,
-                        AttackType.MULTI_LAYERED_PERCEPTRON]
-
-        slicing_spec = SlicingSpec(entire_dataset=True,
-                                   by_class=True,
-                                   by_percentiles=False,
-                                   by_classification_correctness=True)
-
-        # run attacks for different data slices
-        attacks_result = mia.run_attacks(self.input,
-                                         attack_types=attack_types,
-                                         slicing_spec=slicing_spec)
-
-        # Print a user-friendly summary of the attacks
-        print(attacks_result.summary(by_slices=True))
-
-        # Plot the ROC curve of the best classifier
-        fig = plotting.plot_roc_curve(
-            attacks_result.get_result_with_max_auc().roc_curve)
-        fig.savefig("mia_attcks.png")
-
-
-class MembershipProbability():
-    """Implementation for calculating membership probability.
-
-    Labels are encoded as multi-class labels, so no one-hot encoding -> a sparse_categorical_crossentropy is used
-    """
-
-    def __init__(self, model: CNNModel, dataset: AbstractDataset, num_classes: Optional[int] = None):
-        """Initialize MiaAttack class.
-
-        Paramter:
-        ---------
-        model : CNNModel
-        dataset : AbstractDataset
-        num_classes : int | None - needed for visualizing the membership Probability
-        """
-        self.cnn_model: CNNModel = model
-
-        if dataset.ds_train is None:
-            print("Error: Dataset needs to have an initialized train dataset!")
-            sys.exit(1)
-
-        if dataset.ds_test is None:
-            print("Error: Dataset needs to have an initialized test dataset!")
-            sys.exit(1)
-
-        self.ds_classes: int = 0
-
-        self.ds = dataset
-        if self.ds.ds_info is not None and "classes" in self.ds.ds_info.keys():
-            self.ds_classes: int = self.ds.ds_info["classes"]
-        else:
-            if num_classes is not None:
-                self.ds_classes = num_classes
-            else:
-                print(
-                    "ERROR: Number of classes was not specified by either the dataset nor the the classe's initialization")
-                sys.exit(1)
-
-        self.logits_train = None
-        self.logits_test = None
-
-        self.prob_train = None
-        self.prob_test = None
-
-        self.scce = tf.keras.backend.sparse_categorical_crossentropy
-        self.constant = tf.keras.backend.constant
-
-        self.loss_train = None
-        self.loss_test = None
-
-        self.train_labels = None
-        self.test_labels = None
-
-        self.train_images = None
-        self.test_images = None
-
-        self.input: AttackInputData = AttackInputData()
-
-    def initialize_data(self):
-        """Initialize and calculate logits, probabilities and loss values for training and test sets."""
-        print("Predict on train data...")
-        self.logits_train = self.cnn_model.model.predict(
-            self.ds.ds_attack_train, batch_size=self.cnn_model.batch_size)
-
-        print("Predict on unseen test data...")
-        self.logits_test = self.cnn_model.model.predict(
-            self.ds.ds_attack_test, batch_size=self.cnn_model.batch_size)
-
-        print("Apply softmax to get probabilities from logits")
-        self.prob_train = special.softmax(self.logits_train, axis=1)
-        self.prob_test = special.softmax(self.logits_test, axis=1)
-
-        print("Get labels from dataset")
-        self.train_labels = self.ds.get_attack_train_labels()
-        self.test_labels = self.ds.get_attack_test_labels()
-
-        print("Get images from dataset")
-        self.train_images = self.ds.get_attack_train_values()
-        self.test_images = self.ds.get_attack_test_values()
-
-        print("Compute losses")
-        self.loss_train = self.scce(self.constant(self.train_labels),
-                                    self.constant(self.prob_train), from_logits=False).numpy()
-        self.loss_test = self.scce(self.constant(self.test_labels),
-                                   self.constant(self.prob_test), from_logits=False).numpy()
-
-        self.input = AttackInputData(
-            logits_train=self.logits_train,
-            logits_test=self.logits_test,
-            loss_train=self.loss_train,
-            loss_test=self.loss_test,
-            labels_train=self.train_labels,
-            labels_test=self.test_labels
-        )
-
-    def calc_membership_probability(self, plot_training_samples: bool = True, num_images: int = 5):
-        """Calculate Membership Probability also called Privacy Risk Score."""
-        print("Calculating membership probability")
-
-        if self.input is None:
-            print("Error: Please run 'initialize_data()' before! Uninitialized AttackInputData!")
-            sys.exit(1)
-
-        slicing_spec = SlicingSpec(entire_dataset=True,
-                                   by_class=True,
-                                   by_percentiles=False,
-                                   by_classification_correctness=False)  # setting this to True, somehow does not work
-
-        membership_probability_results = mia.run_membership_probability_analysis(
-            self.input, slicing_spec=slicing_spec)
-        print(membership_probability_results.summary(threshold_list=[1, 0.9, 0.8, 0.7, 0.6, 0.5]))
-
-        if plot_training_samples:
-            print("Generating images to show high risk/ low risk training images")
-            self._plot_training_samples(num_images)
-
-    def _plot_training_samples(self, num_images: int = 5):
-        for c in range(self.ds_classes):
-            print(f"For data class: {c}")
-            class_slice_spec = SingleSliceSpec(SlicingFeature.CLASS, c)
-            class_input_slice = get_slice(self.input, class_slice_spec)
-            class_dataset_idx = np.argwhere(self.input.labels_train == c).flatten()
-
-            class_train_membership_probs = mia._compute_membership_probability(
-                class_input_slice).train_membership_probs
-
-            class_high_risk_idx = np.argsort(class_train_membership_probs)[::-1][:num_images]
-            class_low_risk_idx = np.argsort(np.absolute(
-                class_train_membership_probs - 0.5))[:num_images]
-
-            high_risk_images = self.train_images[class_dataset_idx[class_high_risk_idx]]
-            low_risk_images = self.train_images[class_dataset_idx[class_low_risk_idx]]
-
-            fig = plt.figure(figsize=(10, 10 * num_images))
-            for i in range(num_images):
-                fig.add_subplot(1, num_images, i + 1)
-                plt.axis("off")
-                plt.imshow(high_risk_images[i])
-            plt.savefig(f"high_risk_images_class_{c}.png")
-
-            fig = plt.figure(figsize=(10, 10 * num_images))
-            for i in range(num_images):
-                fig.add_subplot(1, num_images, i + 1)
-                plt.axis("off")
-                plt.imshow(low_risk_images[i])
-            plt.savefig(f"low_risk_images_class_{c}.png")
+# We also try using `compute_score_offset` to compute the score. We take
+# the negative of the score, because higher statistics corresponds to higher
+# probability for in-training, which is the opposite of loss.
+# scores = -amia.compute_score_offset(stat_target, stat_in, stat_out)
+# attack_input = AttackInputData(
+#     loss_train=scores[in_indices_target],
+#     loss_test=scores[~in_indices_target])
+# result_offset = mia.run_attacks(attack_input)
+# result_offset_single = result_offset.single_attack_results[0]
+# print('Advanced MIA attack with offset:',
+#       f'auc = {result_offset_single.get_auc():.4f}',
+#       f'adv = {result_offset_single.get_attacker_advantage():.4f}')
+
+# Compare with the baseline MIA using the loss of the target model
+# loss_target = self.losses[idx][:, 0]
+# attack_input = AttackInputData(
+#     loss_train=loss_target[in_indices_target],
+#     loss_test=loss_target[~in_indices_target])
+# result_baseline = mia.run_attacks(attack_input)
+# result_baseline_single = result_baseline.single_attack_results[0]
+# print('Baseline MIA attack:',
+#       f'auc = {result_baseline_single.get_auc():.4f}',
+#       f'adv = {result_baseline_single.get_attacker_advantage():.4f}')

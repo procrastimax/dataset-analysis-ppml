@@ -7,11 +7,11 @@ from typing import Tuple
 
 def check_create_folder(dir: str):
     """Check if a folder exists on the current file, if not, this function creates that folder."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.realpath(os.getcwd())
     check_dir = os.path.join(base_dir, dir)
     if not os.path.exists(check_dir):
         print(f"Directory {check_dir} does not exist, creating it")
-        os.mkdir(check_dir)
+        os.makedirs(check_dir)
 
 
 def get_img(x, y):

@@ -40,6 +40,8 @@ class AbstractDataset():
     # optionally providable class_names, only for cosmetic purposes when printing out ds_info
     class_names: Optional[List[str]] = None
 
+    num_classes: Optional[int] = None
+
     random_rotation: Optional[float] = 0.1
     random_zoom: Optional[float] = 0.15
     random_flip: Optional[str] = "horizontal"
@@ -498,6 +500,34 @@ class AbstractDataset():
             'normed_max_entropy': normed_entropy_values[2],
         }
 
+    def get_train_ds_subset(self, keep: np.ndarray, apply_processing: bool = False) -> tf.data.Dataset:
+        """Return only a subset of datapoints from the training dataset.
+
+        The subset is specified by a boolean numpy array.
+
+        Before creating the subset, the dataset gets unbatched.
+        If apply_processing is set to True, then all processing steps like resizing, augmentation, etc. are applied.
+        If apply_processing is set to False, only caching, batching and prefetching is applied.
+        """
+        (values, labels) = self.get_train_ds_as_numpy()
+
+        values = values[keep]
+        labels = labels[keep]
+
+        ds = tf.data.Dataset.from_tensor_slices((values, labels))
+
+        if apply_processing:
+            ds = self.prepare_ds(ds, cache=True, resize_rescale=True,
+                                 img_shape=self.model_img_shape,
+                                 batch_size=self.batch_size, convert_to_rgb=self.convert_to_rgb,
+                                 preprocessing_func=self.preprocessing_function,
+                                 shuffle=self.shuffle, augment=self.augment_train)
+        else:
+            ds = ds.cache().batch(self.batch_size, num_parallel_calls=tf.data.AUTOTUNE).prefetch(
+                buffer_size=tf.data.AUTOTUNE)
+
+        return ds
+
     def get_train_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return Train Dataset as unbatched (values, labels) numpy arrays."""
         return get_ds_as_numpy(self.ds_train)
@@ -517,6 +547,21 @@ class AbstractDataset():
     def get_attack_test_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return Attack Test Dataset as unbatched (values, labels) numpy arrays."""
         return get_ds_as_numpy(self.ds_attack_test)
+
+    def get_number_of_classes(self) -> int:
+        """Return the number of classes calculate from the training dataset."""
+        ds = tfds.as_numpy(self.ds_train)
+        class_set = set()
+        for _, y in ds:
+            a = np.unique(y)
+            for i in a:
+                class_set.add(i)
+
+        self.num_classes = len(class_set)
+        return len(class_set)
+
+    def set_number_of_classes(self, num_classes: int):
+        self.num_classes = num_classes
 
 
 class GrayscaleToRgb(Layer):
