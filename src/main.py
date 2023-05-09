@@ -1,11 +1,11 @@
-from ppml_datasets import MnistDataset
-from ppml_datasets.utils import visualize_training
-from ppml_datasets.abstract_dataset_handler import AbstractDataset
-from model import CNNModel
-from attacks import AmiaAttack
-
-import os
 from typing import Optional
+import os
+from attacks import AmiaAttack
+from model import CNNModel
+from ppml_datasets.abstract_dataset_handler import AbstractDataset
+from ppml_datasets.utils import visualize_training
+from ppml_datasets import MnistDataset, FashionMnistDataset
+
 
 epochs: int = 500
 batch: int = 256
@@ -87,7 +87,7 @@ def run_amia_attack(ds: AbstractDataset, model: CNNModel, run_number: int, resul
                       run_name=str(run_number))
 
     amia.train_load_shadow_models()
-    amia.attack_shadow_models_mia()
+    amia.attack_shadow_models_mia(plot_filename=f"{run_number}-{model_name}-advanced-mia.png")
 
     # amia.load_saved_values()
     amia.save_all_in_one_roc_curve()
