@@ -46,14 +46,15 @@ class AmiaAttack():
         model : CNNModel
         dataset : AbstractDataset - When instatiating a Dataset, a validation dataset is not needed, instead increase the train sice when specifying the train_val_test_split
         """
+        self.run_name = run_name
+
         self.models_dir = os.path.join(shadow_model_dir, run_name, ds.dataset_name)
         check_create_folder(self.models_dir)
 
-        self.result_path = result_path
+        self.result_path = os.path.join(result_path, "amia-results", run_name)
         check_create_folder(self.result_path)
 
         self.cnn_model: CNNModel = model
-        self.run_name = run_name
 
         if ds.ds_train is None:
             print("Error: Dataset needs to have an initialized train dataset!")
@@ -86,15 +87,31 @@ class AmiaAttack():
         loaded_indices: bool = False
         # try loading the in_indices if it was saved
         numpy_path = os.path.join(self.models_dir, "data")
-        numpy_file = os.path.join(numpy_path, "in_indices.pckl")
+        in_indices_filename = os.path.join(numpy_path, "in_indices.pckl")
+        stat_filename = os.path.join(numpy_path, "model_stat.pckl")
+        loss_filename = os.path.join(numpy_path, "model_loss.pckl")
 
         check_create_folder(numpy_path)
 
-        if os.path.isfile(numpy_file):
-            with open(numpy_file, "rb") as f:
+        if os.path.isfile(in_indices_filename):
+            with open(in_indices_filename, "rb") as f:
                 self.in_indices = pickle.load(f)
                 loaded_indices = True
-                print(f"Loaded .pckl file for indices: {numpy_file}")
+                print(f"Loaded .pckl file for indices: {in_indices_filename}")
+
+        if os.path.isfile(stat_filename):
+            with open(stat_filename, "rb") as f:
+                self.stat = pickle.load(f)
+                print(f"Loaded .pckl file for stats: {stat_filename}")
+
+        if os.path.isfile(loss_filename):
+            with open(loss_filename, "rb") as f:
+                self.losses = pickle.load(f)
+                print(f"Loaded .pckl file for loss: {loss_filename}")
+
+        if loaded_indices and len(self.losses) > 0 and len(self.stat) > 0:
+            print("Loaded in_indices file, stat file and loss file, do not need to load models.")
+            return
 
         for i in range(self.num_shadow_models + 1):
             print(f"Creating shadow model {i}")
@@ -158,10 +175,20 @@ class AmiaAttack():
             gc.collect()
 
         # save in_indices when not existing
-        if not os.path.isfile(numpy_file):
-            with open(numpy_file, "wb") as f:
+        if not os.path.isfile(in_indices_filename):
+            with open(in_indices_filename, "wb") as f:
                 pickle.dump(self.in_indices, f)
-                print(f"Saved .pckl file {numpy_file}")
+                print(f"Saved .pckl file {in_indices_filename}")
+
+        if not os.path.isfile(stat_filename):
+            with open(stat_filename, "wb") as f:
+                pickle.dump(self.stat, f)
+                print(f"Saved .pckl file {stat_filename}")
+
+        if not os.path.isfile(loss_filename):
+            with open(loss_filename, "wb") as f:
+                pickle.dump(self.losses, f)
+                print(f"Saved .pckl file {loss_filename}")
 
     def attack_shadow_models_mia(self, plot_auc_curve: bool = True, plot_filename: Optional[str] = "advanced_mia.png"):
         print("Attacking shadow models with MIA")
@@ -180,14 +207,17 @@ class AmiaAttack():
             in_indices_target = self.in_indices[idx]  # ground truth membership, shape(n,)
 
             # `stat_shadow` contains statistics of the shadow models, with shape
-            # (num_shadows, n, k). `in_indices_shadow` contains membership of the shadow
+            # (num_shadows, n, k).
+            stat_shadow = np.array(self.stat[:idx] + self.stat[idx + 1:])
+
+            # `in_indices_shadow` contains membership of the shadow
             # models, with shape (num_shadows, n). We will use them to get a list
+            in_indices_shadow = np.array(self.in_indices[:idx] + self.in_indices[idx + 1:])
+
             # `stat_in` and a list `stat_out`, where stat_in[j] (resp. stat_out[j]) is a
             # (m, k) array, for m being the number of shadow models trained with
             # (resp. without) the j-th example, and k being the number of augmentations
             # (2 in our case).
-            stat_shadow = np.array(self.stat[:idx] + self.stat[idx + 1:])
-            in_indices_shadow = np.array(self.in_indices[:idx] + self.in_indices[idx + 1:])
             stat_in = [stat_shadow[:, j][in_indices_shadow[:, j]]
                        for j in range(self.num_training_samples)]
             stat_out = [stat_shadow[:, j][~in_indices_shadow[:, j]]
@@ -220,7 +250,7 @@ class AmiaAttack():
                         res.roc_curve,
                         functools.partial(self._plot_curve_with_area, ax=ax, label=label))
                 plt.legend()
-                plt_name = os.path.join(self.result_path, f"model_id{idx}_{plot_filename}")
+                plt_name = os.path.join(self.result_path, f"model_{self.ds.dataset_name}_id{idx}_{plot_filename}")
                 plt.savefig(plt_name)
 
         # try:
@@ -268,6 +298,8 @@ class AmiaAttack():
                     is_logits=False,
                     option="logit",
                     sample_weight=sample_weight))
+
+        # this generates a shape of (N, 2) since we augmented the data by flipping it horizontally
         return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)
 
     def _plot_curve_with_area(self, x, y, xlabel, ylabel, ax, label, title=None):

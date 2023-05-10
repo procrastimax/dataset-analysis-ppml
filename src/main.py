@@ -7,7 +7,7 @@ from attacks import AmiaAttack
 import os
 from typing import Optional
 
-epochs: int = 5
+epochs: int = 500
 batch: int = 256
 dropout: float = 0.4
 learning_rate: float = 0.001
@@ -81,7 +81,7 @@ def run_amia_attack(ds: AbstractDataset, model: CNNModel, run_number: int, resul
 
     amia = AmiaAttack(model=model,
                       ds=ds,
-                      num_shadow_models=1,
+                      num_shadow_models=16,
                       shadow_model_dir=shadow_model_save_path,
                       result_path=result_path,
                       run_name=str(run_number))
