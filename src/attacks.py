@@ -153,7 +153,7 @@ class AmiaAttack():
                 print("Saving shadow model train history as figure")
                 history = shadow_model.get_history()
 
-                history_fig_path = os.path.join(self.result_path, "sm-training", self.run_name)
+                history_fig_path = os.path.join(self.result_path, "sm-training", self.ds.dataset_name)
                 check_create_folder(history_fig_path)
 
                 visualize_training(history=history, img_name=os.path.join(history_fig_path, f"{i}_{self.ds.dataset_name}_shadow_model_training_history.png"))
