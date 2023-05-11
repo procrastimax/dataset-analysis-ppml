@@ -5,8 +5,8 @@ from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import check_create_folder, visualize_training
 import numpy as np
 import pandas as pd
-import pickle
 
+from util import pickle_object, unpickle_object
 
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData
 from tensorflow_privacy.privacy.privacy_tests import utils
@@ -73,7 +73,24 @@ class AmiaAttack():
         self.in_indices = []  # a list of in-training indices for all models
         self.stat = []  # a list of statistics for all models
         self.losses = []  # a list of losses for all models
+        self.attack_result_list = []
+
         self.num_training_samples: int = 0
+
+        # try loading the in_indices if it was saved
+        self.numpy_path = os.path.join(self.models_dir, "data")
+        check_create_folder(self.numpy_path)
+
+        self.in_indices_filename = os.path.join(self.numpy_path, "in_indices.pckl")
+        self.stat_filename = os.path.join(self.numpy_path, "model_stat.pckl")
+        self.loss_filename = os.path.join(self.numpy_path, "model_loss.pckl")
+        self.attack_result_list = os.path.join(self.numpy_path, "attack_results.pckl")
+
+    def load_saved_values(self):
+        self.in_indices_filename = unpickle_object(self.in_indices_filename)
+        self.stat = unpickle_object(self.stat_filename)
+        self.losses = unpickle_object(self.loss_filename)
+        self.attack = unpickle_object(self.attack_result_list_filename)
 
     def train_load_shadow_models(self):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
@@ -84,32 +101,11 @@ class AmiaAttack():
         (train_samples, train_labels) = self.ds.get_train_ds_as_numpy()
         self.num_training_samples = len(train_samples)
 
-        loaded_indices: bool = False
-        # try loading the in_indices if it was saved
-        numpy_path = os.path.join(self.models_dir, "data")
-        in_indices_filename = os.path.join(numpy_path, "in_indices.pckl")
-        stat_filename = os.path.join(numpy_path, "model_stat.pckl")
-        loss_filename = os.path.join(numpy_path, "model_loss.pckl")
+        self.in_indices = unpickle_object(self.in_indices_filename)
+        self.stat = unpickle_object(self.stat_filename)
+        self.losses = unpickle_object(self.loss_filename)
 
-        check_create_folder(numpy_path)
-
-        if os.path.isfile(in_indices_filename):
-            with open(in_indices_filename, "rb") as f:
-                self.in_indices = pickle.load(f)
-                loaded_indices = True
-                print(f"Loaded .pckl file for indices: {in_indices_filename}")
-
-        if os.path.isfile(stat_filename):
-            with open(stat_filename, "rb") as f:
-                self.stat = pickle.load(f)
-                print(f"Loaded .pckl file for stats: {stat_filename}")
-
-        if os.path.isfile(loss_filename):
-            with open(loss_filename, "rb") as f:
-                self.losses = pickle.load(f)
-                print(f"Loaded .pckl file for loss: {loss_filename}")
-
-        if loaded_indices and len(self.losses) > 0 and len(self.stat) > 0:
+        if len(self.in_indices) > 0 and len(self.losses) > 0 and len(self.stat) > 0:
             print("Loaded in_indices file, stat file and loss file, do not need to load models.")
             return
 
@@ -119,7 +115,7 @@ class AmiaAttack():
             model_path = os.path.join(self.models_dir,
                                       f"r{self.run_name}_shadow_model_{i}_lr{self.cnn_model.learning_rate}_b{self.cnn_model.batch_size}_e{self.cnn_model.epochs}")
 
-            if not loaded_indices:
+            if len(self.in_indices) > 0:
                 # Generate a binary array indicating which example to include for training
                 keep: np.ndarray = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
                 self.in_indices.append(keep)
@@ -174,21 +170,9 @@ class AmiaAttack():
             tf.keras.backend.clear_session()
             gc.collect()
 
-        # save in_indices when not existing
-        if not os.path.isfile(in_indices_filename):
-            with open(in_indices_filename, "wb") as f:
-                pickle.dump(self.in_indices, f)
-                print(f"Saved .pckl file {in_indices_filename}")
-
-        if not os.path.isfile(stat_filename):
-            with open(stat_filename, "wb") as f:
-                pickle.dump(self.stat, f)
-                print(f"Saved .pckl file {stat_filename}")
-
-        if not os.path.isfile(loss_filename):
-            with open(loss_filename, "wb") as f:
-                pickle.dump(self.losses, f)
-                print(f"Saved .pckl file {loss_filename}")
+        pickle_object(self.in_indices_filename, self.in_indices)
+        pickle_object(self.stat_filename, self.stat)
+        pickle_object(self.loss_filename, self.losses)
 
     def attack_shadow_models_mia(self, plot_auc_curve: bool = True, plot_filename: Optional[str] = "advanced_mia.png"):
         print("Attacking shadow models with MIA")
@@ -231,7 +215,7 @@ class AmiaAttack():
                 loss_test=scores[~in_indices_target])
 
             result_lira = mia.run_attacks(attack_input)
-
+            self.attack_result_list.append(result_lira)
             result_lira_single = result_lira.single_attack_results[0]
 
             print("Advanced MIA attack with Gaussian:",
@@ -254,13 +238,11 @@ class AmiaAttack():
                 plt.savefig(plt_name)
                 plt.close()
 
-        # try:
-        #    result_lira.save("result_lira.pckl")
-        # except Exception as e:
-        #    print(f"could not picke results! {e}")
-
         print("Lira Score results:")
         print(target_model_result_data)
+
+        # pickle attack result list
+        pickle_object(self.attack_result_list_filename, self.attack_result_list)
 
     def _get_stat_and_loss(self,
                            cnn_model: CNNModel,

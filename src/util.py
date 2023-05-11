@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from typing import Any
+import os
+import pickle
+from ppml_datasets.utils import check_create_folder
 
 
 def visualize_training(history: tf.keras.callbacks.History,
@@ -59,3 +63,29 @@ def visualize_data_np(x: np.ndarray, y: np.ndarray, file_name: str = "data_vis_n
             break
     plt.axis("off")
     plt.savefig(file_name)
+
+
+def pickle_object(full_filename: str, object: Any, overwrite_if_exist: bool = True):
+    dirname = os.path.dirname(full_filename)
+    check_create_folder(dirname)
+
+    if not overwrite_if_exist:
+        # check before writing so we dont overwrite stuff
+        if os.path.isfile(full_filename):
+            print(f"File {full_filename} already exist, not overwriting it!")
+            return
+
+    with open(full_filename, "wb") as f:
+        pickle.dump(object, f)
+        print(f"Saved .pckl file {full_filename}")
+
+
+def unpickle_object(full_filename: str) -> Any:
+    if os.path.isfile(full_filename):
+        with open(full_filename, "rb") as f:
+            object = pickle.load(f)
+            print(f"Loaded .pckl file: {full_filename}")
+            return object
+    else:
+        print(f"Cannot load object from pickel! {full_filename} does not exist!")
+        return None
