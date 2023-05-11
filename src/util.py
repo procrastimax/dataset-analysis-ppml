@@ -89,3 +89,15 @@ def unpickle_object(full_filename: str) -> Any:
     else:
         print(f"Cannot load object from pickel! {full_filename} does not exist!")
         return None
+
+
+def find_nearest(array, value) -> (int, float):
+    """Find nearest value in array given another value.
+
+    Return:
+    ------
+    (int, float) -> the found index and its value in the array
+
+    """
+    idx = (np.abs(array - value)).argmin()
+    return idx, array[idx]

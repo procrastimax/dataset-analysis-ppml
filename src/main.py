@@ -85,8 +85,12 @@ def run_amia_attack(ds: AbstractDataset, model: CNNModel, run_number: int, resul
                       shadow_model_dir=shadow_model_save_path,
                       result_path=result_path,
                       run_name=str(run_number))
-    amia.train_load_shadow_models()
-    amia.attack_shadow_models_mia()
+
+    # amia.train_load_shadow_models()
+    # amia.attack_shadow_models_mia()
+
+    amia.load_saved_values()
+    amia.calculate_tpr_at_fixed_fpr()
 
 
 if __name__ == "__main__":

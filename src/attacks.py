@@ -6,13 +6,14 @@ from ppml_datasets.utils import check_create_folder, visualize_training
 import numpy as np
 import pandas as pd
 
-from util import pickle_object, unpickle_object
+from util import pickle_object, unpickle_object, find_nearest
 
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData
 from tensorflow_privacy.privacy.privacy_tests import utils
 import tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.plotting as plotting
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import membership_inference_attack as mia
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import advanced_mia as amia
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import SingleAttackResult, AttackResults
 
 import matplotlib.pyplot as plt
 
@@ -84,13 +85,39 @@ class AmiaAttack():
         self.in_indices_filename = os.path.join(self.numpy_path, "in_indices.pckl")
         self.stat_filename = os.path.join(self.numpy_path, "model_stat.pckl")
         self.loss_filename = os.path.join(self.numpy_path, "model_loss.pckl")
-        self.attack_result_list = os.path.join(self.numpy_path, "attack_results.pckl")
+        self.attack_result_list_filename = os.path.join(self.numpy_path, "attack_results.pckl")
 
     def load_saved_values(self):
         self.in_indices_filename = unpickle_object(self.in_indices_filename)
         self.stat = unpickle_object(self.stat_filename)
         self.losses = unpickle_object(self.loss_filename)
-        self.attack = unpickle_object(self.attack_result_list_filename)
+        self.attack_result_list = unpickle_object(self.attack_result_list_filename)
+
+    def calculate_tpr_at_fixed_fpr(self):
+        attack_result_frame = pd.DataFrame(columns=["slice feature", "slice value", "train size", "test size", "attack type", "Attacker advantage", "Positive predictive value", "AUC", "fpr@0.1", "fpr@0.001"])
+
+        for (i, val) in enumerate(self.attack_result_list):
+            results: AttackResults = val
+            single_frame = results.calculate_pd_dataframe().to_dict("index")[0]  # split dataframe to indexed dict and add it alter to the dataframe again
+
+            single_result = results.single_attack_results[0]
+            (idx, _) = find_nearest(single_result.roc_curve.fpr, 0.001)
+            fpr_at_001 = single_result.roc_curve.tpr[idx]
+
+            (idx, _) = find_nearest(single_result.roc_curve.fpr, 0.1)
+            fpr_at_01 = single_result.roc_curve.tpr[idx]
+
+            single_frame["fpr@0.1"] = fpr_at_01
+            single_frame["fpr@0.001"] = fpr_at_001
+
+            attack_result_frame.loc[i] = single_frame
+
+        attack_result_frame.loc["mean"] = attack_result_frame.mean()
+        attack_result_frame.loc["min"] = attack_result_frame.min()
+        attack_result_frame.loc["max"] = attack_result_frame.max()
+        attack_result_frame.loc["var"] = attack_result_frame.var()
+
+        print(attack_result_frame)
 
     def train_load_shadow_models(self):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
