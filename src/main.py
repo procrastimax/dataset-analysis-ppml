@@ -9,7 +9,7 @@ from ppml_datasets import MnistDataset, FashionMnistDataset
 
 epochs: int = 500
 batch: int = 256
-dropout: float = 0.4
+dropout: float = 0.3
 learning_rate: float = 0.001
 weight_decay: Optional[float] = 0.01
 

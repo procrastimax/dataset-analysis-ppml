@@ -1,6 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
-from keras.layers import Dropout, Dense, Conv2D, RandomFlip, RandomTranslation, Flatten, AveragePooling2D
+from keras.layers import Dropout, Dense, Conv2D, RandomFlip, Flatten, AveragePooling2D
 from keras.callbacks import EarlyStopping
 import numpy as np
 
@@ -44,7 +44,6 @@ class CNNModel():
                                           self.color_channels), batch_size=self.batch_size))
 
         self.model.add(RandomFlip(mode="horizontal"))
-        self.model.add(RandomTranslation(height_factor=0.075, width_factor=0.075))
 
         self.model.add(Conv2D(32, (3, 3),
                               activation=self.conv_activation))
