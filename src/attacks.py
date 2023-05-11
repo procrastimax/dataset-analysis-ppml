@@ -252,6 +252,7 @@ class AmiaAttack():
                 plt.legend()
                 plt_name = os.path.join(self.result_path, f"model_{self.ds.dataset_name}_id{idx}_{plot_filename}")
                 plt.savefig(plt_name)
+                plt.close()
 
         # try:
         #    result_lira.save("result_lira.pckl")

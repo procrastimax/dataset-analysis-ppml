@@ -48,6 +48,7 @@ def visualize_training(history: tf.keras.callbacks.History,
     plt.legend(loc='upper right')
     plt.title('Training and Validation Loss')
     plt.savefig(img_name)
+    plt.close()
 
 
 def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
@@ -69,8 +70,10 @@ def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
                 plt.title(class_names[labels[i]])
             else:
                 plt.title(i)
-            plt.axis("off")
-            plt.savefig(file_name)
+
+    plt.axis("off")
+    plt.savefig(file_name)
+    plt.close()
 
 
 def visualize_data_np(x: np.ndarray, y: np.ndarray, file_name: str = "data_vis_np.png"):
@@ -88,6 +91,7 @@ def visualize_data_np(x: np.ndarray, y: np.ndarray, file_name: str = "data_vis_n
             break
     plt.axis("off")
     plt.savefig(file_name)
+    plt.close()
 
 
 def filter_labels(y, allowed_classes: list):
