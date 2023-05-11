@@ -86,10 +86,11 @@ def run_amia_attack(ds: AbstractDataset, model: CNNModel, run_number: int, resul
                       result_path=result_path,
                       run_name=str(run_number))
 
-    # amia.train_load_shadow_models()
-    # amia.attack_shadow_models_mia()
+    amia.train_load_shadow_models()
+    amia.attack_shadow_models_mia()
 
-    amia.load_saved_values()
+    # amia.load_saved_values()
+    amia.save_all_in_one_roc_curve()
     amia.calculate_tpr_at_fixed_fpr()
 
 

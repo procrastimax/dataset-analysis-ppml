@@ -112,12 +112,30 @@ class AmiaAttack():
 
             attack_result_frame.loc[i] = single_frame
 
-        attack_result_frame.loc["mean"] = attack_result_frame.mean()
-        attack_result_frame.loc["min"] = attack_result_frame.min()
-        attack_result_frame.loc["max"] = attack_result_frame.max()
-        attack_result_frame.loc["var"] = attack_result_frame.var()
+        attack_result_frame.loc["mean"] = attack_result_frame.mean(numeric_only=True)
+        attack_result_frame.loc["min"] = attack_result_frame.min(numeric_only=True)
+        attack_result_frame.loc["max"] = attack_result_frame.max(numeric_only=True)
+        attack_result_frame.loc["var"] = attack_result_frame.var(numeric_only=True)
 
         print(attack_result_frame)
+
+    def save_all_in_one_roc_curve(self):
+        single_results = [x.single_attack_results[0] for x in self.attack_result_list]
+        single_results.sort(key=lambda x: x.get_auc(), reverse=True)
+
+        print("Generating all in one ROC curve plot")
+        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        for res, title in zip(single_results,
+                              range(len(self.attack_result_list))):
+            label = f'Model #{title} auc={res.get_auc():.4f}'
+            plotting.plot_roc_curve(
+                res.roc_curve,
+                functools.partial(self._plot_curve_with_area, ax=ax, label=label))
+        plt.legend()
+        plt_name = os.path.join(self.result_path, f"all_in_one_{self.ds.dataset_name}_advanced_mia_results.png")
+        plt.savefig(plt_name)
+        print(f"Saved all-in-one ROC curve {plt_name}")
+        plt.close()
 
     def train_load_shadow_models(self):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
