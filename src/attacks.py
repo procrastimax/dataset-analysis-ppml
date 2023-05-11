@@ -71,10 +71,10 @@ class AmiaAttack():
 
         self.num_shadow_models = num_shadow_models
 
-        self.in_indices = []  # a list of in-training indices for all models
-        self.stat = []  # a list of statistics for all models
-        self.losses = []  # a list of losses for all models
-        self.attack_result_list = []
+        self.in_indices: Optional[list] = None  # a list of in-training indices for all models
+        self.stat: Optional[list] = None  # a list of statistics for all models
+        self.losses: Optional[list] = None  # a list of losses for all models
+        self.attack_result_list: Optional[list] = None
 
         self.num_training_samples: int = 0
 
@@ -95,6 +95,10 @@ class AmiaAttack():
 
     def calculate_tpr_at_fixed_fpr(self):
         attack_result_frame = pd.DataFrame(columns=["slice feature", "slice value", "train size", "test size", "attack type", "Attacker advantage", "Positive predictive value", "AUC", "fpr@0.1", "fpr@0.001"])
+
+        if self.attack_result_list is None:
+            print("Attack result list is None -> cannot proceed to calculate TPR at fixed FPR!")
+            return
 
         for (i, val) in enumerate(self.attack_result_list):
             results: AttackResults = val
@@ -150,9 +154,16 @@ class AmiaAttack():
         self.stat = unpickle_object(self.stat_filename)
         self.losses = unpickle_object(self.loss_filename)
 
-        if len(self.in_indices) > 0 and len(self.losses) > 0 and len(self.stat) > 0:
+        if self.in_indices is not None and self.stat is not None or self.losses is not None:
             print("Loaded in_indices file, stat file and loss file, do not need to load models.")
             return
+        else:
+            # initialize lists if not loaded before
+            self.in_indices = []
+            self.stat = []
+            self.losses = []
+
+        print(len(self.in_indices))
 
         for i in range(self.num_shadow_models + 1):
             print(f"Creating shadow model {i}")
@@ -160,12 +171,9 @@ class AmiaAttack():
             model_path = os.path.join(self.models_dir,
                                       f"r{self.run_name}_shadow_model_{i}_lr{self.cnn_model.learning_rate}_b{self.cnn_model.batch_size}_e{self.cnn_model.epochs}")
 
-            if len(self.in_indices) > 0:
-                # Generate a binary array indicating which example to include for training
-                keep: np.ndarray = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
-                self.in_indices.append(keep)
-            else:
-                keep = self.in_indices[i]
+            # Generate a binary array indicating which example to include for training
+            keep: np.ndarray = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
+            self.in_indices.append(keep)
 
             # we want to create an exact copy of the already trained model, but change model path
             shadow_model: CNNModel = copy.copy(self.cnn_model)

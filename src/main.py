@@ -21,7 +21,7 @@ result_path: str = "results"
 
 def main():
 
-    run_number: int = 1
+    run_number: int = 2
 
     # augment_train is False, since it is built into the model
     mnist = MnistDataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
@@ -87,11 +87,11 @@ def run_amia_attack(ds: AbstractDataset, model: CNNModel, run_number: int, resul
                       run_name=str(run_number))
 
     amia.train_load_shadow_models()
-    amia.attack_shadow_models_mia(plot_filename=f"{run_number}-{model_name}-advanced-mia.png")
+    amia.attack_shadow_models_mia()
 
     # amia.load_saved_values()
-    amia.save_all_in_one_roc_curve()
     amia.calculate_tpr_at_fixed_fpr()
+    amia.save_all_in_one_roc_curve()
 
 
 if __name__ == "__main__":
