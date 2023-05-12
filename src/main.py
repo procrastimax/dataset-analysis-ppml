@@ -22,6 +22,8 @@ momentum: float = 0.9
 weight_decay: Optional[float] = 0.0005
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 
+shadow_models: int = 16
+
 data_path: str = "data"
 model_path: str = "models"
 result_path: str = "results"
