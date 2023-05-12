@@ -121,8 +121,9 @@ class AmiaAttack():
         attack_result_frame.loc["var"] = attack_result_frame.var(numeric_only=True)
 
         print(attack_result_frame)
-        print("Saving dataframe as csv")
+
         df_filename = os.path.join(self.result_path, f"attack_statistic_results_{self.ds.dataset_name}.csv")
+        print(f"Saving dataframe as csv: {df_filename}")
         attack_result_frame.to_csv(path_or_buf=df_filename, header=True, index=True, sep=" ", mode="w")
 
     def save_all_in_one_roc_curve(self):
