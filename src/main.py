@@ -15,6 +15,7 @@ learning_rate: float = 0.02
 momentum: float = 0.9
 weight_decay: Optional[float] = 0.0005
 
+shadow_models: int = 16
 
 data_path: str = "data"
 model_path: str = "models"
@@ -23,7 +24,7 @@ result_path: str = "results"
 
 def main():
 
-    run_number: int = 3
+    run_number: int = 1
 
     # augment_train is False, since it is built into the model
     ds = FashionMnistDataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
@@ -80,7 +81,7 @@ def run_amia_attack(ds: AbstractDataset, model: CNNModel, run_number: int, resul
 
     amia = AmiaAttack(model=model,
                       ds=ds,
-                      num_shadow_models=16,
+                      num_shadow_models=shadow_models,
                       shadow_model_dir=shadow_model_save_path,
                       result_path=result_path,
                       run_name=str(run_number))

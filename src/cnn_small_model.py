@@ -37,17 +37,20 @@ class CNNModel():
 
     def build_model(self):
         print("Building model")
-        self.model = tf.keras.models.Sequential()
+        model = tf.keras.models.Sequential()
         # Add a layer to do random horizontal augmentation.
-        self.model.add(tf.keras.layers.RandomFlip('horizontal', input_shape=(self.img_height, self.img_width, 3)))
+        model.add(tf.keras.layers.RandomFlip('horizontal', input_shape=(self.img_height, self.img_width, 3)))
 
         for _ in range(3):
-            self.model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu'))
-            self.model.add(tf.keras.layers.MaxPooling2D())
+            model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu'))
+            model.add(tf.keras.layers.MaxPooling2D())
 
-        self.model.add(tf.keras.layers.Flatten())
-        self.model.add(tf.keras.layers.Dense(64, activation='relu'))
-        self.model.add(tf.keras.layers.Dense(10))
+        model.add(tf.keras.layers.Flatten())
+        model.add(tf.keras.layers.Dense(64, activation='relu'))
+        model.add(tf.keras.layers.Dense(10))
+
+        self.model = None
+        self.model = model
 
     def compile_model(self):
         print("Compiling model")

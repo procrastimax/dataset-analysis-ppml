@@ -55,9 +55,6 @@ class AmiaAttack():
         check_create_folder(self.result_path)
 
         self.cnn_model: CNNModel = model
-        if self.cnn_model.model is None:
-            print("Model was not build before, building it")
-            self.cnn_model.build_model()
 
         if ds.ds_train is None:
             print("Error: Dataset needs to have an initialized train dataset!")
@@ -196,7 +193,7 @@ class AmiaAttack():
                 print(f"Loaded model {model_path} from disk")
             else:
                 print("Model does not exist, training a new one")
-                self.cnn_model.compile_model()
+                self.cnn_model.build_compile()
                 self.cnn_model.train_model_from_numpy(x=train_samples[keep],
                                                       y=train_labels[keep],
                                                       val_x=train_samples[~keep],
