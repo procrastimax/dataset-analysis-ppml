@@ -1,17 +1,19 @@
 from typing import Optional
 import os
 from attacks import AmiaAttack
-from model import CNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import visualize_training
 from ppml_datasets import MnistDataset, FashionMnistDataset
+
+from cnn_small_model import CNNModel
 
 
 epochs: int = 500
 batch: int = 256
 dropout: float = 0.3
-learning_rate: float = 0.001
-weight_decay: Optional[float] = 0.01
+learning_rate: float = 0.02
+momentum: float = 0.9
+weight_decay: Optional[float] = None
 
 
 data_path: str = "data"
@@ -21,26 +23,24 @@ result_path: str = "results"
 
 def main():
 
-    run_number: int = 2
+    run_number: int = 3
 
     # augment_train is False, since it is built into the model
-    mnist = MnistDataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
-    mnist.load_dataset()
-    mnist.prepare_datasets()
+    ds = FashionMnistDataset([32, 32, 3], builds_ds_info=False, batch_size=batch, augment_train=False)
+    ds.load_dataset()
+    ds.prepare_datasets()
 
-    ds = mnist
     num_classes: int = ds.get_number_of_classes()
 
     model_save_path: str = os.path.join(model_path, str(run_number))
     model = CNNModel(img_height=32, img_width=32, color_channels=3,
                      num_classes=num_classes,
                      batch_size=batch,
-                     dropout=dropout,
                      model_path=model_save_path,
                      epochs=epochs,
                      learning_rate=learning_rate,
-                     dense_layer_dimension=512,
-                     patience=30,
+                     momentum=momentum,
+                     patience=15,
                      use_early_stopping=True,
                      weight_decay=weight_decay)
 
@@ -64,7 +64,6 @@ def train_model(ds: AbstractDataset, model: CNNModel):
 
 
 def load_and_test_model(ds: AbstractDataset, model: CNNModel):
-
     model.load_model()
     model.print_summary()
 

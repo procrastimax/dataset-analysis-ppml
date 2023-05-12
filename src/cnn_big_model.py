@@ -44,32 +44,24 @@ class CNNModel():
                                           self.color_channels), batch_size=self.batch_size))
 
         self.model.add(RandomFlip(mode="horizontal"))
-
         self.model.add(Conv2D(32, (3, 3),
                               activation=self.conv_activation))
         self.model.add(Conv2D(64, (3, 3),
                               activation=self.conv_activation))
         self.model.add(AveragePooling2D((2, 2)))
-
         self.model.add(Conv2D(64, (3, 3),
                               activation=self.conv_activation))
-
         self.model.add(Conv2D(64, (3, 3),
                               activation=self.conv_activation))
         self.model.add(AveragePooling2D((2, 2)))
-
         self.model.add(Flatten())
-
         self.model.add(Dense(self.dense_layer_dimension,
                              activation=self.dense_activation))
-
         self.model.add(Dropout(self.dropout))
-
         self.model.add(Dense(self.dense_layer_dimension / 2, activation=self.dense_activation))
-
         self.model.add(Dropout(self.dropout))
-
         self.model.add(Dense(self.num_classes))
+
 
     def compile_model(self):
         print("Compiling model")
@@ -101,7 +93,7 @@ class CNNModel():
 
         callback_list = []
         if self.use_early_stopping:
-            es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=self.patience, restore_best_weights=True)
+            es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=self.patience, restore_best_weights=False)
             callback_list.append(es)
 
         self.history = self.model.fit(x=train_ds, validation_data=val_ds, epochs=self.epochs, callbacks=callback_list)

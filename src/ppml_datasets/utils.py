@@ -27,6 +27,7 @@ def get_img(x, y):
 
 def visualize_training(history: tf.keras.callbacks.History,
                        img_name: str = "results.png"):
+    print(f"Saving training figure {img_name}")
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
 

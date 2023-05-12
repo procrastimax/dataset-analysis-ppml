@@ -1,6 +1,6 @@
 import tensorflow as tf
 from typing import Optional
-from model import CNNModel
+from cnn_small_model import CNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import check_create_folder, visualize_training
 import numpy as np
@@ -21,7 +21,6 @@ import functools
 from os import sys
 import os
 import gc
-import copy
 
 
 class AmiaAttack():
@@ -56,6 +55,9 @@ class AmiaAttack():
         check_create_folder(self.result_path)
 
         self.cnn_model: CNNModel = model
+        if self.cnn_model.model is None:
+            print("Model was not build before, building it")
+            self.cnn_model.build_model()
 
         if ds.ds_train is None:
             print("Error: Dataset needs to have an initialized train dataset!")
@@ -141,6 +143,9 @@ class AmiaAttack():
         print(f"Saved all-in-one ROC curve {plt_name}")
         plt.close()
 
+    def save_average_roc_curve(self):
+        pass
+
     def train_load_shadow_models(self):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
 
@@ -163,8 +168,6 @@ class AmiaAttack():
             self.stat = []
             self.losses = []
 
-        print(len(self.in_indices))
-
         for i in range(self.num_shadow_models + 1):
             print(f"Creating shadow model {i}")
 
@@ -175,10 +178,9 @@ class AmiaAttack():
             keep: np.ndarray = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
             self.in_indices.append(keep)
 
-            # we want to create an exact copy of the already trained model, but change model path
-            shadow_model: CNNModel = copy.copy(self.cnn_model)
-            shadow_model.model_path = model_path
-            shadow_model.reset_model_optimizer()
+            # prepare model for new train iteration
+            self.cnn_model.model_path = model_path
+            self.cnn_model.history = None
 
             train_count = keep.sum()
 
@@ -187,20 +189,21 @@ class AmiaAttack():
 
             # load model if already trained, else train & save it
             if os.path.exists(model_path):
-                shadow_model.load_model()
+                self.cnn_model.load_model()
                 print(f"Loaded model {model_path} from disk")
             else:
-                shadow_model.build_compile()
-                shadow_model.train_model_from_numpy(x=train_samples[keep],
-                                                    y=train_labels[keep],
-                                                    val_x=train_samples[~keep],
-                                                    val_y=train_labels[~keep],
-                                                    batch=self.cnn_model.batch_size)  # specify batch size here, since numpy data is unbatched
-                shadow_model.save_model()
+                print("Model does not exist, training a new one")
+                self.cnn_model.compile_model()
+                self.cnn_model.train_model_from_numpy(x=train_samples[keep],
+                                                      y=train_labels[keep],
+                                                      val_x=train_samples[~keep],
+                                                      val_y=train_labels[~keep],
+                                                      batch=self.cnn_model.batch_size)  # specify batch size here, since numpy data is unbatched
+                self.cnn_model.save_model()
                 print(f"Trained and saved model: {model_path}")
 
                 print("Saving shadow model train history as figure")
-                history = shadow_model.get_history()
+                history = self.cnn_model.get_history()
 
                 history_fig_path = os.path.join(self.result_path, "sm-training", self.ds.dataset_name)
                 check_create_folder(history_fig_path)
@@ -209,11 +212,11 @@ class AmiaAttack():
 
                 # test shadow model accuracy
                 print("Testing shadow model on test data")
-                shadow_model.test_model(self.ds.ds_test)
+                self.cnn_model.test_model(self.ds.ds_test)
                 print(f"\n============================= DONE TRAINING Shadow Model: {i} =============================\n")
 
             stat_temp, loss_temp = self._get_stat_and_loss(
-                cnn_model=shadow_model,
+                cnn_model=self.cnn_model,
                 x=train_samples,
                 y=train_labels)
             self.stat.append(stat_temp)
@@ -236,6 +239,9 @@ class AmiaAttack():
 
         # pd.set_option("display.max_rows", 8, "display.max_columns", None)
         target_model_result_data = pd.DataFrame()
+
+        if self.attack_result_list is None:
+            self.attack_result_list = []
 
         # we currently use the shadow and training models
         for idx in range(self.num_shadow_models + 1):
@@ -321,18 +327,20 @@ class AmiaAttack():
         """
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
-            prob = amia.convert_logit_to_prob(
-                cnn_model.model.predict(data, batch_size=cnn_model.batch_size))
+            # prob = amia.convert_logit_to_prob(
+            # cnn_model.model.predict(data, batch_size=cnn_model.batch_size))
+            logits = cnn_model.model.predict(x=data, batch_size=cnn_model.batch_size)
             losses.append(utils.log_loss(labels=y,
-                                         pred=prob,
-                                         from_logits=False,
+                                         pred=logits,
+                                         from_logits=True,
                                          sample_weight=sample_weight))
             stat.append(
                 amia.calculate_statistic(
-                    pred=prob,
+                    pred=logits,
                     labels=y,
-                    is_logits=False,
-                    option="logit",
+                    is_logits=True,
+                    # option="logit",
+                    option="hinge",
                     sample_weight=sample_weight))
 
         # this generates a shape of (N, 2) since we augmented the data by flipping it horizontally
