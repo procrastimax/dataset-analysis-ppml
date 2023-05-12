@@ -6,3 +6,4 @@ src/ppml_datasets/__pycache__/
 *.png
 *.pckl
 *.log
+results/

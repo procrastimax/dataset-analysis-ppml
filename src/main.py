@@ -10,10 +10,10 @@ from cnn_small_model import CNNModel
 
 epochs: int = 500
 batch: int = 256
-dropout: float = 0.3
+dropout: float = 0.0
 learning_rate: float = 0.02
 momentum: float = 0.9
-weight_decay: Optional[float] = None
+weight_decay: Optional[float] = 0.0005
 
 
 data_path: str = "data"
