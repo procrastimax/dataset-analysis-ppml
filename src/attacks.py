@@ -193,7 +193,7 @@ class AmiaAttack():
         plt.close()
         return
 
-    def train_load_shadow_models(self, force_recalculation: bool = False):
+    def train_load_shadow_models(self, force_retraning: bool = False, force_recalculation: bool = False):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
 
         After training/ loading the shadow models statistics and losses are calulcated over all shadow models.
@@ -204,18 +204,21 @@ class AmiaAttack():
 
         if not force_recalculation:
             # dont load stats if recalcuation is forced
-            self.in_indices = unpickle_object(self.in_indices_filename)
             self.stat = unpickle_object(self.stat_filename)
             self.losses = unpickle_object(self.loss_filename)
+
+        self.in_indices = unpickle_object(self.in_indices_filename)
 
         if self.in_indices is not None and self.stat is not None and self.losses is not None:
             print("Loaded in_indices file, stat file and loss file, do not need to load models.")
             return
         else:
             # initialize lists if not loaded before
-            self.in_indices = []
             self.stat = []
             self.losses = []
+
+        if self.in_indices is None:
+            self.in_indices = []
 
         for i in range(self.num_shadow_models + 1):
             print(f"Creating shadow model {i}")
@@ -223,9 +226,12 @@ class AmiaAttack():
             model_path = os.path.join(self.models_dir,
                                       f"r{self.run_name}_shadow_model_{i}_lr{self.cnn_model.learning_rate}_b{self.cnn_model.batch_size}_e{self.cnn_model.epochs}")
 
-            # Generate a binary array indicating which example to include for training
-            keep: np.ndarray = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
-            self.in_indices.append(keep)
+            if not force_recalculation:
+                # Generate a binary array indicating which example to include for training
+                keep: np.ndarray = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
+                self.in_indices.append(keep)
+            else:
+                keep = self.in_indices[i]
 
             # prepare model for new train iteration
             self.cnn_model.model_path = model_path
@@ -237,7 +243,7 @@ class AmiaAttack():
                 f"Using {train_count} training samples")
 
             # load model if already trained, else train & save it
-            if os.path.exists(model_path):
+            if os.path.exists(model_path) and not force_retraning:
                 self.cnn_model.load_model()
                 print(f"Loaded model {model_path} from disk")
             else:
@@ -264,7 +270,7 @@ class AmiaAttack():
                 self.cnn_model.test_model(self.ds.ds_test)
                 print(f"\n============================= DONE TRAINING Shadow Model: {i} =============================\n")
 
-            stat_temp, loss_temp = self._get_stat_and_loss(
+            stat_temp, loss_temp = self.get_stat_and_loss_hinge(
                 cnn_model=self.cnn_model,
                 x=train_samples,
                 y=train_labels)
@@ -275,7 +281,10 @@ class AmiaAttack():
             tf.keras.backend.clear_session()
             gc.collect()
 
-        pickle_object(self.in_indices_filename, self.in_indices)
+        # when recalcuating the stats dont overwrite the indices file
+        if not force_recalculation:
+            pickle_object(self.in_indices_filename, self.in_indices)
+
         pickle_object(self.stat_filename, self.stat)
         pickle_object(self.loss_filename, self.losses)
 
@@ -371,28 +380,11 @@ class AmiaAttack():
         pickle_object(self.attack_result_list_filename, self.attack_result_list)
         pickle_object(self.attack_baseline_result_list_filename, self.attack_baseline_result_list)
 
-    def _get_stat_and_loss(self,
-                           cnn_model: CNNModel,
-                           x: np.ndarray,
-                           y: np.ndarray,
-                           sample_weight: Optional[np.ndarray] = None):
-        """Get the statistics and losses.
-
-        Paramter
-        --------
-          model: model to make prediction
-          x: samples
-          y: true labels of samples (integer valued)
-          sample_weight: a vector of weights of shape (n_samples, ) that are
-            assigned to individual samples. If not provided, then each sample is
-            given unit weight. Only the LogisticRegressionAttacker and the
-            RandomForestAttacker support sample weights.
-
-        Returns
-        -------
-          the statistics and cross-entropy losses
-
-        """
+    def get_stat_and_loss_hinge(self,
+                                cnn_model: CNNModel,
+                                x: np.ndarray,
+                                y: np.ndarray,
+                                sample_weight: Optional[np.ndarray] = None):
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
             logits = cnn_model.model.predict(x=data, batch_size=cnn_model.batch_size)
@@ -408,7 +400,30 @@ class AmiaAttack():
                     option="hinge",
                     sample_weight=sample_weight))
 
-        # this generates a shape of (N, 2) since we augmented the data by flipping it horizontally
+        return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)
+
+    def get_stat_and_loss_aug_logits(self,
+                                     cnn_model: CNNModel,
+                                     x: np.ndarray,
+                                     y: np.ndarray,
+                                     sample_weight: Optional[np.ndarray] = None):
+        losses, stat = [], []
+        for data in [x, x[:, :, ::-1, :]]:
+            prob = amia.convert_logit_to_prob(
+                cnn_model.model.predict(x=data,
+                                        batch_size=cnn_model.batch_size))
+            losses.append(utils.log_loss(labels=y,
+                                         pred=prob,
+                                         from_logits=False,
+                                         sample_weight=sample_weight))
+            stat.append(
+                amia.calculate_statistic(
+                    pred=prob,
+                    labels=y,
+                    option="logit",
+                    sample_weight=sample_weight,
+                    is_logits=False))
+
         return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)
 
     def _plot_curve_with_area(self, x, y, xlabel, ylabel, ax, label, title=None):
