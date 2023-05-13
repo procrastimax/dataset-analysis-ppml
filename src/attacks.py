@@ -13,7 +13,7 @@ from tensorflow_privacy.privacy.privacy_tests import utils
 import tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.plotting as plotting
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import membership_inference_attack as mia
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import advanced_mia as amia
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import SingleAttackResult, AttackResults
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackResults
 
 import matplotlib.pyplot as plt
 
@@ -74,6 +74,7 @@ class AmiaAttack():
         self.stat: Optional[list] = None  # a list of statistics for all models
         self.losses: Optional[list] = None  # a list of losses for all models
         self.attack_result_list: Optional[list] = None
+        self.attack_baseline_result_list: Optional[list] = None
 
         self.num_training_samples: int = 0
 
@@ -85,12 +86,14 @@ class AmiaAttack():
         self.stat_filename = os.path.join(self.numpy_path, "model_stat.pckl")
         self.loss_filename = os.path.join(self.numpy_path, "model_loss.pckl")
         self.attack_result_list_filename = os.path.join(self.numpy_path, "attack_results.pckl")
+        self.attack_baseline_result_list_filename = os.path.join(self.numpy_path, "attack_baseline_results.pckl")
 
     def load_saved_values(self):
         self.in_indices_filename = unpickle_object(self.in_indices_filename)
         self.stat = unpickle_object(self.stat_filename)
         self.losses = unpickle_object(self.loss_filename)
         self.attack_result_list = unpickle_object(self.attack_result_list_filename)
+        self.attack_baseline_result_list = unpickle_object(self.attack_baseline_result_list_filename)
 
     def calculate_tpr_at_fixed_fpr(self):
         attack_result_frame = pd.DataFrame(columns=["slice feature", "slice value", "train size", "test size", "attack type", "Attacker advantage", "Positive predictive value", "AUC", "fpr@0.1", "fpr@0.001"])
@@ -144,10 +147,53 @@ class AmiaAttack():
         print(f"Saved all-in-one ROC curve {plt_name}")
         plt.close()
 
-    def save_average_roc_curve(self):
-        pass
+    def save_average_roc_curve(self, generate_all_rocs: bool = True, generate_std_area: bool = True):
+        print("Generating average ROC curve plot from all shadow models")
 
-    def train_load_shadow_models(self):
+        single_results = [x.single_attack_results[0] for x in self.attack_result_list]
+        fpr_len = len(single_results[0].roc_curve.fpr)
+
+        fprs = [i.roc_curve.fpr for i in single_results]
+        tprs = [i.roc_curve.tpr for i in single_results]
+
+        fpr_grid = np.logspace(-5, 0, num=fpr_len)
+
+        mean_tpr = np.zeros_like(fpr_grid)
+
+        tpr_int = []
+
+        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+
+        for (fpr, tpr) in zip(fprs, tprs):
+            tpr_int.append(np.interp(fpr_grid, fpr, tpr))
+            if generate_all_rocs:
+                plt.plot(fpr, tpr, 'b', alpha=0.15)
+
+        tpr_int = np.array(tpr_int)
+        mean_tpr = tpr_int.mean(axis=0)
+
+        if generate_std_area:
+            std_tpr = tpr_int.std(axis=0)
+            tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
+            tprs_lower = mean_tpr - std_tpr
+            plt.fill_between(fpr_grid, tprs_lower, tprs_upper, color='grey', alpha=0.3)
+
+        ax.plot([0, 1], [0, 1], 'r--', lw=1.0)
+        ax.plot(fpr_grid, mean_tpr, "b", lw=2, label="Average ROC")
+        ax.set(xlabel="TPR", ylabel="FPR")
+        ax.set(aspect=1, xscale='log', yscale='log')
+        ax.title.set_text("Receiver Operator Characteristics")
+
+        plt.xlim([0.00001, 1])
+        plt.ylim([0.00001, 1])
+        plt.legend()
+        plt_name = os.path.join(self.result_path, f"averaged_roc_curve_{self.ds.dataset_name}_advanced_mia_results.png")
+        plt.savefig(plt_name)
+        print(f"Saved all-in-one ROC curve {plt_name}")
+        plt.close()
+        return
+
+    def train_load_shadow_models(self, force_recalculation: bool = False):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
 
         After training/ loading the shadow models statistics and losses are calulcated over all shadow models.
@@ -156,11 +202,13 @@ class AmiaAttack():
         (train_samples, train_labels) = self.ds.get_train_ds_as_numpy()
         self.num_training_samples = len(train_samples)
 
-        self.in_indices = unpickle_object(self.in_indices_filename)
-        self.stat = unpickle_object(self.stat_filename)
-        self.losses = unpickle_object(self.loss_filename)
+        if not force_recalculation:
+            # dont load stats if recalcuation is forced
+            self.in_indices = unpickle_object(self.in_indices_filename)
+            self.stat = unpickle_object(self.stat_filename)
+            self.losses = unpickle_object(self.loss_filename)
 
-        if self.in_indices is not None and self.stat is not None or self.losses is not None:
+        if self.in_indices is not None and self.stat is not None and self.losses is not None:
             print("Loaded in_indices file, stat file and loss file, do not need to load models.")
             return
         else:
@@ -238,11 +286,14 @@ class AmiaAttack():
             print("Error: Before attacking the shadow models with MIA, please train or load the shadow models and retrieve the statistics and losses")
             sys.exit(1)
 
-        # pd.set_option("display.max_rows", 8, "display.max_columns", None)
         target_model_result_data = pd.DataFrame()
+        target_model_result_data_baseline = pd.DataFrame()
 
         if self.attack_result_list is None:
             self.attack_result_list = []
+
+        if self.attack_baseline_result_list is None:
+            self.attack_baseline_result_list = []
 
         # we currently use the shadow and training models
         for idx in range(self.num_shadow_models + 1):
@@ -283,12 +334,24 @@ class AmiaAttack():
                   f"adv = {result_lira_single.get_attacker_advantage():.4f}")
             target_model_result_data = pd.concat([target_model_result_data, result_lira.calculate_pd_dataframe()])
 
+            # Compare with the baseline MIA using the loss of the target model
+            loss_target = self.losses[idx][:, 0]
+            attack_input = AttackInputData(
+                loss_train=loss_target[in_indices_target],
+                loss_test=loss_target[~in_indices_target])
+            result_baseline = mia.run_attacks(attack_input)
+            result_baseline_single = result_baseline.single_attack_results[0]
+            print('Baseline MIA attack:',
+                  f'auc = {result_baseline_single.get_auc():.4f}',
+                  f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
+            target_model_result_data_baseline = pd.concat([target_model_result_data_baseline, result_baseline.calculate_pd_dataframe()])
+
             if plot_auc_curve:
                 print(f"Generating AUC curve plot for target model {idx}")
                 # Plot and save the AUC curves for the three methods.
                 _, ax = plt.subplots(1, 1, figsize=(5, 5))
-                for res, title in zip([result_lira_single],
-                                      ['LiRA']):
+                for res, title in zip([result_lira_single, result_baseline_single],
+                                      ['LiRA', 'MIA Baseline (Threshold Attack)']):
                     label = f'{title} auc={res.get_auc():.4f}'
                     plotting.plot_roc_curve(
                         res.roc_curve,
@@ -301,8 +364,12 @@ class AmiaAttack():
         print("Lira Score results:")
         print(target_model_result_data)
 
-        # pickle attack result list
+        print("Baseline Score results:")
+        print(target_model_result_data_baseline)
+
+        # pickle attack result list for LiRA and baseline
         pickle_object(self.attack_result_list_filename, self.attack_result_list)
+        pickle_object(self.attack_baseline_result_list_filename, self.attack_baseline_result_list)
 
     def _get_stat_and_loss(self,
                            cnn_model: CNNModel,
@@ -328,8 +395,6 @@ class AmiaAttack():
         """
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
-            # prob = amia.convert_logit_to_prob(
-            # cnn_model.model.predict(data, batch_size=cnn_model.batch_size))
             logits = cnn_model.model.predict(x=data, batch_size=cnn_model.batch_size)
             losses.append(utils.log_loss(labels=y,
                                          pred=logits,
@@ -340,7 +405,6 @@ class AmiaAttack():
                     pred=logits,
                     labels=y,
                     is_logits=True,
-                    # option="logit",
                     option="hinge",
                     sample_weight=sample_weight))
 
@@ -366,14 +430,3 @@ class AmiaAttack():
 # print('Advanced MIA attack with offset:',
 #       f'auc = {result_offset_single.get_auc():.4f}',
 #       f'adv = {result_offset_single.get_attacker_advantage():.4f}')
-
-# Compare with the baseline MIA using the loss of the target model
-# loss_target = self.losses[idx][:, 0]
-# attack_input = AttackInputData(
-#     loss_train=loss_target[in_indices_target],
-#     loss_test=loss_target[~in_indices_target])
-# result_baseline = mia.run_attacks(attack_input)
-# result_baseline_single = result_baseline.single_attack_results[0]
-# print('Baseline MIA attack:',
-#       f'auc = {result_baseline_single.get_auc():.4f}',
-#       f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
