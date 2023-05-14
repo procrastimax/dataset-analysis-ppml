@@ -7,3 +7,4 @@ src/ppml_datasets/__pycache__/
 *.pckl
 *.log
 results/
+run.bash

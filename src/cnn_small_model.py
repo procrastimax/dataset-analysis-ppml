@@ -3,7 +3,7 @@ from tensorflow import keras
 from keras.callbacks import EarlyStopping
 import numpy as np
 
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 from dataclasses import dataclass, field
 
 
@@ -119,9 +119,17 @@ class CNNModel():
 
         return self.history
 
-    def test_model(self, test_ds: tf.data.Dataset):
+    def test_model(self, test_ds: tf.data.Dataset) -> Tuple[float, float]:
+        """Run the model's prediction function on the given tf.data.Dataset.
+
+        Return:
+        ------
+        Tuple[float, float] -> (loss, accuracy)
+
+        """
         test_loss, test_acc = self.model.evaluate(x=test_ds)
-        print('\nAccuracy:', test_acc)
+        print(f"\nAccuracy: {test_acc}, Loss: {test_loss}")
+        return (test_loss, test_acc)
 
     def get_history(self) -> tf.keras.callbacks.History:
         return self.history

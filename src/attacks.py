@@ -34,7 +34,6 @@ class AmiaAttack():
     def __init__(self,
                  model: CNNModel,
                  ds: AbstractDataset,
-                 run_name: int,
                  result_path: str,
                  shadow_model_dir: str = "data/models/amia/shadow_models",
                  num_shadow_models: int = 16,
@@ -46,12 +45,10 @@ class AmiaAttack():
         model : CNNModel
         dataset : AbstractDataset - When instatiating a Dataset, a validation dataset is not needed, instead increase the train sice when specifying the train_val_test_split
         """
-        self.run_name = run_name
-
-        self.models_dir = os.path.join(shadow_model_dir, run_name, ds.dataset_name)
+        self.models_dir = shadow_model_dir
         check_create_folder(self.models_dir)
 
-        self.result_path = os.path.join(result_path, "amia-results", run_name)
+        self.result_path = result_path
         check_create_folder(self.result_path)
 
         self.cnn_model: CNNModel = model
@@ -85,8 +82,14 @@ class AmiaAttack():
         self.in_indices_filename = os.path.join(self.numpy_path, "in_indices.pckl")
         self.stat_filename = os.path.join(self.numpy_path, "model_stat.pckl")
         self.loss_filename = os.path.join(self.numpy_path, "model_loss.pckl")
-        self.attack_result_list_filename = os.path.join(self.numpy_path, "attack_results.pckl")
-        self.attack_baseline_result_list_filename = os.path.join(self.numpy_path, "attack_baseline_results.pckl")
+
+        self.attack_statistics_folder: str = os.path.join(self.result_path, "attack-statistics")
+        check_create_folder(self.attack_statistics_folder)
+        self.single_model_attack_img_folder: str = os.path.join(self.result_path, "single-model-attack")
+        check_create_folder(self.single_model_attack_img_folder)
+
+        self.attack_result_list_filename = os.path.join(self.result_path, self.attack_statistics_folder, "attack_results.pckl")
+        self.attack_baseline_result_list_filename = os.path.join(self.numpy_path, self.attack_statistics_folder, "attack_baseline_results.pckl")
 
     def load_saved_values(self):
         self.in_indices_filename = unpickle_object(self.in_indices_filename)
@@ -125,9 +128,9 @@ class AmiaAttack():
 
         print(attack_result_frame)
 
-        df_filename = os.path.join(self.result_path, f"attack_statistic_results_{self.ds.dataset_name}.csv")
+        df_filename = os.path.join(self.attack_statistics_folder, f"attack_statistic_results_{self.ds.dataset_name}.csv")
         print(f"Saving dataframe as csv: {df_filename}")
-        attack_result_frame.to_csv(path_or_buf=df_filename, header=True, index=True, sep=" ", mode="w")
+        attack_result_frame.to_csv(path_or_buf=df_filename, header=True, index=True, sep="\t")
 
     def save_all_in_one_roc_curve(self):
         single_results = [x.single_attack_results[0] for x in self.attack_result_list]
@@ -224,7 +227,7 @@ class AmiaAttack():
             print(f"Creating shadow model {i}")
 
             model_path = os.path.join(self.models_dir,
-                                      f"r{self.run_name}_shadow_model_{i}_lr{self.cnn_model.learning_rate}_b{self.cnn_model.batch_size}_e{self.cnn_model.epochs}")
+                                      f"shadow_model_{i}_lr{self.cnn_model.learning_rate}_b{self.cnn_model.batch_size}_e{self.cnn_model.epochs}")
 
             if not force_recalculation:
                 # Generate a binary array indicating which example to include for training
@@ -288,7 +291,7 @@ class AmiaAttack():
         pickle_object(self.stat_filename, self.stat)
         pickle_object(self.loss_filename, self.losses)
 
-    def attack_shadow_models_mia(self, plot_auc_curve: bool = True, plot_filename: Optional[str] = "advanced_mia.png"):
+    def attack_shadow_models_mia(self):
         print("Attacking shadow models with MIA")
 
         if len(self.stat) == 0 or len(self.losses) == 0:
@@ -355,20 +358,19 @@ class AmiaAttack():
                   f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
             target_model_result_data_baseline = pd.concat([target_model_result_data_baseline, result_baseline.calculate_pd_dataframe()])
 
-            if plot_auc_curve:
-                print(f"Generating AUC curve plot for target model {idx}")
-                # Plot and save the AUC curves for the three methods.
-                _, ax = plt.subplots(1, 1, figsize=(5, 5))
-                for res, title in zip([result_lira_single, result_baseline_single],
-                                      ['LiRA', 'MIA Baseline (Threshold Attack)']):
-                    label = f'{title} auc={res.get_auc():.4f}'
-                    plotting.plot_roc_curve(
-                        res.roc_curve,
-                        functools.partial(self._plot_curve_with_area, ax=ax, label=label))
-                plt.legend()
-                plt_name = os.path.join(self.result_path, f"model_{self.ds.dataset_name}_id{idx}_{plot_filename}")
-                plt.savefig(plt_name)
-                plt.close()
+            print(f"Generating AUC curve plot for target model {idx}")
+            # Plot and save the AUC curves for the three methods.
+            _, ax = plt.subplots(1, 1, figsize=(5, 5))
+            for res, title in zip([result_lira_single, result_baseline_single],
+                                  ['LiRA', 'MIA Baseline (Threshold Attack)']):
+                label = f'{title} auc={res.get_auc():.4f}'
+                plotting.plot_roc_curve(
+                    res.roc_curve,
+                    functools.partial(self._plot_curve_with_area, ax=ax, label=label))
+            plt.legend()
+            plt_name = os.path.join(self.single_model_attack_img_folder, f"model_{self.ds.dataset_name}_id{idx}_advanced_mia.png")
+            plt.savefig(plt_name)
+            plt.close()
 
         print("Lira Score results:")
         print(target_model_result_data)
