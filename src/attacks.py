@@ -85,11 +85,11 @@ class AmiaAttack():
 
         self.attack_statistics_folder: str = os.path.join(self.result_path, "attack-statistics")
         check_create_folder(self.attack_statistics_folder)
-        self.single_model_attack_img_folder: str = os.path.join(self.result_path, "single-model-attack")
+        self.single_model_attack_img_folder: str = os.path.join(self.result_path, "shadow-model-attacks")
         check_create_folder(self.single_model_attack_img_folder)
 
-        self.attack_result_list_filename = os.path.join(self.result_path, self.attack_statistics_folder, "attack_results.pckl")
-        self.attack_baseline_result_list_filename = os.path.join(self.numpy_path, self.attack_statistics_folder, "attack_baseline_results.pckl")
+        self.attack_result_list_filename = os.path.join(self.attack_statistics_folder, f"{ds.dataset_name}_attack_results.pckl")
+        self.attack_baseline_result_list_filename = os.path.join(self.attack_statistics_folder, f"{ds.dataset_name}_attack_baseline_results.pckl")
 
     def load_saved_values(self):
         self.in_indices_filename = unpickle_object(self.in_indices_filename)
@@ -196,7 +196,7 @@ class AmiaAttack():
         plt.close()
         return
 
-    def train_load_shadow_models(self, force_retraning: bool = False, force_recalculation: bool = False):
+    def train_load_shadow_models(self, force_retraining: bool = False, force_recalculation: bool = False):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
 
         After training/ loading the shadow models statistics and losses are calulcated over all shadow models.
@@ -224,7 +224,7 @@ class AmiaAttack():
             self.in_indices = []
 
         for i in range(self.num_shadow_models + 1):
-            print(f"Creating shadow model {i}")
+            print(f"Creating shadow model {i} and its statistics")
 
             model_path = os.path.join(self.models_dir,
                                       f"shadow_model_{i}_lr{self.cnn_model.learning_rate}_b{self.cnn_model.batch_size}_e{self.cnn_model.epochs}")
@@ -246,7 +246,7 @@ class AmiaAttack():
                 f"Using {train_count} training samples")
 
             # load model if already trained, else train & save it
-            if os.path.exists(model_path) and not force_retraning:
+            if os.path.exists(model_path) and not force_retraining:
                 self.cnn_model.load_model()
                 print(f"Loaded model {model_path} from disk")
             else:
@@ -360,7 +360,7 @@ class AmiaAttack():
 
             print(f"Generating AUC curve plot for target model {idx}")
             # Plot and save the AUC curves for the three methods.
-            _, ax = plt.subplots(1, 1, figsize=(5, 5))
+            _, ax = plt.subplots(1, 1, figsize=(10, 10))
             for res, title in zip([result_lira_single, result_baseline_single],
                                   ['LiRA', 'MIA Baseline (Threshold Attack)']):
                 label = f'{title} auc={res.get_auc():.4f}'

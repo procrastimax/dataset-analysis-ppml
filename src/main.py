@@ -33,7 +33,6 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "fmnist", "cifar10"], help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
     parser.add_argument("-r", "--run-number", required=True, type=int, help="The run number to be used for training models, loading or saving results.", metavar="R")
     parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int, help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
-    parser.add_argument("e-train-shadow-models", action='store_true', help="If this flag is set, shadow models are trained on 50%% of the given datasets training samples, the other 50%% are used for validating these shadow models. This can be seen as Step 1 in the analysis pipeline.")
     parser.add_argument("--train-single-model", action="store_true", help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
     parser.add_argument("--load-test-single-model", action="store_true", help="If this flag is set, a single model is loaded based on run number and dataset name. Then predictions are run on the test and train dataset.")
     parser.add_argument("--run-amia-attack", action="store_true", help="If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved. This can be seen as Step 2 in the analysis pipeline.")
@@ -53,7 +52,6 @@ def main():
     list_of_ds: List[str] = args["datasets"]
     run_number: int = args["run_number"]
     num_shadow_models: int = args["shadow_model_number"]
-    is_training_shadow_models: bool = args["train_shadow_models"]
     is_training_single_model: bool = args["train_single_model"]
     is_load_test_single_model: bool = args["load_test_single_model"]
     is_running_amia_attack: bool = args["run_amia_attack"]
@@ -68,9 +66,11 @@ def main():
 
         num_classes: int = ds.get_number_of_classes()
         model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
+        check_create_folder(model_save_path)
         model = load_model(model_save_path, num_of_classes=num_classes)
 
-        shadow_model_save_path: str = os.path.join(model_path, "shadow_models", str(run_number), ds.dataset_name)
+        shadow_model_save_path: str = os.path.join(model_path, str(run_number), "shadow_models", ds.dataset_name)
+        check_create_folder(shadow_model_save_path)
         amia_result_path = os.path.join(result_path, str(run_number))
 
         if is_training_single_model:
@@ -85,25 +85,17 @@ def main():
             print("---------------------")
             load_and_test_model(ds, model, run_number)
 
-        if is_training_shadow_models:
-            print("---------------------")
-            print("Training shadow models")
-            print("---------------------")
-            train_shadow_models(ds, model, run_number,
-                                num_shadow_models=num_shadow_models,
-                                shadow_model_save_path=shadow_model_save_path,
-                                amia_result_path=amia_result_path,
-                                force_retrain=force_model_retraining,
-                                force_stat_recalculation=force_stat_recalculation)
-
         if is_running_amia_attack:
             print("---------------------")
-            print("Running AMIA attack on shadow models")
+            print("Running AMIA attack (train shadow models, calc statistics, run attack)")
             print("---------------------")
-            run_amia_attack(ds, model, run_number,
+            run_amia_attack(ds=ds,
+                            model=model,
                             num_shadow_models=num_shadow_models,
                             shadow_model_save_path=shadow_model_save_path,
-                            amia_result_path=amia_result_path)
+                            amia_result_path=amia_result_path,
+                            force_retrain=force_model_retraining,
+                            force_stat_recalculation=force_stat_recalculation)
 
         if is_generating_results:
             print("---------------------")
@@ -170,24 +162,13 @@ def load_and_test_model(ds: AbstractDataset, model: CNNModel, run_number: int):
     test_df.to_csv(path_or_buf=result_df_filename, sep="\t", index=False, header=True)
 
 
-def train_shadow_models(ds: AbstractDataset, model: CNNModel, run_number: int, num_shadow_models: int, shadow_model_save_path: str, amia_result_path: str, force_retrain: bool, force_stat_recalculation: bool):
+def run_amia_attack(ds: AbstractDataset, model: CNNModel, num_shadow_models: int, shadow_model_save_path: str, amia_result_path: str, force_retrain: bool, force_stat_recalculation: bool):
     amia = AmiaAttack(model=model,
                       ds=ds,
                       num_shadow_models=num_shadow_models,
                       shadow_model_dir=shadow_model_save_path,
-                      result_path=amia_result_path,
-                      run_name=str(run_number))
-    amia.train_load_shadow_models(force_retraning=force_retrain, force_recalculation=force_stat_recalculation)
-
-
-def run_amia_attack(ds: AbstractDataset, model: CNNModel, run_number: int, num_shadow_models: int, shadow_model_save_path: str, amia_result_path: str):
-    amia = AmiaAttack(model=model,
-                      ds=ds,
-                      num_shadow_models=num_shadow_models,
-                      shadow_model_dir=shadow_model_save_path,
-                      result_path=amia_result_path,
-                      run_name=str(run_number))
-    amia.train_load_shadow_models()
+                      result_path=amia_result_path)
+    amia.train_load_shadow_models(force_retraining=force_retrain, force_recalculation=force_stat_recalculation)
     amia.attack_shadow_models_mia()
 
 
