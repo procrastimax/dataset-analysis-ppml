@@ -1,13 +1,15 @@
-from attacks import AmiaAttack
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import visualize_training, check_create_folder
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset
+
 from util import pickle_object
 from cnn_small_model import CNNModel
-import pandas as pd
+from attacks import AmiaAttack
+from analyser import Analyser
 
 from typing import Optional, Any, Dict, Tuple, List
 import os
+import pandas as pd
 import sys
 import argparse
 
@@ -97,10 +99,15 @@ def main():
                             force_retrain=force_model_retraining,
                             force_stat_recalculation=force_stat_recalculation)
 
-        if is_generating_results:
-            print("---------------------")
-            print("Compiling attack results")
-            print("---------------------")
+    if is_generating_results:
+        print("---------------------")
+        print("Compiling attack results")
+        print("---------------------")
+        analyser = Analyser(ds_list=list_of_ds,
+                            run_number=run_number,
+                            result_path=result_path,
+                            model_path=model_path,
+                            num_shadow_models=num_shadow_models)
 
 
 def load_model(model_path: str, num_of_classes: int):
