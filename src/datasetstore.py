@@ -44,6 +44,10 @@ class DatasetStore():
     mean_tpr = None
     mean_fpr = None
 
+    best_idx_fpr0001 = None
+    best_idx_fpr01 = None
+    best_idx_auc = None
+
     def __post_init__(self):
         """Auto-Initialize values dependant from other values."""
         if self.attack_result_folder is None:
@@ -211,3 +215,9 @@ class DatasetStore():
         print(f"Saved all-in-one ROC curve {plt_name}")
         plt.close()
         return (mean_tpr, fpr_grid)
+
+    def set_best_attack_run_idx(self, attack_result: pd.DataFrame):
+        a = attack_result.idxmax(axis=0, skipna=True, numeric_only=True)
+        self.best_idx_fpr0001 = a["fpr@0.001"]
+        self.best_idx_fpr01 = a["fpr@0.1"]
+        self.best_idx_auc = a["AUC"]
