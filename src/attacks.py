@@ -4,7 +4,6 @@ from cnn_small_model import CNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import check_create_folder, visualize_training
 import numpy as np
-import pandas as pd
 
 from util import pickle_object, unpickle_object
 
@@ -87,8 +86,8 @@ class AmiaAttack():
         self.single_model_attack_img_folder: str = os.path.join(self.result_path, "shadow-model-attacks")
         check_create_folder(self.single_model_attack_img_folder)
 
-        self.attack_result_list_filename = os.path.join(self.attack_statistics_folder, f"{ds.dataset_name}_attack_results.pckl")
-        self.attack_baseline_result_list_filename = os.path.join(self.attack_statistics_folder, f"{ds.dataset_name}_attack_baseline_results.pckl")
+        self.attack_result_list_filename = os.path.join(self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_results.pckl")
+        self.attack_baseline_result_list_filename = os.path.join(self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_baseline_results.pckl")
 
     def train_load_shadow_models(self, force_retraining: bool = False, force_recalculation: bool = False):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
@@ -201,9 +200,6 @@ class AmiaAttack():
             print("Error: Before attacking the shadow models with MIA, please train or load the shadow models and retrieve the statistics and losses")
             sys.exit(1)
 
-        target_model_result_data = pd.DataFrame()
-        target_model_result_data_baseline = pd.DataFrame()
-
         if self.attack_result_list is None:
             self.attack_result_list = []
 
@@ -247,39 +243,20 @@ class AmiaAttack():
             print("Advanced MIA attack with Gaussian:",
                   f"auc = {result_lira_single.get_auc():.4f}",
                   f"adv = {result_lira_single.get_attacker_advantage():.4f}")
-            target_model_result_data = pd.concat([target_model_result_data, result_lira.calculate_pd_dataframe()])
 
             # Compare with the baseline MIA using the loss of the target model
             loss_target = self.losses[idx][:, 0]
             attack_input = AttackInputData(
                 loss_train=loss_target[in_indices_target],
                 loss_test=loss_target[~in_indices_target])
+
             result_baseline = mia.run_attacks(attack_input)
+            self.attack_baseline_result_list.append(result_baseline)
             result_baseline_single = result_baseline.single_attack_results[0]
             print('Baseline MIA attack:',
                   f'auc = {result_baseline_single.get_auc():.4f}',
                   f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
-            target_model_result_data_baseline = pd.concat([target_model_result_data_baseline, result_baseline.calculate_pd_dataframe()])
 
-            print(f"Generating AUC curve plot for target model {idx}")
-            # Plot and save the AUC curves for the three methods.
-            _, ax = plt.subplots(1, 1, figsize=(10, 10))
-            for res, title in zip([result_lira_single, result_baseline_single],
-                                  ['LiRA', 'MIA Baseline (Threshold Attack)']):
-                label = f'{title} auc={res.get_auc():.4f}'
-                plotting.plot_roc_curve(
-                    res.roc_curve,
-                    functools.partial(self._plot_curve_with_area, ax=ax, label=label))
-            plt.legend()
-            plt_name = os.path.join(self.single_model_attack_img_folder, f"model_{self.ds.dataset_name}_id{idx}_advanced_mia.png")
-            plt.savefig(plt_name)
-            plt.close()
-
-        print("Lira Score results:")
-        print(target_model_result_data)
-
-        print("Baseline Score results:")
-        print(target_model_result_data_baseline)
 
         # pickle attack result list for LiRA and baseline
         pickle_object(self.attack_result_list_filename, self.attack_result_list)

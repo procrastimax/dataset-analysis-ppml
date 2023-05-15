@@ -4,6 +4,7 @@ import tensorflow as tf
 from typing import Any
 import os
 import pickle
+import pandas as pd
 from ppml_datasets.utils import check_create_folder
 
 
@@ -101,3 +102,8 @@ def find_nearest(array, value) -> (int, float):
     """
     idx = (np.abs(array - value)).argmin()
     return idx, array[idx]
+
+
+def save_dataframe(df: pd.DataFrame, filename: str, sep: str = "\t", use_index: bool = True, header: bool = True):
+    print(f"Saving dataframe as csv: {filename}")
+    df.to_csv(path_or_buf=filename, header=header, index=use_index, sep=sep)

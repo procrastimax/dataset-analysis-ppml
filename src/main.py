@@ -61,10 +61,14 @@ def main():
     force_model_retraining: bool = args["force_model_retrain"]
     force_stat_recalculation: bool = args["force_stat_recalculation"]
 
+    loaded_ds_list: List[AbstractDataset] = []
+
     for ds_name in list_of_ds:
         ds = get_dataset(ds_name)
         ds.load_dataset()
         ds.prepare_datasets()
+
+        loaded_ds_list.append(ds)
 
         num_classes: int = ds.get_number_of_classes()
         model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
@@ -103,11 +107,12 @@ def main():
         print("---------------------")
         print("Compiling attack results")
         print("---------------------")
-        analyser = Analyser(ds_list=list_of_ds,
+        analyser = Analyser(ds_list=loaded_ds_list,
                             run_number=run_number,
                             result_path=result_path,
                             model_path=model_path,
                             num_shadow_models=num_shadow_models)
+        analyser.generate_results()
 
 
 def load_model(model_path: str, num_of_classes: int):
