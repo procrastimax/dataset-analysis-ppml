@@ -107,3 +107,12 @@ def find_nearest(array, value) -> (int, float):
 def save_dataframe(df: pd.DataFrame, filename: str, sep: str = "\t", use_index: bool = True, header: bool = True):
     print(f"Saving dataframe as csv: {filename}")
     df.to_csv(path_or_buf=filename, header=header, index=use_index, sep=sep)
+
+
+def plot_curve_with_area(x, y, xlabel, ylabel, ax, label, title: str, use_log_scale: bool):
+    ax.plot([0, 1], [0, 1], 'k-', lw=1.0)
+    ax.plot(x, y, lw=2, label=label)
+    ax.set(xlabel=xlabel, ylabel=ylabel)
+    if use_log_scale:
+        ax.set(aspect=1, xscale='log', yscale='log')
+    ax.title.set_text(title)

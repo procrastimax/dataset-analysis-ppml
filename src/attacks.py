@@ -257,7 +257,6 @@ class AmiaAttack():
                   f'auc = {result_baseline_single.get_auc():.4f}',
                   f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
 
-
         # pickle attack result list for LiRA and baseline
         pickle_object(self.attack_result_list_filename, self.attack_result_list)
         pickle_object(self.attack_baseline_result_list_filename, self.attack_baseline_result_list)
