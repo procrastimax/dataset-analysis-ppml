@@ -1,5 +1,7 @@
-from ppml_datasets.abstract_dataset_handler import AbstractDataset
-from ppml_datasets.utils import visualize_training, check_create_folder
+import tensorflow as tf
+
+from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale
+from ppml_datasets.utils import visualize_training, check_create_folder, visualize_data
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset
 
 from util import pickle_object
@@ -32,7 +34,7 @@ def parse_arguments() -> Dict[str, Any]:
         prog="Dataset Analysis for Privacy-Preserving-Machine-Learning",
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
-    parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "fmnist", "cifar10"], help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
+    parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "fmnist", "cifar10", "cifar10gray"], help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
     parser.add_argument("-r", "--run-number", required=True, type=int, help="The run number to be used for training models, loading or saving results.", metavar="R")
     parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int, help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
     parser.add_argument("--train-single-model", action="store_true", help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
@@ -65,8 +67,6 @@ def main():
 
     for ds_name in list_of_ds:
         ds = get_dataset(ds_name)
-        ds.load_dataset()
-        ds.prepare_datasets()
 
         loaded_ds_list.append(ds)
 
@@ -131,11 +131,44 @@ def load_model(model_path: str, num_of_classes: int):
 
 def get_dataset(ds_name: str) -> AbstractDataset:
     if ds_name == "mnist":
-        return MnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = MnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds.load_dataset()
+        ds.prepare_datasets()
+        return ds
+
     elif ds_name == "fmnist":
-        return FashionMnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = FashionMnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds.load_dataset()
+        ds.prepare_datasets()
+        return ds
+
     elif ds_name == "cifar10":
-        return Cifar10Dataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = Cifar10Dataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds.load_dataset()
+        ds.prepare_datasets()
+        return ds
+
+    elif ds_name == "cifar10gray":
+        ds = Cifar10Dataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds.load_dataset()
+
+        # set datasetname after loading for tfds
+        ds.dataset_name = "cifar10gray"
+
+        to_grayscale = tf.keras.Sequential([
+            RgbToGrayscale()
+        ])
+
+        ds.ds_train = ds.ds_train.map(
+            lambda x, y: (to_grayscale(x, training=True), y))
+        ds.ds_test = ds.ds_test.map(
+            lambda x, y: (to_grayscale(x, training=True), y))
+
+        # convert to (X,Y,3) shape
+        ds.convert_to_rgb = True
+
+        ds.prepare_datasets()
+        return ds
     else:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
         sys.exit(1)

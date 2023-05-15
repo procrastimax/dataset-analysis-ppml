@@ -65,8 +65,7 @@ def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
     for images, labels in ds.take(1):
         for i in range(9):
             plt.subplot(3, 3, i + 1)
-            print(images[i].numpy)
-            plt.imshow(images[i].numpy().astype("uint8"))
+            plt.imshow(images[i].numpy())
             if class_names is not None:
                 plt.title(class_names[labels[i]])
             else:

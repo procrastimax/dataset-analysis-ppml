@@ -575,6 +575,17 @@ class GrayscaleToRgb(Layer):
         return tf.image.grayscale_to_rgb(x)
 
 
+class RgbToGrayscale(Layer):
+    """Layer for converting 3-channel rgb input to 1-channel grayscale."""
+
+    def __init__(self, **kwargs):
+        """Initialize RgbToGrayscale layer."""
+        super().__init__(**kwargs)
+
+    def call(self, x):
+        return tf.image.rgb_to_grayscale(x)
+
+
 class RandomBrightness(Layer):
     """Layer for random brightness augmentation in images."""
 
