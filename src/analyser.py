@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn import metrics
 from typing import Optional, List, Dict, Tuple
 import os
+import sys
 
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import check_create_folder
@@ -79,16 +80,16 @@ class Analyser():
             mean_tpr, mean_fpr = ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=True, generate_std_area=True)
             self.dataset_data[ds_name].mean_tpr = mean_tpr
             self.dataset_data[ds_name].mean_fpr = mean_fpr
-            # ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=True, generate_std_area=False)
-            # ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=True)
-            # ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=False)
-            # ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_baseline_result_list, name="MIA", generate_all_rocs=True, generate_std_area=True)
-            # ds_store.create_mia_vs_amia_roc_curves()
+            ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=True, generate_std_area=False)
+            ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=True)
+            ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=False)
+            ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_baseline_result_list, name="MIA", generate_all_rocs=True, generate_std_area=True)
+            ds_store.create_mia_vs_amia_roc_curves()
 
-        self.create_combined_best_run_fpr0001(self.dataset_data.values())
-        self.create_combined_best_run_fpr01(self.dataset_data.values())
-        self.create_combined_best_run_auc(self.dataset_data.values())
-        self.create_combined_averaged_roc_curve(self.dataset_data.values())
+        self.create_combined_best_run_fpr0001(list(self.dataset_data.values()))
+        self.create_combined_best_run_fpr01(list(self.dataset_data.values()))
+        self.create_combined_best_run_auc(list(self.dataset_data.values()))
+        self.create_combined_averaged_roc_curve(list(self.dataset_data.values()))
 
     def create_combined_averaged_roc_curve(self, ds_stores: List[DatasetStore]):
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
@@ -122,6 +123,9 @@ class Analyser():
 
         name_list = []
 
+        # sort by fpr01
+        ds_stores.sort(key=lambda x: x.get_fpr_at_fixed_tpr(x.attack_result_list[x.best_idx_auc].single_attack_results[0])[1], reverse=True)
+
         for store in ds_stores:
             name_list.append(store.ds_name)
 
@@ -129,15 +133,14 @@ class Analyser():
             fpr_01, fpr_0001 = store.get_fpr_at_fixed_tpr(single_attack)
             fpr = single_attack.roc_curve.fpr
             tpr = single_attack.roc_curve.tpr
-            auc = single_attack.roc_curve.get_auc()
-            ax.plot(fpr, tpr, label=f"\n{store.ds_name}\nAUC    FPR@0.1    FPR@0.001\n{auc:.3f}  {fpr_01:.4f}     {fpr_0001:.4f}")
+            ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.001={fpr_0001:.4f}")
 
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale='log', yscale='log')
         ax.title.set_text("Receiver Operator Characteristics Combined Best Run FPR@0.001")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
-        plt.legend(prop={'family': 'DejaVu Sans Mono'})
+        plt.legend()
 
         plt_name = os.path.join(self.attack_statistics_folder_combined, f"combined_best_run_fpr0001_{'-'.join(name_list)}_results.png")
         plt.savefig(plt_name)
@@ -150,6 +153,9 @@ class Analyser():
 
         name_list = []
 
+        # sort by fpr01
+        ds_stores.sort(key=lambda x: x.get_fpr_at_fixed_tpr(x.attack_result_list[x.best_idx_auc].single_attack_results[0])[0], reverse=True)
+
         for store in ds_stores:
             name_list.append(store.ds_name)
 
@@ -157,15 +163,14 @@ class Analyser():
             fpr_01, fpr_0001 = store.get_fpr_at_fixed_tpr(single_attack)
             fpr = single_attack.roc_curve.fpr
             tpr = single_attack.roc_curve.tpr
-            auc = single_attack.roc_curve.get_auc()
-            ax.plot(fpr, tpr, label=f"\n{store.ds_name}\nAUC    FPR@0.1    FPR@0.001\n{auc:.3f}  {fpr_01:.4f}     {fpr_0001:.4f}")
+            ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.1={fpr_01:.4f}")
 
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale='log', yscale='log')
         ax.title.set_text("Receiver Operator Characteristics Combined Best Run FPR@0.1")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
-        plt.legend(prop={'family': 'DejaVu Sans Mono'})
+        plt.legend()
 
         plt_name = os.path.join(self.attack_statistics_folder_combined, f"combined_best_run_fpr01_{'-'.join(name_list)}_results.png")
         plt.savefig(plt_name)
@@ -178,22 +183,24 @@ class Analyser():
 
         name_list = []
 
+        # sort by auc
+        ds_stores.sort(key=lambda x: x.attack_result_list[x.best_idx_auc].single_attack_results[0].roc_curve.get_auc(), reverse=True)
+
         for store in ds_stores:
             name_list.append(store.ds_name)
 
             single_attack: SingleAttackResult = store.attack_result_list[store.best_idx_auc].single_attack_results[0]
-            fpr_01, fpr_0001 = store.get_fpr_at_fixed_tpr(single_attack)
             fpr = single_attack.roc_curve.fpr
             tpr = single_attack.roc_curve.tpr
             auc = single_attack.roc_curve.get_auc()
-            ax.plot(fpr, tpr, label=f"\n{store.ds_name}\nAUC    FPR@0.1    FPR@0.001\n{auc:.3f}  {fpr_01:.4f}     {fpr_0001:.4f}")
+            ax.plot(fpr, tpr, label=f"{store.ds_name} AUC={auc:.3f}")
 
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale='log', yscale='log')
         ax.title.set_text("Receiver Operator Characteristics Combined Best Run AUC")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
-        plt.legend(prop={'family': 'DejaVu Sans Mono'})
+        plt.legend()
 
         plt_name = os.path.join(self.attack_statistics_folder_combined, f"combined_best_run_auc_{'-'.join(name_list)}_results.png")
         plt.savefig(plt_name)
