@@ -68,7 +68,23 @@ class DatasetStore():
         self.attack_result_list = unpickle_object(self.attack_result_list_filename)
         self.attack_baseline_result_list = unpickle_object(self.attack_baseline_result_list_filename)
 
-    def calculate_tpr_at_fixed_fpr(self, attack_result_list: List[AttackResults], attack_name: str) -> pd.DataFrame:
+    def get_fpr_at_fixed_tpr(self, single_attack_result: SingleAttackResult) -> Tuple[float, float]:
+        """Caclulate FPR @ (0.1, 0.001) TPR.
+
+        Return:
+        ------
+        Tuple[float, float] -> (fpr_at_01, fpr_at_001)
+
+        """
+        (idx, _) = find_nearest(single_attack_result.roc_curve.fpr, 0.001)
+        fpr_at_001 = single_attack_result.roc_curve.tpr[idx]
+
+        (idx, _) = find_nearest(single_attack_result.roc_curve.fpr, 0.1)
+        fpr_at_01 = single_attack_result.roc_curve.tpr[idx]
+
+        return (fpr_at_01, fpr_at_001)
+
+    def create_complete_dataframe(self, attack_result_list: List[AttackResults], attack_name: str) -> pd.DataFrame:
         attack_result_frame = pd.DataFrame(columns=["slice feature", "slice value", "train size", "test size", "attack type", "Attacker advantage", "Positive predictive value", "AUC", "fpr@0.1", "fpr@0.001"])
 
         if attack_result_list is None:
@@ -79,12 +95,7 @@ class DatasetStore():
             results: AttackResults = val
             single_frame = results.calculate_pd_dataframe().to_dict("index")[0]  # split dataframe to indexed dict and add it alter to the dataframe again
 
-            single_result = results.single_attack_results[0]
-            (idx, _) = find_nearest(single_result.roc_curve.tpr, 0.001)
-            fpr_at_001 = single_result.roc_curve.tpr[idx]
-
-            (idx, _) = find_nearest(single_result.roc_curve.tpr, 0.1)
-            fpr_at_01 = single_result.roc_curve.tpr[idx]
+            fpr_at_01, fpr_at_001 = self.get_fpr_at_fixed_tpr(results.single_attack_results[0])
 
             single_frame["fpr@0.1"] = fpr_at_01
             single_frame["fpr@0.001"] = fpr_at_001
