@@ -432,6 +432,18 @@ class AbstractDataset():
         B: float = H / np.log(k)
         return B
 
+    def calculate_average_byte_count(self):
+        byte_count = 0
+        for (data, _) in self.ds_train:
+            x = data.shape[0]
+            y = data.shape[1]
+            z = data.shape[2]
+
+            byte_count += x * y * z * data.dtype.size
+
+        byte_count = byte_count / len(self.ds_train)
+        return byte_count
+
     def calculate_data_entropy(self, ds: Optional[tf.data.Dataset] = None) -> Tuple[Tuple[float, float, float], Tuple[float, float, float]]:
         """Calculate and return data entropy values and normed entropy values.
 
@@ -451,13 +463,16 @@ class AbstractDataset():
         if ds is None:
             ds = self.ds_train
 
-        for _, (data, _) in enumerate(ds):
-            values, counts = np.unique(data, return_counts=True)
-            entropy_val = scipy.stats.entropy(counts)
-            entropy_val_list.append(entropy_val)
+        for (data, _) in ds:
+            # calculate entropy of each color channel
+            for i in range(data.shape[2]):
+                values, counts = np.unique(data[:, :, i], return_counts=True)
 
-            normed_entropy_val = entropy_val / np.log(len(values))
-            normed_entropy_val_list.append(normed_entropy_val)
+                entropy_val = scipy.stats.entropy(counts)
+                entropy_val_list.append(entropy_val)
+
+                normed_entropy_val = entropy_val / np.log(len(values))
+                normed_entropy_val_list.append(normed_entropy_val)
 
         max_entropy = max(entropy_val_list)
         min_entropy = min(entropy_val_list)
@@ -473,6 +488,7 @@ class AbstractDataset():
         """Build dataset info dictionary.
 
         This function needs to be called after initializing and loading the dataset, but before calling preprocessing on it!
+
         """
         class_counts, class_weights = self.calculate_class_weights()
         ds_count = self.get_dataset_count()
@@ -484,6 +500,8 @@ class AbstractDataset():
         class_counts = {str(k): int(v) for k, v in class_counts.items()}
         class_weights = {str(k): int(v) for k, v in class_weights.items()}
 
+        avg_byte_count = self.calculate_average_byte_count()
+
         self.ds_info = {
             'name': self.dataset_name,
             'dataset_img_shape': self.dataset_img_shape,
@@ -493,8 +511,8 @@ class AbstractDataset():
             'val_count': ds_count["val"],
             'test_count': ds_count["test"],
             'num_classes': self.num_classes,
-            'class_imbalance': class_imbalance,
             'class_counts': class_counts,  # not useful for dataframe
+            'class_imbalance': class_imbalance,
             'class_weights': class_weights,  # not useful for dataframe
             'avg_entropy': entropy_values[0],
             'min_entropy': entropy_values[1],
@@ -502,6 +520,7 @@ class AbstractDataset():
             'normed_avg_entropy': normed_entropy_values[0],
             'normed_min_entropy': normed_entropy_values[1],
             'normed_max_entropy': normed_entropy_values[2],
+            'avg_byte_count': avg_byte_count,
         }
 
     def get_ds_info_as_df(self) -> pd.DataFrame:
