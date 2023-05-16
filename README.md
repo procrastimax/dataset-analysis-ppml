@@ -2,14 +2,14 @@
 
 # Usage
 ```
-Dataset Analysis for Privacy-Preserving-Machine-Learning [-h] -d {mnist,fmnist,cifar10} [{mnist,fmnist,cifar10} ...] -r R [-s N] [--train-single-model] [--load-test-single-model] [--run-amia-attack] [--generate-results] [--force-model-retrain]
-                                                                [--force-stat-recalculation]
+Dataset Analysis for Privacy-Preserving-Machine-Learning [-h] -d {mnist,fmnist,cifar10,cifar10gray} [{mnist,fmnist,cifar10,cifar10gray} ...] -r R [-s N] [--train-single-model] [--load-test-single-model] [--run-amia-attack] [--generate-results]
+                                                                [--force-model-retrain] [--force-stat-recalculation] [--generate-ds-info]
 
 A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.
 
 optional arguments:
   -h, --help            show this help message and exit
-  -d {mnist,fmnist,cifar10} [{mnist,fmnist,cifar10} ...], --datasets {mnist,fmnist,cifar10} [{mnist,fmnist,cifar10} ...]
+  -d {mnist,fmnist,cifar10,cifar10gray} [{mnist,fmnist,cifar10,cifar10gray} ...], --datasets {mnist,fmnist,cifar10,cifar10gray} [{mnist,fmnist,cifar10,cifar10gray} ...]
                         Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.
   -r R, --run-number R  The run number to be used for training models, loading or saving results.
   -s N, --shadow-model-number N
@@ -23,4 +23,5 @@ optional arguments:
                         If this flag is set, the shadow models, even if they already exist.
   --force-stat-recalculation
                         If this flag is set, the statistics are recalucated on the shadow models.
+  --generate-ds-info    If this flag is set, dataset infos are generated and saved.
 ```
