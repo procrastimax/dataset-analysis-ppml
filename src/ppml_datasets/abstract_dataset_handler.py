@@ -1,6 +1,7 @@
 import tensorflow as tf
 import tensorflow_datasets as tfds
 import numpy as np
+import pandas as pd
 from sklearn.utils import class_weight
 
 from tensorflow.keras.layers import Layer, Resizing, Rescaling, RandomFlip, RandomRotation, RandomTranslation, RandomZoom
@@ -27,6 +28,8 @@ class AbstractDataset():
 
     shuffle: bool
     is_tfds_ds: bool
+    num_classes: int
+
     # if True, automatically builds ds_info after loading dataset data
     builds_ds_info: bool = field(default=False, repr=False)
 
@@ -39,8 +42,6 @@ class AbstractDataset():
     dataset_img_shape: Optional[Tuple[int, int, int]] = None
     # optionally providable class_names, only for cosmetic purposes when printing out ds_info
     class_names: Optional[List[str]] = None
-
-    num_classes: Optional[int] = None
 
     random_rotation: Optional[float] = 0.1
     random_zoom: Optional[float] = 0.15
@@ -58,7 +59,6 @@ class AbstractDataset():
 
     train_val_test_split: Tuple[float, float, float] = field(init=False)
 
-    # TODO: make this a dataclass instead of dict -> since we need the attributes well defined through the code
     ds_info: Dict[str, Any] = field(init=False, default_factory=dict)
     ds_train: tf.data.Dataset = field(init=False, repr=False)
     ds_val: tf.data.Dataset = field(init=False, repr=False, default=None)
@@ -75,7 +75,7 @@ class AbstractDataset():
         data loading and dataset info creation.
         """
         if self.is_tfds_ds:
-            self.__load_from_tfds()
+            self._load_from_tfds()
 
     def load_dataset(self, fn_filter=None):
         print(f"Loading {self.dataset_name}")
@@ -105,7 +105,7 @@ class AbstractDataset():
                 ds_len = sum(1 for _ in self.ds_val)
                 self.ds_val = self.ds_val.apply(tf.data.experimental.assert_cardinality(ds_len))
 
-    def __load_from_tfds(self):
+    def _load_from_tfds(self):
         """Load dataset from tensorflow_datasets via 'dataset_name'."""
         if not self.is_tfds_ds:
             print("Cannot load dataset from tfds since it is not a tfds dataset!")
@@ -472,13 +472,17 @@ class AbstractDataset():
     def build_ds_info(self):
         """Build dataset info dictionary.
 
-        This function needs to be called after initializing and loading the dataset
+        This function needs to be called after initializing and loading the dataset, but before calling preprocessing on it!
         """
         class_counts, class_weights = self.calculate_class_weights()
         ds_count = self.get_dataset_count()
         total_count: int = sum(ds_count.values())
         class_imbalance: float = self.calculate_class_imbalance()
         entropy_values, normed_entropy_values = self.calculate_data_entropy()
+
+        # convert int64 keys to int keys -> to jsonify
+        class_counts = {str(k): int(v) for k, v in class_counts.items()}
+        class_weights = {str(k): int(v) for k, v in class_weights.items()}
 
         self.ds_info = {
             'name': self.dataset_name,
@@ -488,10 +492,10 @@ class AbstractDataset():
             'train_count': ds_count["train"],
             'val_count': ds_count["val"],
             'test_count': ds_count["test"],
-            'classes': len(class_counts),
+            'num_classes': self.num_classes,
             'class_imbalance': class_imbalance,
-            'class_counts': class_counts,
-            'class_weights': class_weights,
+            'class_counts': class_counts,  # not useful for dataframe
+            'class_weights': class_weights,  # not useful for dataframe
             'avg_entropy': entropy_values[0],
             'min_entropy': entropy_values[1],
             'max_entropy': entropy_values[2],
@@ -499,6 +503,21 @@ class AbstractDataset():
             'normed_min_entropy': normed_entropy_values[1],
             'normed_max_entropy': normed_entropy_values[2],
         }
+
+    def get_ds_info_as_df(self) -> pd.DataFrame:
+
+        # modify dict to make suitable dataframe from it
+        dict_cpy = self.ds_info.copy()
+        del (dict_cpy["class_counts"])
+        del (dict_cpy["class_weights"])
+        del (dict_cpy["name"])
+
+        dict_cpy["dataset_img_shape"] = "/".join(map(str, dict_cpy["dataset_img_shape"]))
+        dict_cpy["model_img_shape"] = "/".join(map(str, dict_cpy["model_img_shape"]))
+
+        df = pd.DataFrame(dict_cpy, index=[self.dataset_name])
+
+        return df
 
     def get_train_ds_subset(self, keep: np.ndarray, apply_processing: bool = False) -> tf.data.Dataset:
         """Return only a subset of datapoints from the training dataset.
@@ -547,21 +566,6 @@ class AbstractDataset():
     def get_attack_test_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
         """Return Attack Test Dataset as unbatched (values, labels) numpy arrays."""
         return get_ds_as_numpy(self.ds_attack_test)
-
-    def get_number_of_classes(self) -> int:
-        """Return the number of classes calculate from the training dataset."""
-        ds = tfds.as_numpy(self.ds_train)
-        class_set = set()
-        for _, y in ds:
-            a = np.unique(y)
-            for i in a:
-                class_set.add(i)
-
-        self.num_classes = len(class_set)
-        return len(class_set)
-
-    def set_number_of_classes(self, num_classes: int):
-        self.num_classes = num_classes
 
 
 class GrayscaleToRgb(Layer):

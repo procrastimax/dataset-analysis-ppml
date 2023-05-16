@@ -5,7 +5,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from typing import Callable, Tuple, List, Dict, Optional
 
-from ppml_datasets.abstract_dataset_handler import AbstractDataset
+from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale
 from ppml_datasets.utils import get_img
 
 
@@ -20,6 +20,7 @@ class MnistDataset(AbstractDataset):
         super().__init__(dataset_name="mnist",
                          dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
+                         num_classes=10,
                          model_img_shape=model_img_shape,
                          batch_size=batch_size,
                          convert_to_rgb=True,
@@ -48,6 +49,7 @@ class FashionMnistDataset(AbstractDataset):
         super().__init__(dataset_name="fashion_mnist",
                          dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
+                         num_classes=10,
                          model_img_shape=model_img_shape,
                          batch_size=batch_size,
                          convert_to_rgb=True,
@@ -68,6 +70,7 @@ class Cifar10Dataset(AbstractDataset):
         super().__init__(dataset_name="cifar10",
                          dataset_path=dataset_path,
                          dataset_img_shape=(32, 32, 3),
+                         num_classes=10,
                          model_img_shape=model_img_shape,
                          batch_size=batch_size,
                          convert_to_rgb=False,
@@ -75,6 +78,45 @@ class Cifar10Dataset(AbstractDataset):
                          preprocessing_function=preprocessing_func,
                          shuffle=True, is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
+
+
+class Cifar10DatasetGray(AbstractDataset):
+    def __init__(self, model_img_shape: Tuple[int, int, int],
+                 builds_ds_info: bool = False,
+                 batch_size: int = 32,
+                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
+                 augment_train: bool = True,
+                 dataset_path: str = "data"):
+        """Initialize the CIFAR10 dataset from AbstractDataset class."""
+        super().__init__(dataset_name="cifar10",
+                         dataset_path=dataset_path,
+                         dataset_img_shape=(32, 32, 1),
+                         num_classes=10,
+                         model_img_shape=model_img_shape,
+                         batch_size=batch_size,
+                         convert_to_rgb=True,
+                         augment_train=augment_train,
+                         preprocessing_function=preprocessing_func,
+                         shuffle=True, is_tfds_ds=True,
+                         builds_ds_info=builds_ds_info)
+
+    def _load_dataset(self):
+
+        # load default cifar10 from tfds
+        self._load_from_tfds()
+
+        # set datasetname after loading for tfds
+        self.dataset_name = "cifar10gray"
+
+        to_grayscale = tf.keras.Sequential([
+            RgbToGrayscale()
+        ])
+
+        print("Creating cifar10gray")
+        self.ds_train = self.ds_train.map(
+            lambda x, y: (to_grayscale(x, training=True), y))
+        self.ds_test = self.ds_test.map(
+            lambda x, y: (to_grayscale(x, training=True), y))
 
 
 class Cifar100Dataset(AbstractDataset):
@@ -106,6 +148,7 @@ class ImagenetteDataset(AbstractDataset):
         super().__init__(dataset_name="imagenette/full-size-v2",
                          dataset_path="data",
                          dataset_img_shape=(None, None, 3),
+                         num_classes=10,
                          model_img_shape=model_img_shape,
                          train_val_test_split=(1, 1, 0),
                          batch_size=batch_size,
@@ -127,6 +170,7 @@ class Covid19RadiographyDataset(AbstractDataset):
         super().__init__(dataset_name="covid19-radiography",
                          dataset_path=dataset_path,
                          dataset_img_shape=(299, 299, 3),
+                         num_classes=2,
                          model_img_shape=model_img_shape,
                          train_val_test_split=(0.8, 0.05, 0.15),
                          batch_size=batch_size,

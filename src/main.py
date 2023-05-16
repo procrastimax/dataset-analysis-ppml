@@ -1,10 +1,8 @@
-import tensorflow as tf
+from ppml_datasets.abstract_dataset_handler import AbstractDataset
+from ppml_datasets.utils import visualize_training, check_create_folder
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray
 
-from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale
-from ppml_datasets.utils import visualize_training, check_create_folder, visualize_data
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset
-
-from util import pickle_object
+from util import pickle_object, save_dict_as_json, save_dataframe
 from cnn_small_model import CNNModel
 from attacks import AmiaAttack
 from analyser import Analyser
@@ -43,6 +41,7 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument("--generate-results", action="store_true", help="If this flag is set, all saved results are compiled and compared with each other, allowing dataset comparison. This can be seen as Step 3 in the analysis pipeline.")
     parser.add_argument("--force-model-retrain", action="store_true", help="If this flag is set, the shadow models, even if they already exist.")
     parser.add_argument("--force-stat-recalculation", action="store_true", help="If this flag is set, the statistics are recalucated on the shadow models.")
+    parser.add_argument("--generate-ds-info", action="store_true", help="If this flag is set, dataset infos are generated and saved.")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -62,22 +61,42 @@ def main():
     is_generating_results: bool = args["generate_results"]
     force_model_retraining: bool = args["force_model_retrain"]
     force_stat_recalculation: bool = args["force_stat_recalculation"]
+    is_generating_ds_info: bool = args["generate_ds_info"]
 
     loaded_ds_list: List[AbstractDataset] = []
+
+    ds_info_df = pd.DataFrame()
+
+    amia_result_path = os.path.join(result_path, str(run_number))
+    ds_info_path = os.path.join(amia_result_path, "ds_info")
 
     for ds_name in list_of_ds:
         ds = get_dataset(ds_name)
 
+        # generate ds_info before preprocessing dataset
+        if is_generating_ds_info:
+            print("---------------------")
+            print("Generating Dataset Info")
+            print("---------------------")
+            check_create_folder(ds_info_path)
+            ds.build_ds_info()
+
+            ds_info_json_file = os.path.join(ds_info_path, f"{ds_name}_ds_info.json")
+            save_dict_as_json(ds.ds_info, ds_info_json_file)
+
+            df = ds.get_ds_info_as_df()
+            ds_info_df = pd.concat([ds_info_df, df])
+
+        ds.prepare_datasets()
+
         loaded_ds_list.append(ds)
 
-        num_classes: int = ds.get_number_of_classes()
         model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
         check_create_folder(model_save_path)
-        model = load_model(model_save_path, num_of_classes=num_classes)
+        model = load_model(model_save_path, num_of_classes=ds.num_classes)
 
         shadow_model_save_path: str = os.path.join(model_path, str(run_number), "shadow_models", ds.dataset_name)
         check_create_folder(shadow_model_save_path)
-        amia_result_path = os.path.join(result_path, str(run_number))
 
         if is_training_single_model:
             print("---------------------")
@@ -114,6 +133,14 @@ def main():
                             num_shadow_models=num_shadow_models)
         analyser.generate_results()
 
+    if is_generating_ds_info:
+        print("---------------------")
+        print("Saving Dataset Info")
+        print("---------------------")
+        print(ds_info_df)
+        ds_info_df_file = os.path.join(ds_info_path, f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
+        save_dataframe(ds_info_df, ds_info_df_file)
+
 
 def load_model(model_path: str, num_of_classes: int):
     model = CNNModel(img_height=32, img_width=32, color_channels=3,
@@ -133,41 +160,21 @@ def get_dataset(ds_name: str) -> AbstractDataset:
     if ds_name == "mnist":
         ds = MnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
         ds.load_dataset()
-        ds.prepare_datasets()
         return ds
 
     elif ds_name == "fmnist":
         ds = FashionMnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
         ds.load_dataset()
-        ds.prepare_datasets()
         return ds
 
     elif ds_name == "cifar10":
         ds = Cifar10Dataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
         ds.load_dataset()
-        ds.prepare_datasets()
         return ds
 
     elif ds_name == "cifar10gray":
-        ds = Cifar10Dataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = Cifar10DatasetGray(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
         ds.load_dataset()
-
-        # set datasetname after loading for tfds
-        ds.dataset_name = "cifar10gray"
-
-        to_grayscale = tf.keras.Sequential([
-            RgbToGrayscale()
-        ])
-
-        ds.ds_train = ds.ds_train.map(
-            lambda x, y: (to_grayscale(x, training=True), y))
-        ds.ds_test = ds.ds_test.map(
-            lambda x, y: (to_grayscale(x, training=True), y))
-
-        # convert to (X,Y,3) shape
-        ds.convert_to_rgb = True
-
-        ds.prepare_datasets()
         return ds
     else:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
@@ -204,7 +211,7 @@ def load_and_test_model(ds: AbstractDataset, model: CNNModel, run_number: int):
     result_df_filename = os.path.join(result_path, str(run_number), "single-model-train", f"{ds.dataset_name}_model_predict_results.csv")
     check_create_folder(os.path.dirname(result_df_filename))
     print(f"Saving model test predictions to csv file: {result_df_filename}")
-    test_df.to_csv(path_or_buf=result_df_filename, sep="\t", index=False, header=True)
+    save_dataframe(test_df, result_df_filename)
 
 
 def run_amia_attack(ds: AbstractDataset, model: CNNModel, num_shadow_models: int, shadow_model_save_path: str, amia_result_path: str, force_retrain: bool, force_stat_recalculation: bool):

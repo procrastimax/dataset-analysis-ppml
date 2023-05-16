@@ -60,8 +60,6 @@ class AmiaAttack():
             sys.exit(1)
 
         self.ds = ds
-        if self.ds.num_classes is None:
-            self.ds.get_number_of_classes()
 
         self.num_shadow_models = num_shadow_models
 
