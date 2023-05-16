@@ -356,6 +356,22 @@ class AbstractDataset():
             class_weights = dict(enumerate(weights))
         return (class_counts_dict, class_weights)
 
+    def get_data_histogram(self, use_mean: bool = False) -> Tuple[np.array, np.array]:
+        """Calculate histogram from train datasets.
+
+        Return:
+        ------
+        Tuple[np.array, np.narray] -> (hist, bins)
+
+        """
+        samples = np.array([sample for (sample, _) in list(tfds.as_numpy(self.ds_train))])
+
+        if use_mean:
+            samples = np.mean(samples, axis=(0))
+
+        hist, bins = np.histogram(samples, bins=range(255), density=True)
+        return (hist, bins)
+
     def get_dataset_count(self) -> Dict[str, int]:
         """Calculate number of datapoints for each part of the dataset (train,test,val)."""
         ds_count: Dict[str, int] = defaultdict(int)

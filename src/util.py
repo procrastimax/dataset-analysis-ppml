@@ -134,3 +134,13 @@ def save_dict_as_json(dict_object: Dict[Any, Any], filename: str):
     print(f"Saving dict as json file {filename}")
     with open(filename, "w") as f:
         json.dump(dict_object, f, cls=NpEncoder, indent=2)
+
+
+def plot_histogram(counts: np.array, bins: np.array, filename: str, title: str, xlabel: str, ylabel: str):
+    plt.figure(figsize=(10, 10))
+    plt.stairs(counts, bins, fill=True)
+    plt.title(title)
+    plt.ylabel(ylabel)
+    plt.xlabel(xlabel)
+    plt.savefig(filename)
+    plt.close()

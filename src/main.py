@@ -2,7 +2,7 @@ from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import visualize_training, check_create_folder
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray
 
-from util import pickle_object, save_dict_as_json, save_dataframe
+from util import pickle_object, save_dict_as_json, save_dataframe, plot_histogram
 from cnn_small_model import CNNModel
 from attacks import AmiaAttack
 from analyser import Analyser
@@ -78,14 +78,9 @@ def main():
             print("---------------------")
             print("Generating Dataset Info")
             print("---------------------")
-            check_create_folder(ds_info_path)
-            ds.build_ds_info()
-
-            ds_info_json_file = os.path.join(ds_info_path, f"{ds_name}_ds_info.json")
-            save_dict_as_json(ds.ds_info, ds_info_json_file)
-
-            df = ds.get_ds_info_as_df()
-            ds_info_df = pd.concat([ds_info_df, df])
+            ds_info_df = generate_ds_info(ds_info_path=ds_info_path,
+                                          ds=ds,
+                                          ds_info_df=ds_info_df)
 
         ds.prepare_datasets()
 
@@ -140,6 +135,38 @@ def main():
         print(ds_info_df)
         ds_info_df_file = os.path.join(ds_info_path, f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
         save_dataframe(ds_info_df, ds_info_df_file)
+
+
+def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame) -> pd.DataFrame:
+    """Generate dataset info.
+
+    Needs to be run before dataset preprocessing is called.
+
+    Return:
+    ------
+    pd.Dataframe -> Dataframe to compare different datasets by single-value metrics.
+
+    """
+    check_create_folder(ds_info_path)
+    # ds.build_ds_info()
+
+    hist_filename = os.path.join(ds_info_path, "histogram", f"train_data_hist_{ds.dataset_name}.png")
+    hist_filename_mean = os.path.join(ds_info_path, "histogram", f"mean_train_data_hist_{ds.dataset_name}.png")
+    check_create_folder(os.path.dirname(hist_filename))
+    # save histogram
+    hist, bins = ds.get_data_histogram(use_mean=False)
+    plot_histogram(hist, bins, hist_filename, title="Train Data Histogram", xlabel="Pixel Value", ylabel="Probability")
+
+    hist, bins = ds.get_data_histogram(use_mean=True)
+    plot_histogram(hist, bins, hist_filename_mean, title="Train Data Histogram (Averaged)", xlabel="Pixel Value", ylabel="Probability")
+
+    ds_info_json_file = os.path.join(ds_info_path, f"{ds.dataset_name}_ds_info.json")
+    save_dict_as_json(ds.ds_info, ds_info_json_file)
+
+    df = ds.get_ds_info_as_df()
+    ds_info_df = pd.concat([ds_info_df, df])
+
+    return ds_info_df
 
 
 def load_model(model_path: str, num_of_classes: int):
