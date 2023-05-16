@@ -148,7 +148,7 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
 
     """
     check_create_folder(ds_info_path)
-    # ds.build_ds_info()
+    ds.build_ds_info()
 
     hist_filename = os.path.join(ds_info_path, "histogram", f"train_data_hist_{ds.dataset_name}.png")
     hist_filename_mean = os.path.join(ds_info_path, "histogram", f"mean_train_data_hist_{ds.dataset_name}.png")
