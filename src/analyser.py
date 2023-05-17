@@ -92,8 +92,8 @@ class Analyser():
         self.create_combined_averaged_roc_curve(list(self.dataset_data.values()))
 
     def create_combined_averaged_roc_curve(self, ds_stores: List[DatasetStore]):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.plot([0, 1], [0, 1], 'r--', lw=1.0)
+        _, ax = plt.subplots(1, 1, figsize=(5, 5))
+        ax.plot([0, 1], [0, 1], 'k--', lw=1.0)
 
         name_list = []
 
@@ -103,7 +103,8 @@ class Analyser():
             name_list.append(store.ds_name)
 
             avg_auc = metrics.auc(store.mean_fpr, store.mean_tpr)
-            ax.plot(store.mean_fpr, store.mean_tpr, label=f"\n{store.ds_name}\nAUC    FPR@0.1    FPR@0.001\n{avg_auc:.3f}  {store.mean_tpr[idx_01]:.4f}     {store.mean_tpr[idx_0001]:.4f}")
+            ax.plot(store.mean_fpr, store.mean_tpr, label=f"{store.ds_name}\nAUC    FPR@0.1  FPR@0.001\n{avg_auc:.3f}  {store.mean_tpr[idx_01]:.4f}   {store.mean_tpr[idx_0001]:.4f}")
+            # ax.plot(store.mean_fpr, store.mean_tpr, label=f"{store.ds_name} AUC={avg_auc:.3f}")
 
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale='log', yscale='log')
@@ -118,8 +119,8 @@ class Analyser():
         plt.close()
 
     def create_combined_best_run_fpr0001(self, ds_stores: List[DatasetStore]):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.plot([0, 1], [0, 1], 'r--', lw=1.0)
+        _, ax = plt.subplots(1, 1, figsize=(5, 5))
+        ax.plot([0, 1], [0, 1], 'k--', lw=1.0)
 
         name_list = []
 
@@ -137,7 +138,7 @@ class Analyser():
 
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale='log', yscale='log')
-        ax.title.set_text("Receiver Operator Characteristics Combined Best Run FPR@0.001")
+        ax.title.set_text("ROC Combined Best Run FPR@0.001")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()
@@ -148,8 +149,8 @@ class Analyser():
         plt.close()
 
     def create_combined_best_run_fpr01(self, ds_stores: List[DatasetStore]):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.plot([0, 1], [0, 1], 'r--', lw=1.0)
+        _, ax = plt.subplots(1, 1, figsize=(5, 5))
+        ax.plot([0, 1], [0, 1], 'k--', lw=1.0)
 
         name_list = []
 
@@ -167,7 +168,7 @@ class Analyser():
 
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale='log', yscale='log')
-        ax.title.set_text("Receiver Operator Characteristics Combined Best Run FPR@0.1")
+        ax.title.set_text("ROC Combined Best Run FPR@0.1")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()
@@ -178,8 +179,8 @@ class Analyser():
         plt.close()
 
     def create_combined_best_run_auc(self, ds_stores: List[DatasetStore]):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.plot([0, 1], [0, 1], 'r--', lw=1.0)
+        _, ax = plt.subplots(1, 1, figsize=(5, 5))
+        ax.plot([0, 1], [0, 1], 'k--', lw=1.0)
 
         name_list = []
 
@@ -197,7 +198,7 @@ class Analyser():
 
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale='log', yscale='log')
-        ax.title.set_text("Receiver Operator Characteristics Combined Best Run AUC")
+        ax.title.set_text("ROC Combined Best Run AUC")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()

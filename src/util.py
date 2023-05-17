@@ -137,7 +137,7 @@ def save_dict_as_json(dict_object: Dict[Any, Any], filename: str):
 
 
 def plot_histogram(counts: np.array, bins: np.array, filename: str, title: str, xlabel: str, ylabel: str):
-    plt.figure(figsize=(10, 10))
+    plt.figure(figsize=(5, 5))
     plt.stairs(counts, bins, fill=True)
     plt.title(title)
     plt.ylabel(ylabel)

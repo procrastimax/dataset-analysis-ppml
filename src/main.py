@@ -55,6 +55,7 @@ def main():
     args = parse_arguments()
 
     list_of_ds: List[str] = args["datasets"]
+    list_of_ds.sort()  # sort ds name list to create deterministic filenames
     run_number: int = args["run_number"]
     num_shadow_models: int = args["shadow_model_number"]
     is_training_single_model: bool = args["train_single_model"]
