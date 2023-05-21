@@ -103,10 +103,10 @@ class Analyser():
             name_list.append(store.ds_name)
 
             avg_auc = metrics.auc(store.mean_fpr, store.mean_tpr)
-            ax.plot(store.mean_fpr, store.mean_tpr, label=f"{store.ds_name}\nAUC    FPR@0.1  FPR@0.001\n{avg_auc:.3f}  {store.mean_tpr[idx_01]:.4f}   {store.mean_tpr[idx_0001]:.4f}")
-            # ax.plot(store.mean_fpr, store.mean_tpr, label=f"{store.ds_name} AUC={avg_auc:.3f}")
+            # ax.plot(store.mean_fpr, store.mean_tpr, label=f"{store.ds_name}\nAUC    FPR@0.1  FPR@0.001\n{avg_auc:.3f}  {store.mean_tpr[idx_01]:.4f}   {store.mean_tpr[idx_0001]:.4f}")
+            ax.plot(store.mean_fpr, store.mean_tpr, label=f"{store.ds_name} AUC={avg_auc:.3f}")
 
-        ax.set(xlabel="TPR", ylabel="FPR")
+        ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale='log', yscale='log')
         ax.title.set_text("Receiver Operator Characteristics Averaged")
         plt.xlim([0.00001, 1])
@@ -136,7 +136,7 @@ class Analyser():
             tpr = single_attack.roc_curve.tpr
             ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.001={fpr_0001:.4f}")
 
-        ax.set(xlabel="TPR", ylabel="FPR")
+        ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale='log', yscale='log')
         ax.title.set_text("ROC Combined Best Run FPR@0.001")
         plt.xlim([0.00001, 1])
@@ -166,7 +166,7 @@ class Analyser():
             tpr = single_attack.roc_curve.tpr
             ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.1={fpr_01:.4f}")
 
-        ax.set(xlabel="TPR", ylabel="FPR")
+        ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale='log', yscale='log')
         ax.title.set_text("ROC Combined Best Run FPR@0.1")
         plt.xlim([0.00001, 1])
@@ -196,7 +196,7 @@ class Analyser():
             auc = single_attack.roc_curve.get_auc()
             ax.plot(fpr, tpr, label=f"{store.ds_name} AUC={auc:.3f}")
 
-        ax.set(xlabel="TPR", ylabel="FPR")
+        ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale='log', yscale='log')
         ax.title.set_text("ROC Combined Best Run AUC")
         plt.xlim([0.00001, 1])
