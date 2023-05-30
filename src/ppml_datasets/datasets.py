@@ -29,13 +29,40 @@ class MnistDataset(AbstractDataset):
                          shuffle=True, is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
-        variants: List[Dict[str, Optional[str]]] = [
-            {'activation': 'relu', 'pretraining': None},
-            {'activation': 'relu', 'pretraining': 'imagenet'},
-            {'activation': 'tanh', 'pretraining': None},
-            {'activation': 'tanh', 'pretraining': 'imagenet'},
-        ]
-        self.variants = variants
+
+class MnistDatasetCustomClassSize(AbstractDataset):
+    def __init__(self, model_img_shape: Tuple[int, int, int],
+                 class_size: int,
+                 builds_ds_info: bool = False,
+                 batch_size: int = 32,
+                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
+                 augment_train: bool = True,
+                 dataset_path: str = "data"):
+        """Initialize the MNIST dataset from AbstractDataset class."""
+        super().__init__(dataset_name="mnist",
+                         dataset_path=dataset_path,
+                         dataset_img_shape=(28, 28, 1),
+                         num_classes=10,
+                         model_img_shape=model_img_shape,
+                         batch_size=batch_size,
+                         convert_to_rgb=True,
+                         augment_train=augment_train,
+                         preprocessing_function=preprocessing_func,
+                         shuffle=True, is_tfds_ds=True,
+                         builds_ds_info=builds_ds_info)
+        self.class_size = class_size
+
+    def _load_dataset(self):
+
+        # load default cifar10 from tfds
+        self._load_from_tfds()
+
+        # set datasetname after loading for tfds - since loading depends on the name
+        self.dataset_name = f"mnist_abs_class_size_{self.class_size}"
+
+        # shuffle ds before reducing class size
+        self.ds_train = self.ds_train.shuffle(buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
+        self.reduce_samples_per_class_train_ds(self.class_size)
 
 
 class FashionMnistDataset(AbstractDataset):
@@ -57,6 +84,42 @@ class FashionMnistDataset(AbstractDataset):
                          preprocessing_function=preprocessing_func,
                          shuffle=True, is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
+
+
+class FashionMnistDatasetCustomClassSize(AbstractDataset):
+    def __init__(self, model_img_shape: Tuple[int, int, int],
+                 class_size: int,
+                 builds_ds_info: bool = False,
+                 batch_size: int = 32,
+                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
+                 augment_train: bool = True,
+                 dataset_path: str = "data"):
+        """Initialize the FMNIST dataset from AbstractDataset class."""
+        super().__init__(dataset_name="fashion_mnist",
+                         dataset_path=dataset_path,
+                         dataset_img_shape=(28, 28, 1),
+                         num_classes=10,
+                         model_img_shape=model_img_shape,
+                         batch_size=batch_size,
+                         convert_to_rgb=True,
+                         augment_train=augment_train,
+                         preprocessing_function=preprocessing_func,
+                         shuffle=True, is_tfds_ds=True,
+                         builds_ds_info=builds_ds_info)
+
+        self.class_size = class_size
+
+    def _load_dataset(self):
+
+        # load default cifar10 from tfds
+        self._load_from_tfds()
+
+        # set datasetname after loading for tfds - since loading depends on the name
+        self.dataset_name = f"fashion_mnist_abs_class_size_{self.class_size}"
+
+        # shuffle ds before reducing class size
+        self.ds_train = self.ds_train.shuffle(buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
+        self.reduce_samples_per_class_train_ds(self.class_size)
 
 
 class Cifar10Dataset(AbstractDataset):

@@ -77,33 +77,11 @@ class AbstractDataset():
         if self.is_tfds_ds:
             self._load_from_tfds()
 
-    def load_dataset(self, fn_filter=None):
+    def load_dataset(self):
         print(f"Loading {self.dataset_name}")
         self._load_dataset()
         if self.builds_ds_info:
             self.build_ds_info()
-
-        if fn_filter is not None:
-            if self.ds_train is not None:
-                self.ds_train = self.ds_train.filter(fn_filter)
-
-                # we need to reset cardinality since is likely that the info is lost after filtering
-                ds_len = sum(1 for _ in self.ds_train)
-                self.ds_train = self.ds_train.apply(tf.data.experimental.assert_cardinality(ds_len))
-
-            if self.ds_test is not None:
-                self.ds_test = self.ds_test.filter(fn_filter)
-
-                # we need to reset cardinality since is likely that the info is lost after filtering
-                ds_len = sum(1 for _ in self.ds_test)
-                self.ds_test = self.ds_test.apply(tf.data.experimental.assert_cardinality(ds_len))
-
-            if self.ds_val is not None:
-                self.ds_val = self.ds_val.filter(fn_filter)
-
-                # we need to reset cardinality since is likely that the info is lost after filtering
-                ds_len = sum(1 for _ in self.ds_val)
-                self.ds_val = self.ds_val.apply(tf.data.experimental.assert_cardinality(ds_len))
 
     def _load_from_tfds(self):
         """Load dataset from tensorflow_datasets via 'dataset_name'."""
@@ -179,18 +157,26 @@ class AbstractDataset():
             self.ds_val, self.ds_test = tf.keras.utils.split_dataset(
                 right_ds, left_size=val_split / (val_split + test_split), shuffle=False)
 
-    def set_augmentation_parameter(self, random_flip: Optional[str],
-                                   random_rotation: Optional[float] = 0.1,
-                                   random_zoom: Optional[float] = 0.15,
-                                   random_brightness: Optional[float] = 0.1,
-                                   random_translation_width: Optional[float] = 0.1,
-                                   random_translation_height: Optional[float] = 0.1):
-        self.random_flip = random_flip
-        self.random_rotation = random_rotation
-        self.random_zoom = random_zoom
-        self.random_brightness = random_brightness
-        self.random_translation_height = random_translation_height
-        self.random_translation_width = random_translation_width
+    def reduce_samples_per_class_train_ds(self, max_samples_per_class: int):
+        sample_counters = defaultdict(int)
+        reduced_samples = []
+
+        for sample, label in self.ds_train:
+            if sample_counters[label.numpy().tolist()] < max_samples_per_class:
+                sample_counters[label.numpy().tolist()] += 1
+                reduced_samples.append((sample, label))
+
+        reduced_dataset = tf.data.Dataset.from_generator(
+            lambda: (sample_label for sample_label in reduced_samples),
+            output_signature=(
+                tf.TensorSpec(shape=sample.shape, dtype=sample.dtype),
+                tf.TensorSpec(shape=label.shape, dtype=label.dtype)
+            )
+        )
+        self.ds_train = reduced_dataset
+        ds_len = sum(1 for _ in self.ds_train)
+        self.ds_train = self.ds_train.apply(tf.data.experimental.assert_cardinality(ds_len))
+        print(f"Reduced class size to {max_samples_per_class}")
 
     def merge_all_datasets(self, percentage_loaded_data: int = 100) -> tf.data.Dataset:
         """Merge all datasets (train, val, test) into train dataset.
