@@ -58,7 +58,7 @@ class MnistDatasetCustomClassSize(AbstractDataset):
         self._load_from_tfds()
 
         # set datasetname after loading for tfds - since loading depends on the name
-        self.dataset_name = f"mnist_abs_class_size_{self.class_size}"
+        self.dataset_name = self.dataset_name + f"_c{self.class_size}"
 
         # shuffle ds before reducing class size
         self.ds_train = self.ds_train.shuffle(buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
@@ -115,7 +115,7 @@ class FashionMnistDatasetCustomClassSize(AbstractDataset):
         self._load_from_tfds()
 
         # set datasetname after loading for tfds - since loading depends on the name
-        self.dataset_name = f"fashion_mnist_abs_class_size_{self.class_size}"
+        self.dataset_name = self.dataset_name + f"_c{self.class_size}"
 
         # shuffle ds before reducing class size
         self.ds_train = self.ds_train.shuffle(buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
@@ -169,7 +169,7 @@ class Cifar10DatasetGray(AbstractDataset):
         self._load_from_tfds()
 
         # set datasetname after loading for tfds
-        self.dataset_name = "cifar10gray"
+        self.dataset_name = self.dataset_name + "_gray"
 
         to_grayscale = tf.keras.Sequential([
             RgbToGrayscale()
