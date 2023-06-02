@@ -81,8 +81,6 @@ class AmiaAttack():
 
         self.attack_statistics_folder: str = os.path.join(self.result_path, "attack-statistics")
         check_create_folder(self.attack_statistics_folder)
-        self.single_model_attack_img_folder: str = os.path.join(self.result_path, "shadow-model-attacks")
-        check_create_folder(self.single_model_attack_img_folder)
 
         self.attack_result_list_filename = os.path.join(self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_results.pckl")
         self.attack_baseline_result_list_filename = os.path.join(self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_baseline_results.pckl")
