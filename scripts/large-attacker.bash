@@ -1,6 +1,3 @@
-# vim: filetype=bash
-# vim: syntax=bash
-
 #!/bin/bash
 #SBATCH -J large-amia-attacker
 #SBATCH --ntasks=1
@@ -8,10 +5,10 @@
 #SBATCH --partition=clara
 #SBATCH --gres=gpu:v100:1
 #SBATCH --time=1-00:00:00
-#SBATCH -o $HOME/logs/%A-%x-%a.out
-#SBATCH -e $HOME/logs/%A-%x-%a.error
-#SBATCH --mail-type=FAIL,END,BEGIN
-# #SBATCH --mail-user=<custom email>
+#SBATCH -o "$HOME"/logs/%A-%x-%a.out
+#SBATCH -e "$HOME"/logs/%A-%x-%a.error
+#SBATCH --mail-type=FAIL,END
+# #SBATCH --mail-user=
 
 # use: sbatch -a 1-4 large-attacker.job
 
@@ -39,10 +36,10 @@ case $SLURM_ARRAY_TASK_ID in
     ;;
 esac
 
-echo $SLURM_ARRAY_TASK_ID $ds $shadow_models
+echo "$SLURM_ARRAY_TASK_ID" "-" "$ds" "-" "$shadow_models"
 
 module load TensorFlow/2.7.1-foss-2021b-CUDA-11.4.1
 
-source venv/bin/activate
+source env/bin/activate
 
-python src/main.py -d $ds -s $shadow_models -r $SLURM_ARRAY_TASK_ID --run-amia-attack
+srun python src/main.py -d "$ds" -s "$shadow_models" -r "$SLURM_ARRAY_TASK_ID" --run-amia-attack
