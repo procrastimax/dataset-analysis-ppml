@@ -34,7 +34,7 @@ def parse_arguments() -> Dict[str, Any]:
         prog="Dataset Analysis for Privacy-Preserving-Machine-Learning",
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
-    parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "mnist_abs_class_size_5000", "fmnist", "fmnist_abs_class_size_5000", "cifar10", "cifar10gray"], help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
+    parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"], help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
     parser.add_argument("-r", "--run-number", required=True, type=int, help="The run number to be used for training models, loading or saving results.", metavar="R")
     parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int, help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
     parser.add_argument("--train-single-model", action="store_true", help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
@@ -192,13 +192,13 @@ def get_dataset(ds_name: str) -> AbstractDataset:
     if ds_name == "mnist":
         ds = MnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
 
-    elif ds_name == "mnist_abs_class_size_5000":
+    elif ds_name == "mnist_c5000":
         ds = MnistDatasetCustomClassSize(model_img_shape=model_input_shape, class_size=5000, builds_ds_info=False, batch_size=batch, augment_train=False)
 
     elif ds_name == "fmnist":
         ds = FashionMnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
 
-    elif ds_name == "fmnist_abs_class_size_5000":
+    elif ds_name == "fmnist_c5000":
         ds = FashionMnistDatasetCustomClassSize(model_img_shape=model_input_shape, class_size=5000, builds_ds_info=False, batch_size=batch, augment_train=False)
 
     elif ds_name == "cifar10":
