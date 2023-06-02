@@ -9,13 +9,10 @@ from util import pickle_object, unpickle_object
 
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData
 from tensorflow_privacy.privacy.privacy_tests import utils
-import tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.plotting as plotting
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import membership_inference_attack as mia
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import advanced_mia as amia
 
-import matplotlib.pyplot as plt
 
-import functools
 from os import sys
 import os
 import gc
@@ -260,30 +257,26 @@ class AmiaAttack():
     def get_stat_and_loss_hinge(self,
                                 cnn_model: CNNModel,
                                 x: np.ndarray,
-                                y: np.ndarray,
-                                sample_weight: Optional[np.ndarray] = None):
+                                y: np.ndarray):
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
             logits = cnn_model.model.predict(x=data, batch_size=cnn_model.batch_size)
             losses.append(utils.log_loss(labels=y,
                                          pred=logits,
-                                         from_logits=True,
-                                         sample_weight=sample_weight))
+                                         from_logits=True))
             stat.append(
                 amia.calculate_statistic(
                     pred=logits,
                     labels=y,
                     is_logits=True,
-                    option="hinge",
-                    sample_weight=sample_weight))
+                    option="hinge"))
 
         return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)
 
     def get_stat_and_loss_aug_logits(self,
                                      cnn_model: CNNModel,
                                      x: np.ndarray,
-                                     y: np.ndarray,
-                                     sample_weight: Optional[np.ndarray] = None):
+                                     y: np.ndarray):
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
             prob = amia.convert_logit_to_prob(
@@ -291,14 +284,12 @@ class AmiaAttack():
                                         batch_size=cnn_model.batch_size))
             losses.append(utils.log_loss(labels=y,
                                          pred=prob,
-                                         from_logits=False,
-                                         sample_weight=sample_weight))
+                                         from_logits=False))
             stat.append(
                 amia.calculate_statistic(
                     pred=prob,
                     labels=y,
                     option="logit",
-                    sample_weight=sample_weight,
                     is_logits=False))
 
         return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)

@@ -1,0 +1,5 @@
+tensorflow-addons==0.16.1
+tensorflow-privacy==0.8.5
+tensorflow-probability==0.15.0
+tensorflow==2.7.1
+gdown==4.7.1

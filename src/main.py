@@ -2,7 +2,7 @@ from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import visualize_training, check_create_folder
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
 
-from util import pickle_object, save_dict_as_json, save_dataframe, plot_histogram
+from util import save_dict_as_json, save_dataframe, plot_histogram
 from cnn_small_model import CNNModel
 from attacks import AmiaAttack
 from analyser import Analyser
@@ -91,7 +91,8 @@ def main():
 
         model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
         check_create_folder(model_save_path)
-        model = load_model(model_save_path, num_of_classes=ds.num_classes)
+        model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
+        model = load_model(model_save_file, num_of_classes=ds.num_classes)
 
         shadow_model_save_path: str = os.path.join(model_path, str(run_number), "shadow_models", ds.dataset_name)
         check_create_folder(shadow_model_save_path)
@@ -224,10 +225,6 @@ def train_model(ds: AbstractDataset, model: CNNModel, run_number: int):
     history_fig_filename: str = os.path.join(result_path, str(run_number), "single-model-train", f"{ds.dataset_name}_model_train_history.png")
     check_create_folder(os.path.dirname(history_fig_filename))
     visualize_training(history=history, img_name=history_fig_filename)
-
-    history_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name, "history")
-    check_create_folder(os.path.dirname(history_save_path))
-    pickle_object(history_save_path, history)
 
 
 def load_and_test_model(ds: AbstractDataset, model: CNNModel, run_number: int):

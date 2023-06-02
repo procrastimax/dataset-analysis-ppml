@@ -57,8 +57,7 @@ class CNNModel():
         self.model.compile(
             optimizer=tf.keras.optimizers.SGD(
                 learning_rate=self.learning_rate,
-                momentum=self.momentum,
-                weight_decay=self.weight_decay),
+                momentum=self.momentum),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(
                 from_logits=True), metrics=["accuracy"])
 
@@ -136,7 +135,7 @@ class CNNModel():
 
     def save_model(self):
         print(f"Saving model to {self.model_path}")
-        self.model.save(filepath=self.model_path, save_format="tf", overwrite=True)
+        self.model.save(filepath=self.model_path, save_format="h5", overwrite=True)
 
     def load_model(self):
         self.model = tf.keras.models.load_model(filepath=self.model_path)
