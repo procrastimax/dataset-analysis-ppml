@@ -54,11 +54,13 @@ class DatasetStore():
             self.attack_result_folder = os.path.dirname(self.attack_result_list_filename)
 
         if self.attack_result_image_path is None:
-            self.attack_result_image_path = os.path.join(self.attack_result_folder, "figs", f"{self.ds_name}")
+            self.attack_result_image_path = os.path.join(
+                self.attack_result_folder, "figs", f"{self.ds_name}")
             check_create_folder(self.attack_result_image_path)
 
         if self.attack_result_image_path_mia_vs_amia_path is None:
-            self.attack_result_image_path_mia_vs_amia_path = os.path.join(self.attack_result_image_path, "mia-vs-amia")
+            self.attack_result_image_path_mia_vs_amia_path = os.path.join(
+                self.attack_result_image_path, "mia-vs-amia")
             check_create_folder(self.attack_result_image_path_mia_vs_amia_path)
 
     def load_saved_values(self):
@@ -66,7 +68,8 @@ class DatasetStore():
         self.stat = unpickle_object(self.stat_filename)
         self.losses = unpickle_object(self.loss_filename)
         self.attack_result_list = unpickle_object(self.attack_result_list_filename)
-        self.attack_baseline_result_list = unpickle_object(self.attack_baseline_result_list_filename)
+        self.attack_baseline_result_list = unpickle_object(
+            self.attack_baseline_result_list_filename)
 
     def get_fpr_at_fixed_tpr(self, single_attack_result: SingleAttackResult) -> Tuple[float, float]:
         """Caclulate FPR @ (0.1, 0.001) TPR.
@@ -85,7 +88,8 @@ class DatasetStore():
         return (fpr_at_01, fpr_at_001)
 
     def create_complete_dataframe(self, attack_result_list: List[AttackResults], attack_name: str) -> pd.DataFrame:
-        attack_result_frame = pd.DataFrame(columns=["slice feature", "slice value", "train size", "test size", "attack type", "Attacker advantage", "Positive predictive value", "AUC", "fpr@0.1", "fpr@0.001"])
+        attack_result_frame = pd.DataFrame(columns=["slice feature", "slice value", "train size", "test size",
+                                           "attack type", "Attacker advantage", "Positive predictive value", "AUC", "fpr@0.1", "fpr@0.001"])
 
         if attack_result_list is None:
             print("Attack result list is None -> cannot proceed to calculate TPR at fixed FPR!")
@@ -93,7 +97,8 @@ class DatasetStore():
 
         for (i, val) in enumerate(attack_result_list):
             results: AttackResults = val
-            single_frame = results.calculate_pd_dataframe().to_dict("index")[0]  # split dataframe to indexed dict and add it alter to the dataframe again
+            # split dataframe to indexed dict and add it alter to the dataframe again
+            single_frame = results.calculate_pd_dataframe().to_dict("index")[0]
 
             fpr_at_01, fpr_at_001 = self.get_fpr_at_fixed_tpr(results.single_attack_results[0])
 
@@ -131,7 +136,8 @@ class DatasetStore():
                     res.roc_curve,
                     functools.partial(plot_curve_with_area, ax=ax, label=label, use_log_scale=True, title=f"MIA vs Advanced MIA (LiRA) - Log scale #{idx}"))
             plt.legend()
-            plt_name = os.path.join(self.attack_result_image_path_mia_vs_amia_path, f"model_{self.ds_name}_id{idx}_log_scaled_advanced_mia.png")
+            plt_name = os.path.join(self.attack_result_image_path_mia_vs_amia_path,
+                                    f"model_{self.ds_name}_id{idx}_log_scaled_advanced_mia.png")
             print(f"Saving MIA vs AMIA {plt_name}")
             plt.savefig(plt_name)
             plt.close()
@@ -144,7 +150,8 @@ class DatasetStore():
                     res.roc_curve,
                     functools.partial(plot_curve_with_area, ax=ax, label=label, use_log_scale=False, title=f"MIA vs Advanced MIA (LiRA) - Linear scale #{idx}"))
             plt.legend()
-            plt_name = os.path.join(self.attack_result_image_path_mia_vs_amia_path, f"model_{self.ds_name}_id{idx}_linear_scaled_advanced_mia.png")
+            plt_name = os.path.join(self.attack_result_image_path_mia_vs_amia_path,
+                                    f"model_{self.ds_name}_id{idx}_linear_scaled_advanced_mia.png")
             print(f"Saving MIA vs AMIA {plt_name}")
             plt.savefig(plt_name)
             plt.close()
@@ -162,7 +169,8 @@ class DatasetStore():
                 res.roc_curve,
                 functools.partial(plot_curve_with_area, ax=ax, label=label, use_log_scale=True, title="All Shadow-Model's ROC Curves"))
         plt.legend()
-        plt_name = os.path.join(self.attack_result_image_path, f"all_curves_{self.ds_name}_advanced_mia_results.png")
+        plt_name = os.path.join(self.attack_result_image_path,
+                                f"all_curves_{self.ds_name}_advanced_mia_results.png")
         plt.savefig(plt_name)
         print(f"Saved all-in-one ROC curve {plt_name}")
         plt.close()
@@ -221,14 +229,15 @@ class DatasetStore():
         if generate_std_area:
             options += "_std_bounds_"
 
-        plt_name = os.path.join(self.attack_result_image_path, f"averaged_roc_curve_{self.ds_name}{options}_{name}_advanced_mia_results.png")
+        plt_name = os.path.join(self.attack_result_image_path,
+                                f"averaged_roc_curve_{self.ds_name}{options}_{name}_advanced_mia_results.png")
         plt.savefig(plt_name)
         print(f"Saved all-in-one ROC curve {plt_name}")
         plt.close()
         return (mean_tpr, fpr_grid)
 
     def set_best_attack_run_idx(self, attack_result: pd.DataFrame):
-        a = attack_result.idxmax(axis=0, skipna=True)
+        a = attack_result.select_dtypes(np.number).idxmax(axis=0, skipna=True)
         self.best_idx_fpr0001 = a["fpr@0.001"]
         self.best_idx_fpr01 = a["fpr@0.1"]
         self.best_idx_auc = a["AUC"]
