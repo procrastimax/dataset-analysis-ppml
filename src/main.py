@@ -34,16 +34,26 @@ def parse_arguments() -> Dict[str, Any]:
         prog="Dataset Analysis for Privacy-Preserving-Machine-Learning",
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
-    parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"], help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
-    parser.add_argument("-r", "--run-number", required=True, type=int, help="The run number to be used for training models, loading or saving results.", metavar="R")
-    parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int, help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
-    parser.add_argument("--train-single-model", action="store_true", help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
-    parser.add_argument("--load-test-single-model", action="store_true", help="If this flag is set, a single model is loaded based on run number and dataset name. Then predictions are run on the test and train dataset.")
-    parser.add_argument("--run-amia-attack", action="store_true", help="If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved. This can be seen as Step 2 in the analysis pipeline.")
-    parser.add_argument("--generate-results", action="store_true", help="If this flag is set, all saved results are compiled and compared with each other, allowing dataset comparison. This can be seen as Step 3 in the analysis pipeline.")
-    parser.add_argument("--force-model-retrain", action="store_true", help="If this flag is set, the shadow models, even if they already exist.")
-    parser.add_argument("--force-stat-recalculation", action="store_true", help="If this flag is set, the statistics are recalucated on the shadow models.")
-    parser.add_argument("--generate-ds-info", action="store_true", help="If this flag is set, dataset infos are generated and saved.")
+    parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
+                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
+    parser.add_argument("-r", "--run-number", required=True, type=int,
+                        help="The run number to be used for training models, loading or saving results.", metavar="R")
+    parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int,
+                        help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
+    parser.add_argument("--train-single-model", action="store_true",
+                        help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
+    parser.add_argument("--load-test-single-model", action="store_true",
+                        help="If this flag is set, a single model is loaded based on run number and dataset name. Then predictions are run on the test and train dataset.")
+    parser.add_argument("--run-amia-attack", action="store_true",
+                        help="If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved. This can be seen as Step 2 in the analysis pipeline.")
+    parser.add_argument("--generate-results", action="store_true",
+                        help="If this flag is set, all saved results are compiled and compared with each other, allowing dataset comparison. This can be seen as Step 3 in the analysis pipeline.")
+    parser.add_argument("--force-model-retrain", action="store_true",
+                        help="If this flag is set, the shadow models, even if they already exist.")
+    parser.add_argument("--force-stat-recalculation", action="store_true",
+                        help="If this flag is set, the statistics are recalucated on the shadow models.")
+    parser.add_argument("--generate-ds-info", action="store_true",
+                        help="If this flag is set, dataset infos are generated and saved.")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -84,9 +94,7 @@ def main():
             ds_info_df = generate_ds_info(ds_info_path=ds_info_path,
                                           ds=ds,
                                           ds_info_df=ds_info_df)
-
         ds.prepare_datasets()
-
         loaded_ds_list.append(ds)
 
         model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
@@ -94,7 +102,8 @@ def main():
         model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
         model = load_model(model_save_file, num_of_classes=ds.num_classes)
 
-        shadow_model_save_path: str = os.path.join(model_path, str(run_number), "shadow_models", ds.dataset_name)
+        shadow_model_save_path: str = os.path.join(
+            model_path, str(run_number), "shadow_models", ds.dataset_name)
         check_create_folder(shadow_model_save_path)
 
         if is_training_single_model:
@@ -137,7 +146,8 @@ def main():
         print("Saving Dataset Info")
         print("---------------------")
         print(ds_info_df)
-        ds_info_df_file = os.path.join(ds_info_path, f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
+        ds_info_df_file = os.path.join(
+            ds_info_path, f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
         save_dataframe(ds_info_df, ds_info_df_file)
 
 
@@ -154,15 +164,19 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
     check_create_folder(ds_info_path)
     ds.build_ds_info()
 
-    hist_filename = os.path.join(ds_info_path, "histogram", f"train_data_hist_{ds.dataset_name}.png")
-    hist_filename_mean = os.path.join(ds_info_path, "histogram", f"mean_train_data_hist_{ds.dataset_name}.png")
+    hist_filename = os.path.join(ds_info_path, "histogram",
+                                 f"train_data_hist_{ds.dataset_name}.png")
+    hist_filename_mean = os.path.join(ds_info_path, "histogram",
+                                      f"mean_train_data_hist_{ds.dataset_name}.png")
     check_create_folder(os.path.dirname(hist_filename))
     # save histogram
     hist, bins = ds.get_data_histogram(use_mean=False)
-    plot_histogram(hist, bins, hist_filename, title="Train Data Histogram", xlabel="Pixel Value", ylabel="Probability")
+    plot_histogram(hist, bins, hist_filename, title="Train Data Histogram",
+                   xlabel="Pixel Value", ylabel="Probability")
 
     hist, bins = ds.get_data_histogram(use_mean=True)
-    plot_histogram(hist, bins, hist_filename_mean, title="Train Data Histogram (Averaged)", xlabel="Pixel Value", ylabel="Probability")
+    plot_histogram(hist, bins, hist_filename_mean, title="Train Data Histogram (Averaged)",
+                   xlabel="Pixel Value", ylabel="Probability")
 
     ds_info_json_file = os.path.join(ds_info_path, f"{ds.dataset_name}_ds_info.json")
     save_dict_as_json(ds.ds_info, ds_info_json_file)
@@ -191,22 +205,43 @@ def get_dataset(ds_name: str) -> AbstractDataset:
     ds = None
 
     if ds_name == "mnist":
-        ds = MnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = MnistDataset(model_img_shape=model_input_shape,
+                          builds_ds_info=False,
+                          batch_size=batch,
+                          augment_train=False)
 
     elif ds_name == "mnist_c5000":
-        ds = MnistDatasetCustomClassSize(model_img_shape=model_input_shape, class_size=5000, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = MnistDatasetCustomClassSize(model_img_shape=model_input_shape,
+                                         class_size=5000,
+                                         builds_ds_info=False,
+                                         batch_size=batch,
+                                         augment_train=False)
 
     elif ds_name == "fmnist":
-        ds = FashionMnistDataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = FashionMnistDataset(model_img_shape=model_input_shape,
+                                 builds_ds_info=False,
+                                 batch_size=batch,
+                                 augment_train=False)
 
     elif ds_name == "fmnist_c5000":
-        ds = FashionMnistDatasetCustomClassSize(model_img_shape=model_input_shape, class_size=5000, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = FashionMnistDatasetCustomClassSize(
+            model_img_shape=model_input_shape,
+            class_size=5000,
+            builds_ds_info=False,
+            batch_size=batch,
+            augment_train=False)
 
     elif ds_name == "cifar10":
-        ds = Cifar10Dataset(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = Cifar10Dataset(model_img_shape=model_input_shape,
+                            builds_ds_info=False,
+                            batch_size=batch,
+                            augment_train=False)
 
     elif ds_name == "cifar10gray":
-        ds = Cifar10DatasetGray(model_img_shape=model_input_shape, builds_ds_info=False, batch_size=batch, augment_train=False)
+        ds = Cifar10DatasetGray(model_img_shape=model_input_shape,
+                                builds_ds_info=False,
+                                batch_size=batch,
+                                augment_train=False)
     else:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
         sys.exit(1)
@@ -222,7 +257,8 @@ def train_model(ds: AbstractDataset, model: CNNModel, run_number: int):
     model.save_model()
     history = model.get_history()
 
-    history_fig_filename: str = os.path.join(result_path, str(run_number), "single-model-train", f"{ds.dataset_name}_model_train_history.png")
+    history_fig_filename: str = os.path.join(result_path, str(
+        run_number), "single-model-train", f"{ds.dataset_name}_model_train_history.png")
     check_create_folder(os.path.dirname(history_fig_filename))
     visualize_training(history=history, img_name=history_fig_filename)
 
@@ -238,19 +274,26 @@ def load_and_test_model(ds: AbstractDataset, model: CNNModel, run_number: int):
     test_df.loc[0] = ["train", train_acc, train_loss]
     test_df.loc[1] = ["test", test_acc, test_loss]
 
-    result_df_filename = os.path.join(result_path, str(run_number), "single-model-train", f"{ds.dataset_name}_model_predict_results.csv")
+    result_df_filename = os.path.join(result_path, str(
+        run_number), "single-model-train", f"{ds.dataset_name}_model_predict_results.csv")
     check_create_folder(os.path.dirname(result_df_filename))
     print(f"Saving model test predictions to csv file: {result_df_filename}")
     save_dataframe(test_df, result_df_filename)
 
 
-def run_amia_attack(ds: AbstractDataset, model: CNNModel, num_shadow_models: int, shadow_model_save_path: str, amia_result_path: str, force_retrain: bool, force_stat_recalculation: bool):
+def run_amia_attack(ds: AbstractDataset, model: CNNModel,
+                    num_shadow_models: int,
+                    shadow_model_save_path: str,
+                    amia_result_path: str,
+                    force_retrain: bool,
+                    force_stat_recalculation: bool):
     amia = AmiaAttack(model=model,
                       ds=ds,
                       num_shadow_models=num_shadow_models,
                       shadow_model_dir=shadow_model_save_path,
                       result_path=amia_result_path)
-    amia.train_load_shadow_models(force_retraining=force_retrain, force_recalculation=force_stat_recalculation)
+    amia.train_load_shadow_models(force_retraining=force_retrain,
+                                  force_recalculation=force_stat_recalculation)
     amia.attack_shadow_models_mia()
 
 
