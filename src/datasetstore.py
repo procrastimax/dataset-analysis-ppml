@@ -228,7 +228,7 @@ class DatasetStore():
         return (mean_tpr, fpr_grid)
 
     def set_best_attack_run_idx(self, attack_result: pd.DataFrame):
-        a = attack_result.idxmax(axis=0, skipna=True, numeric_only=True)
+        a = attack_result.idxmax(axis=0, skipna=True)
         self.best_idx_fpr0001 = a["fpr@0.001"]
         self.best_idx_fpr01 = a["fpr@0.1"]
         self.best_idx_auc = a["AUC"]
