@@ -11,6 +11,11 @@ from typing import Tuple, Dict, Any, Optional, List, Union, Callable
 import scipy.stats
 import os
 import math
+from io import BytesIO
+
+import PIL
+
+import sys
 
 from ppml_datasets.utils import get_ds_as_numpy
 
@@ -434,57 +439,52 @@ class AbstractDataset():
         B: float = H / np.log(k)
         return B
 
-    def calculate_average_byte_count(self):
-        byte_count = 0
-        for (data, _) in self.ds_train:
-            x = data.shape[0]
-            y = data.shape[1]
-            z = data.shape[2]
+    def calculate_compressed_image_size(self) -> Dict[int, np.array]:
+        """Calculate compressed image size of all train dataset images.
 
-            byte_count += x * y * z * data.dtype.size
+        This function needs to be called before preprocessing the dataset.
 
-        byte_count = byte_count / len(self.ds_train)
-        return byte_count
-
-    def calculate_data_entropy(self, ds: Optional[tf.data.Dataset] = None) -> Tuple[Tuple[float, float, float], Tuple[float, float, float]]:
-        """Calculate and return data entropy values and normed entropy values.
-
-        Parameter:
-        --------
-        ds: tf.data.Dataset - Optional, if passed, the entropy of the given dataset is calculated instead of the current training dataset
-
-        Return:
-        ------
-        1 (float, float, float) : average entropy value, min entropy value, max entropy value
-        2 (float, float, float) : normed average entropy value, normed min entropy value, normed max entropy value
+        Returns a dict of numpy array mapped to classes.
+        The numpy array contain for each image the following values in this order: entropy, uncompressed_size, png_size, png_ratio, jpeg_size, jpeg_ratio
 
         """
-        entropy_val_list: List[float] = []
-        normed_entropy_val_list: List[float] = []
+        class_dict: Dict[int, np.array] = {}
 
-        if ds is None:
-            ds = self.ds_train
+        count = 0
 
-        for (data, _) in ds:
-            # calculate entropy of each color channel
-            for i in range(data.shape[2]):
-                values, counts = np.unique(data[:, :, i], return_counts=True)
+        for (img, label) in self.ds_train:
+            count += 1
+            label = label.numpy().astype("uint8")
+            # check if grayscale or color image
+            if img.shape[2] == 1:
+                compressed_img: PIL.Image.Image = PIL.Image.fromarray(img[:, :, 0].numpy().astype("uint8"))
+            else:
+                compressed_img: PIL.Image.Image = PIL.Image.fromarray(img.numpy().astype("uint8"))
 
-                entropy_val = scipy.stats.entropy(counts)
-                entropy_val_list.append(entropy_val)
+            entropy = compressed_img.entropy()
 
-                normed_entropy_val = entropy_val / np.log(len(values))
-                normed_entropy_val_list.append(normed_entropy_val)
+            uncompressed_size = len(compressed_img.tobytes())
 
-        max_entropy = max(entropy_val_list)
-        min_entropy = min(entropy_val_list)
-        avg_entropy = sum(entropy_val_list) / len(entropy_val_list)
+            buffer = BytesIO()
+            compressed_img.save(buffer, format="PNG", optimize=True)
+            png_size = buffer.tell()
+            png_ratio = png_size / uncompressed_size
 
-        normed_max_entropy = max(normed_entropy_val_list)
-        normed_min_entropy = min(normed_entropy_val_list)
-        normed_avg_entropy = sum(normed_entropy_val_list) / len(normed_entropy_val_list)
+            buffer = BytesIO()
+            compressed_img.save(buffer, format="JPEG", optimize=True, quality=75)
+            jpeg_size = buffer.tell()
+            jpeg_ratio = jpeg_size / uncompressed_size
 
-        return ((avg_entropy, min_entropy, max_entropy), (normed_avg_entropy, normed_min_entropy, normed_max_entropy))
+            values = np.array([entropy, uncompressed_size, png_size, png_ratio, jpeg_size, jpeg_ratio])
+
+            if label not in class_dict:
+                class_dict[label] = values
+            else:
+                current = class_dict[label]
+                class_dict[label] = np.vstack((current, values))
+
+        class_dict = {int(k): v for k, v in class_dict.items()}  # convert keys from uint8 to int for jsonify
+        return class_dict
 
     def build_ds_info(self):
         """Build dataset info dictionary.
@@ -492,20 +492,52 @@ class AbstractDataset():
         This function needs to be called after initializing and loading the dataset, but before calling preprocessing on it!
 
         """
+        compression_dict = self.calculate_compressed_image_size()
+        # calculate metrics for every class and for the whole DS
+        dataset_compression = None
+        for val in compression_dict.values():
+            if dataset_compression is None:
+                dataset_compression = val
+            else:
+                dataset_compression = np.vstack((dataset_compression, val))
+
+        avg_ds_entropy = np.average(dataset_compression[:, 0])
+        avg_ds_byte_size = np.average(dataset_compression[:, 1])
+        avg_ds_png_size = np.average(dataset_compression[:, 2])
+        avg_ds_png_ratio = np.average(dataset_compression[:, 3])
+        avg_ds_jpeg_size = np.average(dataset_compression[:, 4])
+        avg_ds_jpeg_ratio = np.average(dataset_compression[:, 5])
+
+        avg_class_entropy: Dict[int, float] = {}
+        avg_class_png_size: Dict[int, float] = {}
+        avg_class_png_ratio: Dict[int, float] = {}
+        avg_class_jpeg_size: Dict[int, float] = {}
+        avg_class_jpeg_ratio: Dict[int, float] = {}
+
+        for k, v in compression_dict.items():
+            avg_entropy = np.average(v[:, 0])
+            avg_png_size = np.average(v[:, 2])
+            avg_png_ratio = np.average(v[:, 3])
+            avg_jpeg_size = np.average(v[:, 4])
+            avg_jpeg_ratio = np.average(v[:, 5])
+
+            avg_class_entropy[k] = avg_entropy
+            avg_class_png_size[k] = avg_png_size
+            avg_class_png_ratio[k] = avg_png_ratio
+            avg_class_jpeg_size[k] = avg_jpeg_size
+            avg_class_jpeg_ratio[k] = avg_jpeg_ratio
+
         class_counts, class_weights = self.calculate_class_weights()
         ds_count = self.get_dataset_count()
         total_count: int = sum(ds_count.values())
         class_imbalance: float = self.calculate_class_imbalance()
-        entropy_values, normed_entropy_values = self.calculate_data_entropy()
 
         # convert int64 keys to int keys -> to jsonify
         class_counts = {str(k): int(v) for k, v in class_counts.items()}
         class_weights = {str(k): int(v) for k, v in class_weights.items()}
 
-        avg_byte_count = self.calculate_average_byte_count()
-
         self.ds_info = {
-            'name': self.dataset_name,
+            'name': self.dataset_name,  # not useful for dataframe
             'dataset_img_shape': self.dataset_img_shape,
             'model_img_shape': self.model_img_shape,
             'total_count': total_count,
@@ -513,16 +545,21 @@ class AbstractDataset():
             'val_count': ds_count["val"],
             'test_count': ds_count["test"],
             'num_classes': self.num_classes,
-            'class_counts': class_counts,  # not useful for dataframe
             'class_imbalance': class_imbalance,
+            'avg_byte_count': avg_ds_byte_size,
+            'avg_entropy': avg_ds_entropy,
+            'avg_png_size': avg_ds_png_size,
+            'avg_png_ratio': avg_ds_png_ratio,
+            'avg_jpeg_size': avg_ds_jpeg_size,
+            'avg_jpeg_ratio': avg_ds_jpeg_ratio,
+
             'class_weights': class_weights,  # not useful for dataframe
-            'avg_entropy': entropy_values[0],
-            'min_entropy': entropy_values[1],
-            'max_entropy': entropy_values[2],
-            'normed_avg_entropy': normed_entropy_values[0],
-            'normed_min_entropy': normed_entropy_values[1],
-            'normed_max_entropy': normed_entropy_values[2],
-            'avg_byte_count': avg_byte_count,
+            'class_counts': class_counts,  # not useful for dataframe
+            'class_avg_entropy': avg_class_entropy,  # not useful for dataframe
+            'class_avg_png_size': avg_class_png_size,  # not useful for dataframe
+            'class_avg_png_ratio': avg_class_png_ratio,  # not useful for dataframe
+            'class_avg_jpeg_size': avg_class_jpeg_size,  # not useful for dataframe
+            'class_avg_jpeg_ratio': avg_class_jpeg_ratio,  # not useful for dataframe
         }
 
     def get_ds_info_as_df(self) -> pd.DataFrame:
@@ -531,6 +568,11 @@ class AbstractDataset():
         dict_cpy = self.ds_info.copy()
         del (dict_cpy["class_counts"])
         del (dict_cpy["class_weights"])
+        del (dict_cpy["class_avg_entropy"])
+        del (dict_cpy["class_avg_png_size"])
+        del (dict_cpy["class_avg_png_ratio"])
+        del (dict_cpy["class_avg_jpeg_size"])
+        del (dict_cpy["class_avg_jpeg_ratio"])
         del (dict_cpy["name"])
 
         dict_cpy["dataset_img_shape"] = "/".join(map(str, dict_cpy["dataset_img_shape"]))
