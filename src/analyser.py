@@ -1,17 +1,15 @@
-import tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.plotting as plotting
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackResults, SingleAttackResult
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
 from sklearn import metrics
-from typing import Optional, List, Dict, Tuple
+from typing import List, Dict
 import os
-import sys
 
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import check_create_folder
 
-from util import pickle_object, save_dataframe, find_nearest
+from util import save_dataframe, find_nearest
 from datasetstore import DatasetStore
 
 
@@ -30,24 +28,30 @@ class Analyser():
         self.num_shadow_models = num_shadow_models
 
         self.amia_result_path = os.path.join(result_path, str(run_number))
-        self.attack_statistics_folder: str = os.path.join(self.amia_result_path, "attack-statistics")
-        self.single_model_train_results: str = os.path.join(self.amia_result_path, "single-model-train")
+        self.attack_statistics_folder: str = os.path.join(
+            self.amia_result_path, "attack-statistics")
+        self.single_model_train_results: str = os.path.join(
+            self.amia_result_path, "single-model-train")
 
-        self.attack_statistics_folder_combined: str = os.path.join(self.attack_statistics_folder, "combined")
+        self.attack_statistics_folder_combined: str = os.path.join(
+            self.attack_statistics_folder, "combined")
         check_create_folder(self.attack_statistics_folder_combined)
 
         self.dataset_data: Dict[str, DatasetStore] = {}
 
         for ds in ds_list:
             model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
-            shadow_model_save_path: str = os.path.join(model_path, str(run_number), "shadow_models", ds.dataset_name)
+            shadow_model_save_path: str = os.path.join(
+                model_path, str(run_number), "shadow_models", ds.dataset_name)
             numpy_path: str = os.path.join(shadow_model_save_path, "data")
             in_indices_filename = os.path.join(numpy_path, "in_indices.pckl")
             stat_filename = os.path.join(numpy_path, "model_stat.pckl")
             loss_filename = os.path.join(numpy_path, "model_loss.pckl")
 
-            attack_result_list_filename = os.path.join(self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_results.pckl")
-            attack_baseline_result_list_filename = os.path.join(self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_baseline_results.pckl")
+            attack_result_list_filename = os.path.join(
+                self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_results.pckl")
+            attack_baseline_result_list_filename = os.path.join(
+                self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_baseline_results.pckl")
 
             ds_store = DatasetStore(shadow_model_dir=shadow_model_save_path,
                                     model_save_path=model_save_path,
@@ -65,31 +69,96 @@ class Analyser():
     def generate_results(self):
         for (ds_name, ds_store) in self.dataset_data.items():
             ds_store.load_saved_values()
-            self.dataset_data[ds_name].attack_result_df = ds_store.create_complete_dataframe(ds_store.attack_result_list, attack_name="amia")
-            self.dataset_data[ds_name].attack_baseline_result_df = ds_store.create_complete_dataframe(ds_store.attack_baseline_result_list, attack_name="mia")
+            self.dataset_data[ds_name].attack_result_df = ds_store.create_complete_dataframe(
+                ds_store.attack_result_list, attack_name="amia")
+            self.dataset_data[ds_name].attack_baseline_result_df = ds_store.create_complete_dataframe(
+                ds_store.attack_baseline_result_list, attack_name="mia")
 
-            self.dataset_data[ds_name].set_best_attack_run_idx(self.dataset_data[ds_name].attack_result_df)
+            self.dataset_data[ds_name].set_best_attack_run_idx(
+                self.dataset_data[ds_name].attack_result_df)
 
-            df_amia_filename = os.path.join(self.attack_statistics_folder, f"amia_attack_statistic_results_{ds_store.ds_name}.csv")
-            df_mia_filename = os.path.join(self.attack_statistics_folder, f"mia_attack_statistic_results_{ds_store.ds_name}.csv")
+            df_amia_filename = os.path.join(
+                self.attack_statistics_folder, f"amia_attack_statistic_results_{ds_store.ds_name}.csv")
+            df_mia_filename = os.path.join(
+                self.attack_statistics_folder, f"mia_attack_statistic_results_{ds_store.ds_name}.csv")
 
             save_dataframe(ds_store.attack_result_df, df_amia_filename)
             save_dataframe(ds_store.attack_baseline_result_df, df_mia_filename)
 
             ds_store.create_all_in_one_roc_curve()
-            mean_tpr, mean_fpr = ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=True, generate_std_area=True)
+            mean_tpr, mean_fpr = ds_store.create_average_roc_curve(
+                attack_result_list=ds_store.attack_result_list, generate_all_rocs=True, generate_std_area=True)
             self.dataset_data[ds_name].mean_tpr = mean_tpr
             self.dataset_data[ds_name].mean_fpr = mean_fpr
-            ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=True, generate_std_area=False)
-            ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=True)
-            ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=False)
-            ds_store.create_average_roc_curve(attack_result_list=ds_store.attack_baseline_result_list, name="MIA", generate_all_rocs=True, generate_std_area=True)
+            ds_store.create_average_roc_curve(
+                attack_result_list=ds_store.attack_result_list, generate_all_rocs=True, generate_std_area=False)
+            ds_store.create_average_roc_curve(
+                attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=True)
+            ds_store.create_average_roc_curve(
+                attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=False)
+            ds_store.create_average_roc_curve(
+                attack_result_list=ds_store.attack_baseline_result_list, name="MIA", generate_all_rocs=True, generate_std_area=True)
             ds_store.create_mia_vs_amia_roc_curves()
 
         self.create_combined_best_run_fpr0001(list(self.dataset_data.values()))
         self.create_combined_best_run_fpr01(list(self.dataset_data.values()))
         self.create_combined_best_run_auc(list(self.dataset_data.values()))
         self.create_combined_averaged_roc_curve(list(self.dataset_data.values()))
+        self.create_combined_df(list(self.dataset_data.values()))
+
+    def create_combined_df(self, ds_stores: List[DatasetStore]):
+        combined_list = []
+        columns = ["name", "type"]
+        columns.extend(ds_stores[0].attack_result_df.tail(
+            4).select_dtypes(include=np.number).columns.tolist())
+
+        ds_names = []
+
+        for store in ds_stores:
+            ds_list = []
+            ds_names.append(store.ds_name)
+
+            best_list = store.attack_result_df.select_dtypes(
+                include=np.number).iloc[store.best_idx_auc].values.tolist()
+            tmp_list = [store.ds_name, "best_auc"]
+            tmp_list.extend(best_list)
+            ds_list.append(tmp_list)
+
+            best_list = store.attack_result_df.select_dtypes(
+                include=np.number).iloc[store.best_idx_fpr01].values.tolist()
+            tmp_list = [store.ds_name, "best_fpr01"]
+            tmp_list.extend(best_list)
+            ds_list.append(tmp_list)
+
+            best_list = store.attack_result_df.select_dtypes(
+                include=np.number).iloc[store.best_idx_fpr0001].values.tolist()
+            tmp_list = [store.ds_name, "best_idx_fpr0001"]
+            tmp_list.extend(best_list)
+            ds_list.append(tmp_list)
+
+            for i, val in enumerate(store.attack_result_df.tail(4).select_dtypes(include=np.number).values.tolist()):
+                # this is nasty, but I'm too lazy to properly handle pandas 1.3.4 - hopefully this does not backfire
+                num_type = ""
+                if i == 0:
+                    num_type = "mean"
+                elif i == 1:
+                    num_type = "min"
+                elif i == 2:
+                    num_type = "max"
+                elif i == 3:
+                    num_type = "var"
+
+                tmp_list = [store.ds_name, num_type]
+                tmp_list.extend(val)
+                ds_list.append(tmp_list)
+            combined_list.extend(ds_list)
+
+        combined_df = pd.DataFrame(combined_list, columns=columns)
+        print("Combined DF:")
+        print(combined_df)
+        file_name = os.path.join(self.attack_statistics_folder_combined,
+                                 f"combined_df_{'_'.join(ds_names)}.csv")
+        save_dataframe(combined_df, filename=file_name)
 
     def create_combined_averaged_roc_curve(self, ds_stores: List[DatasetStore]):
         _, ax = plt.subplots(1, 1, figsize=(5, 5))
@@ -113,7 +182,8 @@ class Analyser():
         plt.ylim([0.00001, 1])
         plt.legend(prop={'family': 'DejaVu Sans Mono'})
 
-        plt_name = os.path.join(self.attack_statistics_folder_combined, f"averaged_roc_curve_{'-'.join(name_list)}_advanced_mia_results.png")
+        plt_name = os.path.join(self.attack_statistics_folder_combined,
+                                f"averaged_roc_curve_{'-'.join(name_list)}_advanced_mia_results.png")
         plt.savefig(plt_name)
         print(f"Saved all-in-one ROC curve {plt_name}")
         plt.close()
@@ -125,12 +195,14 @@ class Analyser():
         name_list = []
 
         # sort by fpr01
-        ds_stores.sort(key=lambda x: x.get_fpr_at_fixed_tpr(x.attack_result_list[x.best_idx_auc].single_attack_results[0])[1], reverse=True)
+        ds_stores.sort(key=lambda x: x.get_fpr_at_fixed_tpr(
+            x.attack_result_list[x.best_idx_auc].single_attack_results[0])[1], reverse=True)
 
         for store in ds_stores:
             name_list.append(store.ds_name)
 
-            single_attack: SingleAttackResult = store.attack_result_list[store.best_idx_fpr0001].single_attack_results[0]
+            single_attack: SingleAttackResult = store.attack_result_list[
+                store.best_idx_fpr0001].single_attack_results[0]
             fpr_01, fpr_0001 = store.get_fpr_at_fixed_tpr(single_attack)
             fpr = single_attack.roc_curve.fpr
             tpr = single_attack.roc_curve.tpr
@@ -143,7 +215,8 @@ class Analyser():
         plt.ylim([0.00001, 1])
         plt.legend()
 
-        plt_name = os.path.join(self.attack_statistics_folder_combined, f"combined_best_run_fpr0001_{'-'.join(name_list)}_results.png")
+        plt_name = os.path.join(self.attack_statistics_folder_combined,
+                                f"combined_best_run_fpr0001_{'-'.join(name_list)}_results.png")
         plt.savefig(plt_name)
         print(f"Saved combined best attackrun fpr0001 ROC curve {plt_name}")
         plt.close()
@@ -155,12 +228,14 @@ class Analyser():
         name_list = []
 
         # sort by fpr01
-        ds_stores.sort(key=lambda x: x.get_fpr_at_fixed_tpr(x.attack_result_list[x.best_idx_auc].single_attack_results[0])[0], reverse=True)
+        ds_stores.sort(key=lambda x: x.get_fpr_at_fixed_tpr(
+            x.attack_result_list[x.best_idx_auc].single_attack_results[0])[0], reverse=True)
 
         for store in ds_stores:
             name_list.append(store.ds_name)
 
-            single_attack: SingleAttackResult = store.attack_result_list[store.best_idx_fpr01].single_attack_results[0]
+            single_attack: SingleAttackResult = store.attack_result_list[
+                store.best_idx_fpr01].single_attack_results[0]
             fpr_01, fpr_0001 = store.get_fpr_at_fixed_tpr(single_attack)
             fpr = single_attack.roc_curve.fpr
             tpr = single_attack.roc_curve.tpr
@@ -173,7 +248,8 @@ class Analyser():
         plt.ylim([0.00001, 1])
         plt.legend()
 
-        plt_name = os.path.join(self.attack_statistics_folder_combined, f"combined_best_run_fpr01_{'-'.join(name_list)}_results.png")
+        plt_name = os.path.join(self.attack_statistics_folder_combined,
+                                f"combined_best_run_fpr01_{'-'.join(name_list)}_results.png")
         plt.savefig(plt_name)
         print(f"Saved combined best attackrun fpr01 ROC curve {plt_name}")
         plt.close()
@@ -185,7 +261,8 @@ class Analyser():
         name_list = []
 
         # sort by auc
-        ds_stores.sort(key=lambda x: x.attack_result_list[x.best_idx_auc].single_attack_results[0].roc_curve.get_auc(), reverse=True)
+        ds_stores.sort(
+            key=lambda x: x.attack_result_list[x.best_idx_auc].single_attack_results[0].roc_curve.get_auc(), reverse=True)
 
         for store in ds_stores:
             name_list.append(store.ds_name)
@@ -203,7 +280,8 @@ class Analyser():
         plt.ylim([0.00001, 1])
         plt.legend()
 
-        plt_name = os.path.join(self.attack_statistics_folder_combined, f"combined_best_run_auc_{'-'.join(name_list)}_results.png")
+        plt_name = os.path.join(self.attack_statistics_folder_combined,
+                                f"combined_best_run_auc_{'-'.join(name_list)}_results.png")
         plt.savefig(plt_name)
         print(f"Saved combined best attackrun AUC ROC curve {plt_name}")
         plt.close()
