@@ -31,6 +31,7 @@ class AmiaAttack():
                  ds: AbstractDataset,
                  result_path: str,
                  shadow_model_dir: str,
+                 include_mia: bool = False,
                  num_shadow_models: int = 16,
                  ):
         """Initialize MiaAttack class.
@@ -56,6 +57,8 @@ class AmiaAttack():
             print("Error: Dataset needs to have an initialized test dataset!")
             sys.exit(1)
 
+        self.include_mia = include_mia
+
         self.ds = ds
 
         self.num_shadow_models = num_shadow_models
@@ -79,8 +82,10 @@ class AmiaAttack():
         self.attack_statistics_folder: str = os.path.join(self.result_path, "attack-statistics")
         check_create_folder(self.attack_statistics_folder)
 
-        self.attack_result_list_filename = os.path.join(self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_results.pckl")
-        self.attack_baseline_result_list_filename = os.path.join(self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_baseline_results.pckl")
+        self.attack_result_list_filename = os.path.join(
+            self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_results.pckl")
+        self.attack_baseline_result_list_filename = os.path.join(
+            self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_baseline_results.pckl")
 
     def train_load_shadow_models(self, force_retraining: bool = False, force_recalculation: bool = False):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
@@ -128,7 +133,8 @@ class AmiaAttack():
                 keep: np.ndarray = self.in_indices[i]
             else:
                 # Generate a binary array indicating which example to include for training
-                keep: np.ndarray = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
+                keep: np.ndarray = np.random.binomial(
+                    1, 0.5, size=self.num_training_samples).astype(bool)
                 self.in_indices.append(keep)
 
             # prepare model for new train iteration
@@ -158,15 +164,18 @@ class AmiaAttack():
                 print("Saving shadow model train history as figure")
                 history = self.cnn_model.get_history()
 
-                history_fig_path = os.path.join(self.result_path, "sm-training", self.ds.dataset_name)
+                history_fig_path = os.path.join(
+                    self.result_path, "sm-training", self.ds.dataset_name)
                 check_create_folder(history_fig_path)
 
-                visualize_training(history=history, img_name=os.path.join(history_fig_path, f"{i}_{self.ds.dataset_name}_shadow_model_training_history.png"))
+                visualize_training(history=history, img_name=os.path.join(
+                    history_fig_path, f"{i}_{self.ds.dataset_name}_shadow_model_training_history.png"))
 
                 # test shadow model accuracy
                 print("Testing shadow model on test data")
                 self.cnn_model.test_model(self.ds.ds_test)
-                print(f"\n============================= DONE TRAINING Shadow Model: {i} =============================\n")
+                print(
+                    f"\n============================= DONE TRAINING Shadow Model: {i} =============================\n")
 
             stat_temp, loss_temp = self.get_stat_and_loss_hinge(
                 cnn_model=self.cnn_model,
@@ -186,8 +195,8 @@ class AmiaAttack():
         pickle_object(self.stat_filename, self.stat)
         pickle_object(self.loss_filename, self.losses)
 
-    def attack_shadow_models_mia(self):
-        print("Attacking shadow models with MIA")
+    def attack_shadow_models_amia(self):
+        print("Attacking shadow models with AMIA (LIRA)")
 
         if len(self.stat) == 0 or len(self.losses) == 0:
             print("Error: Before attacking the shadow models with MIA, please train or load the shadow models and retrieve the statistics and losses")
@@ -237,18 +246,19 @@ class AmiaAttack():
                   f"auc = {result_lira_single.get_auc():.4f}",
                   f"adv = {result_lira_single.get_attacker_advantage():.4f}")
 
-            # Compare with the baseline MIA using the loss of the target model
-            loss_target = self.losses[idx][:, 0]
-            attack_input = AttackInputData(
-                loss_train=loss_target[in_indices_target],
-                loss_test=loss_target[~in_indices_target])
+            if self.include_mia:
+                # Compare with the baseline MIA using the loss of the target model
+                loss_target = self.losses[idx][:, 0]
+                attack_input = AttackInputData(
+                    loss_train=loss_target[in_indices_target],
+                    loss_test=loss_target[~in_indices_target])
 
-            result_baseline = mia.run_attacks(attack_input)
-            self.attack_baseline_result_list.append(result_baseline)
-            result_baseline_single = result_baseline.single_attack_results[0]
-            print('Baseline MIA attack:',
-                  f'auc = {result_baseline_single.get_auc():.4f}',
-                  f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
+                result_baseline = mia.run_attacks(attack_input)
+                self.attack_baseline_result_list.append(result_baseline)
+                result_baseline_single = result_baseline.single_attack_results[0]
+                print('Baseline MIA attack:',
+                      f'auc = {result_baseline_single.get_auc():.4f}',
+                      f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
 
         # pickle attack result list for LiRA and baseline
         pickle_object(self.attack_result_list_filename, self.attack_result_list)

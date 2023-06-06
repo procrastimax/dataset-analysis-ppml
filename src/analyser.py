@@ -20,9 +20,12 @@ class Analyser():
                  result_path: str,
                  model_path: str,
                  num_shadow_models: int,
+                 include_mia: bool = False,
                  ):
         self.result_path = result_path
         check_create_folder(self.result_path)
+
+        self.include_mia = include_mia
 
         self.ds_list = ds_list
         self.num_shadow_models = num_shadow_models
@@ -69,21 +72,22 @@ class Analyser():
     def generate_results(self):
         for (ds_name, ds_store) in self.dataset_data.items():
             ds_store.load_saved_values()
+
             self.dataset_data[ds_name].attack_result_df = ds_store.create_complete_dataframe(
                 ds_store.attack_result_list, attack_name="amia")
-            self.dataset_data[ds_name].attack_baseline_result_df = ds_store.create_complete_dataframe(
-                ds_store.attack_baseline_result_list, attack_name="mia")
-
             self.dataset_data[ds_name].set_best_attack_run_idx(
                 self.dataset_data[ds_name].attack_result_df)
 
             df_amia_filename = os.path.join(
                 self.attack_statistics_folder, f"amia_attack_statistic_results_{ds_store.ds_name}.csv")
-            df_mia_filename = os.path.join(
-                self.attack_statistics_folder, f"mia_attack_statistic_results_{ds_store.ds_name}.csv")
-
             save_dataframe(ds_store.attack_result_df, df_amia_filename)
-            save_dataframe(ds_store.attack_baseline_result_df, df_mia_filename)
+
+            if self.include_mia:
+                self.dataset_data[ds_name].attack_baseline_result_df = ds_store.create_complete_dataframe(
+                    ds_store.attack_baseline_result_list, attack_name="mia")
+                df_mia_filename = os.path.join(
+                    self.attack_statistics_folder, f"mia_attack_statistic_results_{ds_store.ds_name}.csv")
+                save_dataframe(ds_store.attack_baseline_result_df, df_mia_filename)
 
             ds_store.create_all_in_one_roc_curve()
             mean_tpr, mean_fpr = ds_store.create_average_roc_curve(
@@ -96,9 +100,11 @@ class Analyser():
                 attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=True)
             ds_store.create_average_roc_curve(
                 attack_result_list=ds_store.attack_result_list, generate_all_rocs=False, generate_std_area=False)
-            ds_store.create_average_roc_curve(
-                attack_result_list=ds_store.attack_baseline_result_list, name="MIA", generate_all_rocs=True, generate_std_area=True)
-            ds_store.create_mia_vs_amia_roc_curves()
+
+            if self.include_mia:
+                ds_store.create_average_roc_curve(
+                    attack_result_list=ds_store.attack_baseline_result_list, name="MIA", generate_all_rocs=True, generate_std_area=True)
+                ds_store.create_mia_vs_amia_roc_curves()
 
         self.create_combined_best_run_fpr0001(list(self.dataset_data.values()))
         self.create_combined_best_run_fpr01(list(self.dataset_data.values()))

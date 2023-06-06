@@ -54,6 +54,8 @@ def parse_arguments() -> Dict[str, Any]:
                         help="If this flag is set, the statistics are recalucated on the shadow models.")
     parser.add_argument("--generate-ds-info", action="store_true",
                         help="If this flag is set, dataset infos are generated and saved.")
+    parser.add_argument("--include-mia", action="store_true",
+                        help="If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -75,6 +77,7 @@ def main():
     force_model_retraining: bool = args["force_model_retrain"]
     force_stat_recalculation: bool = args["force_stat_recalculation"]
     is_generating_ds_info: bool = args["generate_ds_info"]
+    is_including_mia: bool = args["include_mia"]
 
     loaded_ds_list: List[AbstractDataset] = []
 
@@ -128,7 +131,8 @@ def main():
                             shadow_model_save_path=shadow_model_save_path,
                             amia_result_path=amia_result_path,
                             force_retrain=force_model_retraining,
-                            force_stat_recalculation=force_stat_recalculation)
+                            force_stat_recalculation=force_stat_recalculation,
+                            include_mia=is_including_mia)
 
     if is_generating_results:
         print("---------------------")
@@ -138,7 +142,8 @@ def main():
                             run_number=run_number,
                             result_path=result_path,
                             model_path=model_path,
-                            num_shadow_models=num_shadow_models)
+                            num_shadow_models=num_shadow_models,
+                            include_mia=is_including_mia)
         analyser.generate_results()
 
     if is_generating_ds_info:
@@ -286,15 +291,17 @@ def run_amia_attack(ds: AbstractDataset, model: CNNModel,
                     shadow_model_save_path: str,
                     amia_result_path: str,
                     force_retrain: bool,
-                    force_stat_recalculation: bool):
+                    force_stat_recalculation: bool,
+                    include_mia: bool):
     amia = AmiaAttack(model=model,
                       ds=ds,
                       num_shadow_models=num_shadow_models,
                       shadow_model_dir=shadow_model_save_path,
-                      result_path=amia_result_path)
+                      result_path=amia_result_path,
+                      include_mia=include_mia)
     amia.train_load_shadow_models(force_retraining=force_retrain,
                                   force_recalculation=force_stat_recalculation)
-    amia.attack_shadow_models_mia()
+    amia.attack_shadow_models_amia()
 
 
 if __name__ == "__main__":
