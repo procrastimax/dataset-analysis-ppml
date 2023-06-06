@@ -217,7 +217,7 @@ def get_dataset(ds_name: str) -> AbstractDataset:
 
     elif ds_name == "mnist_c5000":
         ds = MnistDatasetCustomClassSize(model_img_shape=model_input_shape,
-                                         class_size=5000,
+                                         class_size=200,
                                          builds_ds_info=False,
                                          batch_size=batch,
                                          augment_train=False)

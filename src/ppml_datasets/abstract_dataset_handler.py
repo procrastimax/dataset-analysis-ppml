@@ -450,14 +450,12 @@ class AbstractDataset():
         """
         class_dict: Dict[int, np.array] = {}
 
-        count = 0
-
         for (img, label) in self.ds_train:
-            count += 1
             label = label.numpy().astype("uint8")
             # check if grayscale or color image
             if img.shape[2] == 1:
-                compressed_img: PIL.Image.Image = PIL.Image.fromarray(img[:, :, 0].numpy().astype("uint8"))
+                compressed_img: PIL.Image.Image = PIL.Image.fromarray(
+                    img[:, :, 0].numpy().astype("uint8"))
             else:
                 compressed_img: PIL.Image.Image = PIL.Image.fromarray(img.numpy().astype("uint8"))
 
@@ -475,7 +473,8 @@ class AbstractDataset():
             jpeg_size = buffer.tell()
             jpeg_ratio = jpeg_size / uncompressed_size
 
-            values = np.array([entropy, uncompressed_size, png_size, png_ratio, jpeg_size, jpeg_ratio])
+            values = np.array([entropy, uncompressed_size, png_size,
+                               png_ratio, jpeg_size, jpeg_ratio])
 
             if label not in class_dict:
                 class_dict[label] = values
@@ -483,8 +482,87 @@ class AbstractDataset():
                 current = class_dict[label]
                 class_dict[label] = np.vstack((current, values))
 
-        class_dict = {int(k): v for k, v in class_dict.items()}  # convert keys from uint8 to int for jsonify
+        # convert keys from uint8 to int for jsonify
+        class_dict = {int(k): v for k, v in class_dict.items()}
         return class_dict
+
+    def calculate_image_fractal_dimension(self) -> Dict[int, List[float]]:
+        """Calculate the fractal dimension of all images."""
+        print("Calculating fractal dimension of all images")
+
+        def grayConversion(image):
+            grayValue = 0.07 * image[:, :, 2] + 0.72 * image[:, :, 1] + 0.21 * image[:, :, 0]
+            gray_img = grayValue.astype(np.uint8)
+            return gray_img
+
+        counter = 0
+        class_dict: Dict[int, List[float]] = defaultdict(list)
+        for (img, label) in self.ds_train:
+            label = int(label.numpy().astype("uint8"))
+
+            # check if grayscale or color image, convert to grayscale if RGB
+            if img.shape[2] == 1:
+                img = img.numpy().astype("uint8")
+            else:
+                img = grayConversion(img.numpy().astype("uint8"))
+
+            img = img[:, :, 0]
+            fractal_dim = self._fractal_dimension(img)
+            class_dict[label].append(fractal_dim)
+            counter += 1
+            if counter % 100 == 0:
+                print(f"Calculated fractal dimension of {counter} images")
+
+        return class_dict
+
+    def _fractal_dimension(self, image: np.ndarray) -> np.float64:
+        """Calculate the fractal dimension of an image represented by a 2D numpy array.
+
+        Code used from: https://github.com/brian-xu/FractalDimension/blob/master/FractalDimension.py
+        The algorithm is a modified box-counting algorithm as described by Wen-Li Lee and Kai-Sheng Hsieh.
+
+        Args:
+        ----
+        image: A 2D array containing a grayscale image. Format should be equivalent to cv2.imread(flags=0).
+                   The size of the image has no constraints, but it needs to be square (m×m array).
+
+        Return:
+        ------
+        D: The fractal dimension Df, as estimated by the modified box-counting algorithm.
+
+        """
+        M = image.shape[0]  # image shape
+        G_min = image.min()  # lowest gray level (0=white)
+        G_max = image.max()  # highest gray level (255=black)
+        G = G_max - G_min + 1  # number of gray levels, typically 256
+        prev = -1  # used to check for plateaus
+        r_Nr = []
+
+        for L in range(2, (M // 2) + 1):
+            h = max(1, G // (M // L))  # minimum box height is 1
+            N_r = 0
+            r = L / M
+            for i in range(0, M, L):
+                # create enough boxes with height h to fill the fractal space
+                boxes = [[]] * ((G + h - 1) // h)
+                for row in image[i:i + L]:  # boxes that exceed bounds are shrunk to fit
+                    for pixel in row[i:i + L]:
+                        # lowest box is at G_min and each is h gray levels tall
+                        height = (pixel - G_min) // h
+                        boxes[height].append(pixel)  # assign the pixel intensity to the correct box
+                # calculate the standard deviation of each box
+                stddev = np.sqrt(np.var(boxes, axis=1))
+                # remove boxes with NaN standard deviations (empty)
+                stddev = stddev[~np.isnan(stddev)]
+                nBox_r = 2 * (stddev // h) + 1
+                N_r += sum(nBox_r)
+            if N_r != prev:  # check for plateauing
+                r_Nr.append([r, N_r])
+                prev = N_r
+        x = np.array([np.log(1 / point[0]) for point in r_Nr])  # log(1/r)
+        y = np.array([np.log(point[1]) for point in r_Nr])  # log(Nr)
+        D = np.polyfit(x, y, 1)[0]  # D = lim r -> 0 log(Nr)/log(1/r)
+        return D
 
     def build_ds_info(self):
         """Build dataset info dictionary.
@@ -492,6 +570,14 @@ class AbstractDataset():
         This function needs to be called after initializing and loading the dataset, but before calling preprocessing on it!
 
         """
+        fractal_dim_dict = self.calculate_image_fractal_dimension()
+        avg_class_fractal_dim: Dict[int, float] = {}
+        avg_ds_fractal_dim: float = 0.0
+        for k, v in fractal_dim_dict.items():
+            avg_ds_fractal_dim += np.sum(v)
+            avg_class_fractal_dim[k] = np.mean(v)
+        avg_ds_fractal_dim = avg_ds_fractal_dim / len(fractal_dim_dict.items())
+
         compression_dict = self.calculate_compressed_image_size()
         # calculate metrics for every class and for the whole DS
         dataset_compression = None
@@ -552,6 +638,7 @@ class AbstractDataset():
             'avg_png_ratio': avg_ds_png_ratio,
             'avg_jpeg_size': avg_ds_jpeg_size,
             'avg_jpeg_ratio': avg_ds_jpeg_ratio,
+            'avg_fractal_dim': avg_ds_fractal_dim,
 
             'class_weights': class_weights,  # not useful for dataframe
             'class_counts': class_counts,  # not useful for dataframe
@@ -560,6 +647,7 @@ class AbstractDataset():
             'class_avg_png_ratio': avg_class_png_ratio,  # not useful for dataframe
             'class_avg_jpeg_size': avg_class_jpeg_size,  # not useful for dataframe
             'class_avg_jpeg_ratio': avg_class_jpeg_ratio,  # not useful for dataframe
+            'class_avg_fractal_dim': avg_class_fractal_dim,  # not useful for dataframe
         }
 
     def get_ds_info_as_df(self) -> pd.DataFrame:
@@ -573,6 +661,7 @@ class AbstractDataset():
         del (dict_cpy["class_avg_png_ratio"])
         del (dict_cpy["class_avg_jpeg_size"])
         del (dict_cpy["class_avg_jpeg_ratio"])
+        del (dict_cpy["class_avg_fractal_dim"])
         del (dict_cpy["name"])
 
         dict_cpy["dataset_img_shape"] = "/".join(map(str, dict_cpy["dataset_img_shape"]))
