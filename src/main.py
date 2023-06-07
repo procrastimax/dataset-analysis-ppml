@@ -10,10 +10,6 @@ from util import save_dataframe, plot_histogram
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
 from ppml_datasets.utils import visualize_training, check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
-import warnings
-
-warnings.filterwarnings('ignore')
-
 
 epochs: int = 500
 batch: int = 256
@@ -37,6 +33,8 @@ def parse_arguments() -> Dict[str, Any]:
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
     parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
+                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
+    parser.add_argument("-m", "--model", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
                         help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
     parser.add_argument("-r", "--run-number", required=True, type=int,
                         help="The run number to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results.", metavar="R")
