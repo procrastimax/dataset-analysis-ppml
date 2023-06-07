@@ -286,12 +286,11 @@ def train_model(ds: AbstractDataset, model: Model, run_number: int):
     model.print_summary()
     model.train_model_from_ds(train_ds=ds.ds_train, val_ds=ds.ds_test)
     model.save_model()
-    history = model.get_history()
 
-    history_fig_filename: str = os.path.join(result_path, str(
-        run_number), "single-model-train", f"{ds.dataset_name}_model_train_history.png")
-    check_create_folder(os.path.dirname(history_fig_filename))
-    visualize_training(history=history, img_name=history_fig_filename)
+    train_history_folder = os.path.join(
+        result_path, model.model_name, str(run_number), "single-model-train")
+    model.save_train_history(folder_name=train_history_folder,
+                             img_name=f"{ds.dataset_name}_model_train_history.png")
 
 
 def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int):
