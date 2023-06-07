@@ -499,11 +499,10 @@ class AbstractDataset():
 
             # check if grayscale or color image, convert to grayscale if RGB
             if img.shape[2] == 1:
-                img = img.numpy().astype("uint8")
+                img = img.numpy().astype("uint8")[:, :, 0]
             else:
                 img = grayConversion(img.numpy().astype("uint8"))
 
-            img = img[:, :, 0]
             fractal_dim = self._fractal_dimension(img)
             class_dict[label].append(fractal_dim)
             counter += 1
