@@ -8,16 +8,13 @@ from tensorflow.keras.layers import Layer, Resizing, Rescaling, RandomFlip, Rand
 from dataclasses import dataclass, field
 from collections import defaultdict
 from typing import Tuple, Dict, Any, Optional, List, Union, Callable
-import scipy.stats
 import os
 import math
 from io import BytesIO
 
 import PIL
 
-import sys
-
-from ppml_datasets.utils import get_ds_as_numpy
+from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
 
 
 @dataclass(eq=True, frozen=False)
@@ -65,12 +62,16 @@ class AbstractDataset():
     train_val_test_split: Tuple[float, float, float] = field(init=False)
 
     ds_info: Dict[str, Any] = field(init=False, default_factory=dict)
+    ds_info_path: str = "ds-info"
     ds_train: tf.data.Dataset = field(init=False, repr=False)
     ds_val: tf.data.Dataset = field(init=False, repr=False, default=None)
     ds_test: Optional[tf.data.Dataset] = field(init=False, repr=False, default=None)
 
     ds_attack_train: tf.data.Dataset = field(init=False, repr=False, default=None)
     ds_attack_test: tf.data.Dataset = field(init=False, repr=False, default=None)
+
+    def __post_init__(self):
+        self.ds_info_path = os.path.join(self.ds_info_path, self.dataset_name)
 
     def _load_dataset(self):
         """Load dataset from tfds library.
@@ -562,12 +563,19 @@ class AbstractDataset():
         D = np.polyfit(x, y, 1)[0]  # D = lim r -> 0 log(Nr)/log(1/r)
         return D
 
-    def build_ds_info(self):
+    def build_ds_info(self, force_regeneration: bool = False):
         """Build dataset info dictionary.
 
         This function needs to be called after initializing and loading the dataset, but before calling preprocessing on it!
 
         """
+
+        if not force_regeneration:
+            self.load_ds_info_from_json()
+            print(self.ds_info)
+
+        # before building new ds_info try to load an existing one
+
         avg_class_fractal_dim: Dict[int, float] = {}
         avg_ds_fractal_dim: float = 0.0
         # fractal_dim_dict = self.calculate_image_fractal_dimension()
@@ -668,6 +676,22 @@ class AbstractDataset():
         df = pd.DataFrame(dict_cpy, index=[self.dataset_name])
 
         return df
+
+    def save_ds_info_as_json(self):
+        """Save the ds_info dictionary to a json file."""
+        ds_info_json_file = os.path.join(self.ds_info_path, f"{self.dataset_name}_ds_info.json")
+        save_dict_as_json(self.ds_info, ds_info_json_file)
+        print(f"Saved ds_info dict to {ds_info_json_file}")
+
+    def load_ds_info_from_json(self):
+        """Load the ds_info dictionary from a json file."""
+        ds_info_json_file = os.path.join(self.ds_info_path, f"{self.dataset_name}_ds_info.json")
+        if not os.path.isfile(ds_info_json_file):
+            print(
+                f"Cannot load ds-info dict from json, since json file {ds_info_json_file} does not exists")
+            return
+        self.ds_info = load_dict_from_json(ds_info_json_file)
+        print(f"Loaded ds_info dict from json file {ds_info_json_file}")
 
     def get_train_ds_subset(self, keep: np.ndarray, apply_processing: bool = False) -> tf.data.Dataset:
         """Return only a subset of datapoints from the training dataset.

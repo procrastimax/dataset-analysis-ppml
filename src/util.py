@@ -1,11 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from typing import Any, Dict
+from typing import Any
 import os
 import pickle
 import pandas as pd
-import json
 from ppml_datasets.utils import check_create_folder
 
 
@@ -117,23 +116,6 @@ def plot_curve_with_area(x, y, xlabel, ylabel, ax, label, title: str, use_log_sc
     if use_log_scale:
         ax.set(aspect=1, xscale='log', yscale='log')
     ax.title.set_text(title)
-
-
-class NpEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.integer):
-            return int(obj)
-        if isinstance(obj, np.floating):
-            return float(obj)
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        return super(NpEncoder, self).default(obj)
-
-
-def save_dict_as_json(dict_object: Dict[Any, Any], filename: str):
-    print(f"Saving dict as json file {filename}")
-    with open(filename, "w") as f:
-        json.dump(dict_object, f, cls=NpEncoder, indent=2)
 
 
 def plot_histogram(counts: np.array, bins: np.array, filename: str, title: str, xlabel: str, ylabel: str):

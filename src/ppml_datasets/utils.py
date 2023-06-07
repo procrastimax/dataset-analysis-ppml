@@ -2,7 +2,8 @@ import tensorflow as tf
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Tuple
+from typing import Tuple, Any, Dict
+import json
 
 
 def check_create_folder(dir: str):
@@ -118,3 +119,26 @@ def get_ds_as_numpy(ds: tf.data.Dataset) -> Tuple[np.ndarray, np.ndarray]:
         values.append(x)
         labels.append(y)
     return (np.asarray(values), np.asarray(labels))
+
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
+
+def save_dict_as_json(dict_object: Dict[Any, Any], filename: str):
+    print(f"Saving dict as json file {filename}")
+    with open(filename, "w") as f:
+        json.dump(dict_object, f, cls=NpEncoder, indent=2)
+
+
+def load_dict_from_json(filename: str) -> Dict[Any, Any]:
+    print(f"Loading dict from json file {filename}")
+    with open(filename, "r") as f:
+        return json.load(f)

@@ -1,17 +1,18 @@
-from ppml_datasets.abstract_dataset_handler import AbstractDataset
-from ppml_datasets.utils import visualize_training, check_create_folder
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
-
-from util import save_dict_as_json, save_dataframe, plot_histogram
-from cnn_small_model import CNNModel
-from attacks import AmiaAttack
-from analyser import Analyser
-
-from typing import Optional, Any, Dict, Tuple, List
-import os
-import pandas as pd
-import sys
 import argparse
+import sys
+import pandas as pd
+import os
+from typing import Optional, Any, Dict, Tuple, List
+from analyser import Analyser
+from attacks import AmiaAttack
+from cnn_small_model import CNNModel
+from util import save_dataframe, plot_histogram
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
+from ppml_datasets.utils import visualize_training, check_create_folder
+from ppml_datasets.abstract_dataset_handler import AbstractDataset
+import warnings
+
+warnings.filterwarnings('ignore')
 
 
 epochs: int = 500
@@ -54,6 +55,8 @@ def parse_arguments() -> Dict[str, Any]:
                         help="If this flag is set, the statistics are recalucated on the shadow models.")
     parser.add_argument("--generate-ds-info", action="store_true",
                         help="If this flag is set, dataset infos are generated and saved.")
+    parser.add_argument("--force-ds-info-regeneration", action="store_true",
+                        help="If this flag is set, the whole ds-info dict is not loaded from a json file but regenerated from scratch.")
     parser.add_argument("--include-mia", action="store_true",
                         help="If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.")
 
@@ -78,6 +81,7 @@ def main():
     force_stat_recalculation: bool = args["force_stat_recalculation"]
     is_generating_ds_info: bool = args["generate_ds_info"]
     is_including_mia: bool = args["include_mia"]
+    is_forcing_ds_info_regeneration: bool = args["force_ds_info_regeneration"]
 
     loaded_ds_list: List[AbstractDataset] = []
 
@@ -97,18 +101,16 @@ def main():
             print("---------------------")
             ds_info_df = generate_ds_info(ds_info_path=ds_info_path,
                                           ds=ds,
-                                          ds_info_df=ds_info_df)
+                                          ds_info_df=ds_info_df,
+                                          force_ds_info_regen=is_forcing_ds_info_regeneration)
         ds.prepare_datasets()
         loaded_ds_list.append(ds)
 
-        model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
-        check_create_folder(model_save_path)
-        model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
-        model = load_model(model_save_file, num_of_classes=ds.num_classes)
-
-        shadow_model_save_path: str = os.path.join(
-            model_path, str(run_number), "shadow_models", ds.dataset_name)
-        check_create_folder(shadow_model_save_path)
+        if is_training_single_model or is_load_test_single_model or is_running_amia_attack:
+            model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
+            check_create_folder(model_save_path)
+            model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
+            model = load_model(model_save_file, num_of_classes=ds.num_classes)
 
         if is_training_single_model:
             print("---------------------")
@@ -126,6 +128,9 @@ def main():
             print("---------------------")
             print("Running AMIA attack (train shadow models, calc statistics, run attack)")
             print("---------------------")
+            shadow_model_save_path: str = os.path.join(
+                model_path, str(run_number), "shadow_models", ds.dataset_name)
+            check_create_folder(shadow_model_save_path)
             run_amia_attack(ds=ds,
                             model=model,
                             num_shadow_models=num_shadow_models,
@@ -153,11 +158,11 @@ def main():
         print("---------------------")
         print(ds_info_df)
         ds_info_df_file = os.path.join(
-            ds_info_path, f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
+            "ds-info", f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
         save_dataframe(ds_info_df, ds_info_df_file)
 
 
-def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame) -> pd.DataFrame:
+def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame, force_ds_info_regen: bool) -> pd.DataFrame:
     """Generate dataset info.
 
     Needs to be run before dataset preprocessing is called.
@@ -168,7 +173,8 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
 
     """
     check_create_folder(ds_info_path)
-    ds.build_ds_info()
+
+    ds.build_ds_info(force_regeneration=force_ds_info_regen)
 
     hist_filename = os.path.join(ds_info_path, "histogram",
                                  f"train_data_hist_{ds.dataset_name}.png")
@@ -184,8 +190,7 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
     plot_histogram(hist, bins, hist_filename_mean, title="Train Data Histogram (Averaged)",
                    xlabel="Pixel Value", ylabel="Probability")
 
-    ds_info_json_file = os.path.join(ds_info_path, f"{ds.dataset_name}_ds_info.json")
-    save_dict_as_json(ds.ds_info, ds_info_json_file)
+    ds.save_ds_info_as_json()
 
     df = ds.get_ds_info_as_df()
     ds_info_df = pd.concat([ds_info_df, df])
