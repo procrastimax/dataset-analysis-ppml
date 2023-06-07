@@ -119,7 +119,8 @@ def main():
 
         model = None
         if is_training_single_model or is_load_test_single_model or is_running_amia_attack:
-            model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
+            model_save_path: str = os.path.join(
+                model_path, model_name, str(run_number), ds.dataset_name)
             check_create_folder(model_save_path)
             model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
             model = load_model(model_save_file,
@@ -225,7 +226,7 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
                               learning_rate=learning_rate,
                               momentum=momentum,
                               patience=15,
-                              use_early_stopping=True                              )
+                              use_early_stopping=True)
         print(model)
     return model
 

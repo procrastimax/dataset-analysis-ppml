@@ -27,10 +27,6 @@ class Model(ABC):
     model: Optional[keras.Sequential] = field(init=False, default=None)
     history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
 
-    def __post_init__(self):
-        self.model_path = os.path.join(self.model_path, self.model_name)
-        check_create_folder(self.model_path)
-
     @abstractmethod
     def build_model(self):
         # Has to be implemented by child class
