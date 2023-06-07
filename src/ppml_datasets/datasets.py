@@ -149,7 +149,7 @@ class Cifar10DatasetGray(AbstractDataset):
                  augment_train: bool = True,
                  dataset_path: str = "data"):
         """Initialize the CIFAR10 dataset from AbstractDataset class."""
-        super().__init__(dataset_name="cifar10",
+        super().__init__(dataset_name="cifar10_gray",
                          tfds_name="cifar10",
                          dataset_path=dataset_path,
                          dataset_img_shape=(32, 32, 1),
@@ -166,9 +166,6 @@ class Cifar10DatasetGray(AbstractDataset):
 
         # load default cifar10 from tfds
         self._load_from_tfds()
-
-        # set datasetname after loading for tfds
-        self.dataset_name = self.dataset_name + "_gray"
 
         to_grayscale = tf.keras.Sequential([
             RgbToGrayscale()
