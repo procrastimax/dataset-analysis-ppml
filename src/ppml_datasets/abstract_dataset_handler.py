@@ -19,6 +19,7 @@ from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_fr
 
 @dataclass(eq=True, frozen=False)
 class AbstractDataset():
+    tfds_name: Optional[str]
     dataset_name: str
     dataset_path: Optional[str]
     # shape that the dataset should be transformed to
@@ -70,9 +71,6 @@ class AbstractDataset():
     ds_attack_train: tf.data.Dataset = field(init=False, repr=False, default=None)
     ds_attack_test: tf.data.Dataset = field(init=False, repr=False, default=None)
 
-    def __post_init__(self):
-        self.ds_info_path = os.path.join(self.ds_info_path, self.dataset_name)
-
     def _load_dataset(self):
         """Load dataset from tfds library.
 
@@ -96,12 +94,12 @@ class AbstractDataset():
             return
 
         if self.dataset_path is not None:
-            data_dir = os.path.join(self.dataset_path, self.dataset_name)
+            data_dir = os.path.join(self.dataset_path, self.tfds_name)
         else:
             data_dir = None
 
         ds_dict: dict = tfds.load(
-            name=self.dataset_name,
+            name=self.tfds_name,
             data_dir=data_dir,
             as_supervised=True,
             with_info=False
@@ -570,91 +568,104 @@ class AbstractDataset():
 
         """
 
+        # before building new ds_info try to load an existing one
         if not force_regeneration:
             self.load_ds_info_from_json()
             print(self.ds_info)
 
-        # before building new ds_info try to load an existing one
+        self.ds_info["name"] = self.dataset_name,  # not useful for dataframe
+        self.ds_info['dataset_img_shape'] = self.dataset_img_shape
+        self.ds_info['model_img_shape'] = self.model_img_shape
 
-        avg_class_fractal_dim: Dict[int, float] = {}
-        avg_ds_fractal_dim: float = 0.0
-        # fractal_dim_dict = self.calculate_image_fractal_dimension()
-        # for k, v in fractal_dim_dict.items():
-        #    avg_ds_fractal_dim += np.sum(v)
-        #    avg_class_fractal_dim[k] = np.mean(v)
-        # avg_ds_fractal_dim = avg_ds_fractal_dim / len(fractal_dim_dict.items())
+        count_keys = set(["total_count", "train_count", "val_count", "test_count",
+                         "num_classes", "class_weights", "class_counts"])
+        if not count_keys.issubset(set(self.ds_info.keys())):
+            class_counts, class_weights = self.calculate_class_weights()
+            ds_count = self.get_dataset_count()
+            total_count: int = sum(ds_count.values())
+            # convert int64 keys to int keys -> to jsonify
+            class_counts = {str(k): int(v) for k, v in class_counts.items()}
+            class_weights = {str(k): float(v) for k, v in class_weights.items()}
+            self.ds_info['total_count'] = total_count
+            self.ds_info['train_count'] = ds_count["train"]
+            self.ds_info['val_count'] = ds_count["val"]
+            self.ds_info['test_count'] = ds_count["test"]
+            self.ds_info['num_classes'] = self.num_classes
+            self.ds_info['class_weights'] = class_weights  # not useful for dataframe
+            self.ds_info['class_counts'] = class_counts  # not useful for dataframe
 
-        compression_dict = self.calculate_compressed_image_size()
-        # calculate metrics for every class and for the whole DS
-        dataset_compression = None
-        for val in compression_dict.values():
-            if dataset_compression is None:
-                dataset_compression = val
-            else:
-                dataset_compression = np.vstack((dataset_compression, val))
+        pil_keys = set(["avg_png_size", "avg_jpeg_size", "avg_png_ratio", "avg_jpeg_ratio", "avg_entropy", "avg_byte_count",
+                        "clas_avg_entropy", "class_avg_png_size", "class_avg_jpeg_size", "class_avg_png_ratio", "class_avg_jpeg_ratio"])
+        if not pil_keys.issubset(set(self.ds_info.keys())):
+            compression_dict = self.calculate_compressed_image_size()
+            # calculate metrics for every class and for the whole DS
+            dataset_compression = None
+            for val in compression_dict.values():
+                if dataset_compression is None:
+                    dataset_compression = val
+                else:
+                    dataset_compression = np.vstack((dataset_compression, val))
 
-        avg_ds_entropy = np.average(dataset_compression[:, 0])
-        avg_ds_byte_size = np.average(dataset_compression[:, 1])
-        avg_ds_png_size = np.average(dataset_compression[:, 2])
-        avg_ds_png_ratio = np.average(dataset_compression[:, 3])
-        avg_ds_jpeg_size = np.average(dataset_compression[:, 4])
-        avg_ds_jpeg_ratio = np.average(dataset_compression[:, 5])
+            avg_ds_entropy = np.average(dataset_compression[:, 0])
+            avg_ds_byte_size = np.average(dataset_compression[:, 1])
+            avg_ds_png_size = np.average(dataset_compression[:, 2])
+            avg_ds_png_ratio = np.average(dataset_compression[:, 3])
+            avg_ds_jpeg_size = np.average(dataset_compression[:, 4])
+            avg_ds_jpeg_ratio = np.average(dataset_compression[:, 5])
 
-        avg_class_entropy: Dict[int, float] = {}
-        avg_class_png_size: Dict[int, float] = {}
-        avg_class_png_ratio: Dict[int, float] = {}
-        avg_class_jpeg_size: Dict[int, float] = {}
-        avg_class_jpeg_ratio: Dict[int, float] = {}
+            avg_class_entropy: Dict[int, float] = {}
+            avg_class_png_size: Dict[int, float] = {}
+            avg_class_png_ratio: Dict[int, float] = {}
+            avg_class_jpeg_size: Dict[int, float] = {}
+            avg_class_jpeg_ratio: Dict[int, float] = {}
 
-        for k, v in compression_dict.items():
-            avg_entropy = np.average(v[:, 0])
-            avg_png_size = np.average(v[:, 2])
-            avg_png_ratio = np.average(v[:, 3])
-            avg_jpeg_size = np.average(v[:, 4])
-            avg_jpeg_ratio = np.average(v[:, 5])
+            for k, v in compression_dict.items():
+                avg_entropy = np.average(v[:, 0])
+                avg_png_size = np.average(v[:, 2])
+                avg_png_ratio = np.average(v[:, 3])
+                avg_jpeg_size = np.average(v[:, 4])
+                avg_jpeg_ratio = np.average(v[:, 5])
 
-            avg_class_entropy[k] = avg_entropy
-            avg_class_png_size[k] = avg_png_size
-            avg_class_png_ratio[k] = avg_png_ratio
-            avg_class_jpeg_size[k] = avg_jpeg_size
-            avg_class_jpeg_ratio[k] = avg_jpeg_ratio
+                avg_class_entropy[k] = avg_entropy
+                avg_class_png_size[k] = avg_png_size
+                avg_class_png_ratio[k] = avg_png_ratio
+                avg_class_jpeg_size[k] = avg_jpeg_size
+                avg_class_jpeg_ratio[k] = avg_jpeg_ratio
 
-        class_counts, class_weights = self.calculate_class_weights()
-        ds_count = self.get_dataset_count()
-        total_count: int = sum(ds_count.values())
-        class_imbalance: float = self.calculate_class_imbalance()
+            self.ds_info['avg_byte_count'] = avg_ds_byte_size,
+            self.ds_info['avg_entropy'] = avg_ds_entropy,
+            self.ds_info['avg_png_size'] = avg_ds_png_size,
+            self.ds_info['avg_png_ratio'] = avg_ds_png_ratio,
+            self.ds_info['avg_jpeg_size'] = avg_ds_jpeg_size,
+            self.ds_info['avg_jpeg_ratio'] = avg_ds_jpeg_ratio,
+            self.ds_info['class_avg_entropy'] = avg_class_entropy,  # not useful for dataframe
+            self.ds_info['class_avg_png_size'] = avg_class_png_size,  # not useful for dataframe
+            self.ds_info['class_avg_png_ratio'] = avg_class_png_ratio,  # not useful for dataframe
+            self.ds_info['class_avg_jpeg_size'] = avg_class_jpeg_size,  # not useful for dataframe
+            self.ds_info['class_avg_jpeg_ratio'] = avg_class_jpeg_ratio,  # not useful for dataframe
 
-        # convert int64 keys to int keys -> to jsonify
-        class_counts = {str(k): int(v) for k, v in class_counts.items()}
-        class_weights = {str(k): float(v) for k, v in class_weights.items()}
+        if "class_imbalance" not in self.ds_info:
+            # not useful for dataframe
+            self.ds_info["class_imbalance"] = self.calculate_class_imbalance()
 
-        self.ds_info = {
-            'name': self.dataset_name,  # not useful for dataframe
-            'dataset_img_shape': self.dataset_img_shape,
-            'model_img_shape': self.model_img_shape,
-            'total_count': total_count,
-            'train_count': ds_count["train"],
-            'val_count': ds_count["val"],
-            'test_count': ds_count["test"],
-            'num_classes': self.num_classes,
-            'class_imbalance': class_imbalance,
-            'avg_byte_count': avg_ds_byte_size,
-            'avg_entropy': avg_ds_entropy,
-            'avg_png_size': avg_ds_png_size,
-            'avg_png_ratio': avg_ds_png_ratio,
-            'avg_jpeg_size': avg_ds_jpeg_size,
-            'avg_jpeg_ratio': avg_ds_jpeg_ratio,
-            'avg_fractal_dim': avg_ds_fractal_dim,
+        if "class_avg_fractal_dim" not in self.ds_info or "avg_fractal_dim" not in self.ds_info:
+            avg_class_fractal_dim: Dict[int, float] = {}
+            avg_ds_fractal_dim: float = 0.0
+            fractal_dim_dict = self.calculate_image_fractal_dimension()
 
-            'class_weights': class_weights,  # not useful for dataframe
-            'class_counts': class_counts,  # not useful for dataframe
-            'class_avg_entropy': avg_class_entropy,  # not useful for dataframe
-            'class_avg_png_size': avg_class_png_size,  # not useful for dataframe
-            'class_avg_png_ratio': avg_class_png_ratio,  # not useful for dataframe
-            'class_avg_jpeg_size': avg_class_jpeg_size,  # not useful for dataframe
-            'class_avg_jpeg_ratio': avg_class_jpeg_ratio,  # not useful for dataframe
-            'class_avg_fractal_dim': avg_class_fractal_dim,  # not useful for dataframe
-        }
+            for k, v in fractal_dim_dict.items():
+                avg_ds_fractal_dim += np.sum(v)
+                avg_class_fractal_dim[k] = np.mean(v)
+
+            print(avg_ds_fractal_dim)
+            print(len(fractal_dim_dict.items()))
+            avg_ds_fractal_dim = avg_ds_fractal_dim / \
+                len([item for sublist in fractal_dim_dict.values() for item in sublist])
+
+            self.ds_info["avg_fractal_dim"] = avg_ds_fractal_dim
+            self.ds_info["class_avg_fractal_dim"] = avg_class_fractal_dim
+
+        print(self.ds_info)
 
     def get_ds_info_as_df(self) -> pd.DataFrame:
 
@@ -691,7 +702,6 @@ class AbstractDataset():
                 f"Cannot load ds-info dict from json, since json file {ds_info_json_file} does not exists")
             return
         self.ds_info = load_dict_from_json(ds_info_json_file)
-        print(f"Loaded ds_info dict from json file {ds_info_json_file}")
 
     def get_train_ds_subset(self, keep: np.ndarray, apply_processing: bool = False) -> tf.data.Dataset:
         """Return only a subset of datapoints from the training dataset.

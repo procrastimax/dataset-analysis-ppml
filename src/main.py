@@ -28,6 +28,7 @@ shadow_models: int = 16
 data_path: str = "data"
 model_path: str = "models"
 result_path: str = "results"
+ds_info_path: str = "ds-info"
 
 
 def parse_arguments() -> Dict[str, Any]:
@@ -91,7 +92,6 @@ def main():
     ds_info_path = "ds-info"
 
     for ds_name in list_of_ds:
-        ds_info_path = os.path.join("ds-info", ds_name)
         ds = get_dataset(ds_name)
 
         # generate ds_info before preprocessing dataset
@@ -99,7 +99,9 @@ def main():
             print("---------------------")
             print("Generating Dataset Info")
             print("---------------------")
-            ds_info_df = generate_ds_info(ds_info_path=ds_info_path,
+            ds_info_path_specific = os.path.join("ds-info", ds.dataset_name)
+            check_create_folder(ds_info_path_specific)
+            ds_info_df = generate_ds_info(ds_info_path=ds_info_path_specific,
                                           ds=ds,
                                           ds_info_df=ds_info_df,
                                           force_ds_info_regen=is_forcing_ds_info_regeneration)
@@ -158,7 +160,7 @@ def main():
         print("---------------------")
         print(ds_info_df)
         ds_info_df_file = os.path.join(
-            "ds-info", f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
+            ds_info_path, f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
         save_dataframe(ds_info_df, ds_info_df_file)
 
 
@@ -257,6 +259,7 @@ def get_dataset(ds_name: str) -> AbstractDataset:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
         sys.exit(1)
 
+    ds.ds_info_path = os.path.join(ds_info_path, ds.dataset_name)
     ds.load_dataset()
     return ds
 

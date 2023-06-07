@@ -17,7 +17,8 @@ class MnistDataset(AbstractDataset):
                  augment_train: bool = True,
                  dataset_path: str = "data"):
         """Initialize the MNIST dataset from AbstractDataset class."""
-        super().__init__(dataset_name="mnist",
+        super().__init__(tfds_name="mnist",
+                         dataset_name="mnist",
                          dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
                          num_classes=10,
@@ -39,7 +40,8 @@ class MnistDatasetCustomClassSize(AbstractDataset):
                  augment_train: bool = True,
                  dataset_path: str = "data"):
         """Initialize the MNIST dataset from AbstractDataset class."""
-        super().__init__(dataset_name="mnist",
+        super().__init__(tfds_name="mnist",
+                         dataset_name=f"mnist_c{class_size}",
                          dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
                          num_classes=10,
@@ -53,15 +55,12 @@ class MnistDatasetCustomClassSize(AbstractDataset):
         self.class_size = class_size
 
     def _load_dataset(self):
-
         # load default cifar10 from tfds
         self._load_from_tfds()
 
-        # set datasetname after loading for tfds - since loading depends on the name
-        self.dataset_name = self.dataset_name + f"_c{self.class_size}"
-
         # shuffle ds before reducing class size
-        self.ds_train = self.ds_train.shuffle(buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
+        self.ds_train = self.ds_train.shuffle(
+            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
         self.reduce_samples_per_class_train_ds(self.class_size)
 
 
@@ -73,7 +72,8 @@ class FashionMnistDataset(AbstractDataset):
                  augment_train: bool = True,
                  dataset_path: str = "data"):
         """Initialize the FMNIST dataset from AbstractDataset class."""
-        super().__init__(dataset_name="fashion_mnist",
+        super().__init__(tfds_name="fashion_mnist",
+                         dataset_name="fmnist",
                          dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
                          num_classes=10,
@@ -95,7 +95,8 @@ class FashionMnistDatasetCustomClassSize(AbstractDataset):
                  augment_train: bool = True,
                  dataset_path: str = "data"):
         """Initialize the FMNIST dataset from AbstractDataset class."""
-        super().__init__(dataset_name="fashion_mnist",
+        super().__init__(dataset_name=f"fmnist_c{class_size}",
+                         tfds_name="fashion_mnist",
                          dataset_path=dataset_path,
                          dataset_img_shape=(28, 28, 1),
                          num_classes=10,
@@ -110,15 +111,11 @@ class FashionMnistDatasetCustomClassSize(AbstractDataset):
         self.class_size = class_size
 
     def _load_dataset(self):
-
         # load default cifar10 from tfds
         self._load_from_tfds()
-
-        # set datasetname after loading for tfds - since loading depends on the name
-        self.dataset_name = self.dataset_name + f"_c{self.class_size}"
-
         # shuffle ds before reducing class size
-        self.ds_train = self.ds_train.shuffle(buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
+        self.ds_train = self.ds_train.shuffle(
+            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
         self.reduce_samples_per_class_train_ds(self.class_size)
 
 
@@ -130,7 +127,8 @@ class Cifar10Dataset(AbstractDataset):
                  augment_train: bool = True,
                  dataset_path: str = "data"):
         """Initialize the CIFAR10 dataset from AbstractDataset class."""
-        super().__init__(dataset_name="cifar10",
+        super().__init__(tfds_name="cifar10",
+                         dataset_name="cifar10",
                          dataset_path=dataset_path,
                          dataset_img_shape=(32, 32, 3),
                          num_classes=10,
@@ -152,6 +150,7 @@ class Cifar10DatasetGray(AbstractDataset):
                  dataset_path: str = "data"):
         """Initialize the CIFAR10 dataset from AbstractDataset class."""
         super().__init__(dataset_name="cifar10",
+                         tfds_name="cifar10",
                          dataset_path=dataset_path,
                          dataset_img_shape=(32, 32, 1),
                          num_classes=10,
@@ -191,6 +190,7 @@ class Cifar100Dataset(AbstractDataset):
                  dataset_path: str = "data"):
         """Initialize the CIFAR100 dataset from AbstractDataset class."""
         super().__init__(dataset_name="cifar100",
+                         tfds_name="cifar100",
                          dataset_path=dataset_path,
                          dataset_img_shape=(32, 32, 3),
                          model_img_shape=model_img_shape,
@@ -209,6 +209,7 @@ class ImagenetteDataset(AbstractDataset):
                  preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None):
         """Initialize the full size v2 imagenette dataset from AbstractDataset class."""
         super().__init__(dataset_name="imagenette/full-size-v2",
+                         tfds_name="imagenette/full-size-v2",
                          dataset_path="data",
                          dataset_img_shape=(None, None, 3),
                          num_classes=10,
