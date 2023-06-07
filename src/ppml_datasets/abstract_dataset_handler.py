@@ -377,17 +377,15 @@ class AbstractDataset():
 
         return ds_count
 
-    def get_class_distribution(self, ds: Optional[tf.data.Dataset] = None, force_recalcuation: bool = False) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_class_distribution(self, ds: Optional[tf.data.Dataset] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Calculate and return absolute class distribution from train dataset.
 
         This function returns the desired class_labels, class_counts and class_distribution values but also sets these variables as class variables.
-        This is useful to not execute the function again, but only return the class variables, unless the 'force_recalcuation' flag is set to True.
 
         Parameter:
         --------
         ds: tf.data.Dataset - an optional dataset can be given to this function to calculate the class distribution of the given datasets
                               if ds is not set, it is assumed to calculate the class distribution from the current train dataset
-        force_recalcuation: bool - (default = False), if set to True, this function calculates the class_distribution again
 
         Return:
         ------
@@ -398,7 +396,7 @@ class AbstractDataset():
         f.e.: ([1,2,3,4,5],[404,133,313,122,10], [4,1,0,2,5,4,1,4,3,2,4,3,3,1,...])
 
         """
-        if self.class_counts is not None and self.class_labels is not None and self.class_distribution is not None and force_recalcuation is not True:
+        if self.class_counts is not None and self.class_labels is not None and self.class_distribution is not None:
             return (self.class_labels, self.class_counts, self.class_distribution)
 
         if ds is not None:
@@ -570,13 +568,13 @@ class AbstractDataset():
         This function needs to be called after initializing and loading the dataset, but before calling preprocessing on it!
 
         """
-        fractal_dim_dict = self.calculate_image_fractal_dimension()
         avg_class_fractal_dim: Dict[int, float] = {}
         avg_ds_fractal_dim: float = 0.0
-        for k, v in fractal_dim_dict.items():
-            avg_ds_fractal_dim += np.sum(v)
-            avg_class_fractal_dim[k] = np.mean(v)
-        avg_ds_fractal_dim = avg_ds_fractal_dim / len(fractal_dim_dict.items())
+        # fractal_dim_dict = self.calculate_image_fractal_dimension()
+        # for k, v in fractal_dim_dict.items():
+        #    avg_ds_fractal_dim += np.sum(v)
+        #    avg_class_fractal_dim[k] = np.mean(v)
+        # avg_ds_fractal_dim = avg_ds_fractal_dim / len(fractal_dim_dict.items())
 
         compression_dict = self.calculate_compressed_image_size()
         # calculate metrics for every class and for the whole DS
@@ -620,7 +618,7 @@ class AbstractDataset():
 
         # convert int64 keys to int keys -> to jsonify
         class_counts = {str(k): int(v) for k, v in class_counts.items()}
-        class_weights = {str(k): int(v) for k, v in class_weights.items()}
+        class_weights = {str(k): float(v) for k, v in class_weights.items()}
 
         self.ds_info = {
             'name': self.dataset_name,  # not useful for dataframe

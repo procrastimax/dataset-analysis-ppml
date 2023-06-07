@@ -37,7 +37,7 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
                         help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
     parser.add_argument("-r", "--run-number", required=True, type=int,
-                        help="The run number to be used for training models, loading or saving results.", metavar="R")
+                        help="The run number to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results.", metavar="R")
     parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int,
                         help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
     parser.add_argument("--train-single-model", action="store_true",
@@ -84,9 +84,10 @@ def main():
     ds_info_df = pd.DataFrame()
 
     amia_result_path = os.path.join(result_path, str(run_number))
-    ds_info_path = os.path.join(amia_result_path, "ds_info")
+    ds_info_path = "ds-info"
 
     for ds_name in list_of_ds:
+        ds_info_path = os.path.join("ds-info", ds_name)
         ds = get_dataset(ds_name)
 
         # generate ds_info before preprocessing dataset
@@ -217,7 +218,7 @@ def get_dataset(ds_name: str) -> AbstractDataset:
 
     elif ds_name == "mnist_c5000":
         ds = MnistDatasetCustomClassSize(model_img_shape=model_input_shape,
-                                         class_size=200,
+                                         class_size=5000,
                                          builds_ds_info=False,
                                          batch_size=batch,
                                          augment_train=False)
