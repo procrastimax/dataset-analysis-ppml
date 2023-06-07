@@ -290,7 +290,7 @@ def train_model(ds: AbstractDataset, model: Model, run_number: int):
     train_history_folder = os.path.join(
         result_path, model.model_name, str(run_number), "single-model-train")
     model.save_train_history(folder_name=train_history_folder,
-                             img_name=f"{ds.dataset_name}_model_train_history.png")
+                             image_name=f"{ds.dataset_name}_model_train_history.png")
 
 
 def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int):
