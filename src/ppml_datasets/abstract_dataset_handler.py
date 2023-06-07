@@ -692,7 +692,6 @@ class AbstractDataset():
         """Save the ds_info dictionary to a json file."""
         ds_info_json_file = os.path.join(self.ds_info_path, f"{self.dataset_name}_ds_info.json")
         save_dict_as_json(self.ds_info, ds_info_json_file)
-        print(f"Saved ds_info dict to {ds_info_json_file}")
 
     def load_ds_info_from_json(self):
         """Load the ds_info dictionary from a json file."""
