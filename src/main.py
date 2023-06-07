@@ -5,11 +5,12 @@ import os
 from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
-from cnn_small_model import CNNModel
 from util import save_dataframe, plot_histogram
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
 from ppml_datasets.utils import visualize_training, check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
+
+from model import SmallCNNModel, Model
 
 epochs: int = 500
 batch: int = 256
@@ -34,9 +35,9 @@ def parse_arguments() -> Dict[str, Any]:
 
     parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
                         help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
-    parser.add_argument("-m", "--model", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
-                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
-    parser.add_argument("-r", "--run-number", required=True, type=int,
+    parser.add_argument("-m", "--model", required=False, type=str, choices=["small_cnn", "private_small_cnn"],
+                        help="Specify which model should be used for training/ attacking. Only one can be selected!")
+    parser.add_argument("-r", "--run-number", required=False, type=int,
                         help="The run number to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results.", metavar="R")
     parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int,
                         help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
@@ -71,6 +72,7 @@ def main():
     list_of_ds: List[str] = args["datasets"]
     list_of_ds.sort()  # sort ds name list to create deterministic filenames
     run_number: int = args["run_number"]
+    model_name: str = args["model"]
     num_shadow_models: int = args["shadow_model_number"]
     is_training_single_model: bool = args["train_single_model"]
     is_load_test_single_model: bool = args["load_test_single_model"]
@@ -89,6 +91,15 @@ def main():
     amia_result_path = os.path.join(result_path, str(run_number))
     ds_info_path = "ds-info"
 
+    if is_training_single_model or is_load_test_single_model or is_running_amia_attack:
+        if run_number is None:
+            print("No run number specified! A run number is required when training/ attacking/ testing models!")
+            sys.exit(1)
+
+        if model_name is None:
+            print("No model specified! A model is required when training/ attacking/ testing models!")
+            sys.exit(1)
+
     for ds_name in list_of_ds:
         ds = get_dataset(ds_name)
 
@@ -106,11 +117,14 @@ def main():
         ds.prepare_datasets()
         loaded_ds_list.append(ds)
 
+        model = None
         if is_training_single_model or is_load_test_single_model or is_running_amia_attack:
             model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
             check_create_folder(model_save_path)
             model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
-            model = load_model(model_save_file, num_of_classes=ds.num_classes)
+            model = load_model(model_save_file,
+                               model_name=model_name,
+                               num_of_classes=ds.num_classes)
 
         if is_training_single_model:
             print("---------------------")
@@ -198,17 +212,21 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
     return ds_info_df
 
 
-def load_model(model_path: str, num_of_classes: int):
-    model = CNNModel(img_height=32, img_width=32, color_channels=3,
-                     num_classes=num_of_classes,
-                     batch_size=batch,
-                     model_path=model_path,
-                     epochs=epochs,
-                     learning_rate=learning_rate,
-                     momentum=momentum,
-                     patience=15,
-                     use_early_stopping=True,
-                     weight_decay=weight_decay)
+def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
+    model = None
+    if model_name == "small_cnn":
+        model = SmallCNNModel(img_height=32,
+                              img_width=32,
+                              color_channels=3,
+                              num_classes=num_of_classes,
+                              batch_size=batch,
+                              model_path=model_path,
+                              epochs=epochs,
+                              learning_rate=learning_rate,
+                              momentum=momentum,
+                              patience=15,
+                              use_early_stopping=True                              )
+        print(model)
     return model
 
 
@@ -262,7 +280,7 @@ def get_dataset(ds_name: str) -> AbstractDataset:
     return ds
 
 
-def train_model(ds: AbstractDataset, model: CNNModel, run_number: int):
+def train_model(ds: AbstractDataset, model: Model, run_number: int):
     model.build_compile()
     model.print_summary()
     model.train_model_from_ds(train_ds=ds.ds_train, val_ds=ds.ds_test)
@@ -275,7 +293,7 @@ def train_model(ds: AbstractDataset, model: CNNModel, run_number: int):
     visualize_training(history=history, img_name=history_fig_filename)
 
 
-def load_and_test_model(ds: AbstractDataset, model: CNNModel, run_number: int):
+def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int):
     model.load_model()
     model.print_summary()
     test_df = pd.DataFrame(columns=["type", "accuracy", "loss"])
@@ -293,7 +311,8 @@ def load_and_test_model(ds: AbstractDataset, model: CNNModel, run_number: int):
     save_dataframe(test_df, result_df_filename)
 
 
-def run_amia_attack(ds: AbstractDataset, model: CNNModel,
+def run_amia_attack(ds: AbstractDataset,
+                    model: Model,
                     num_shadow_models: int,
                     shadow_model_save_path: str,
                     amia_result_path: str,

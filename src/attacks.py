@@ -1,6 +1,6 @@
 import tensorflow as tf
 from typing import Optional
-from cnn_small_model import CNNModel
+from model import Model
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import check_create_folder, visualize_training
 import numpy as np
@@ -27,7 +27,7 @@ class AmiaAttack():
     """
 
     def __init__(self,
-                 model: CNNModel,
+                 model: Model,
                  ds: AbstractDataset,
                  result_path: str,
                  shadow_model_dir: str,
@@ -47,7 +47,7 @@ class AmiaAttack():
         self.result_path = result_path
         check_create_folder(self.result_path)
 
-        self.cnn_model: CNNModel = model
+        self.cnn_model:  Model = model
 
         if ds.ds_train is None:
             print("Error: Dataset needs to have an initialized train dataset!")
@@ -162,14 +162,10 @@ class AmiaAttack():
                 print(f"Trained and saved model: {model_path}")
 
                 print("Saving shadow model train history as figure")
-                history = self.cnn_model.get_history()
-
                 history_fig_path = os.path.join(
                     self.result_path, "sm-training", self.ds.dataset_name)
-                check_create_folder(history_fig_path)
-
-                visualize_training(history=history, img_name=os.path.join(
-                    history_fig_path, f"{i}_{self.ds.dataset_name}_shadow_model_training_history.png"))
+                self.cnn_model.save_train_history(
+                    history_fig_path, f"{i}_{self.ds.dataset_name}_shadow_model_training_history.png")
 
                 # test shadow model accuracy
                 print("Testing shadow model on test data")
@@ -265,7 +261,7 @@ class AmiaAttack():
         pickle_object(self.attack_baseline_result_list_filename, self.attack_baseline_result_list)
 
     def get_stat_and_loss_hinge(self,
-                                cnn_model: CNNModel,
+                                cnn_model: Model,
                                 x: np.ndarray,
                                 y: np.ndarray):
         losses, stat = [], []
@@ -284,7 +280,7 @@ class AmiaAttack():
         return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)
 
     def get_stat_and_loss_aug_logits(self,
-                                     cnn_model: CNNModel,
+                                     cnn_model: Model,
                                      x: np.ndarray,
                                      y: np.ndarray):
         losses, stat = [], []
