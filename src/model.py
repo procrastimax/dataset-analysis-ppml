@@ -1,7 +1,9 @@
 from ppml_datasets.utils import check_create_folder, visualize_training
 import tensorflow as tf
+from tensorflow_privacy import VectorizedDPKerasSGDOptimizer
 from tensorflow import keras
 from keras.callbacks import EarlyStopping
+from util import compute_delta, compute_noise, compute_dp_sgd_privacy
 import numpy as np
 import os
 from abc import ABC, abstractmethod
@@ -18,11 +20,22 @@ class Model(ABC):
     num_classes: int
     batch_size: int
     epochs: int
-    model_name: str
-    model_path: str = "models"
 
-    use_early_stopping: bool = True
-    patience: int = 15
+    model_path: str
+    model_name: str
+
+    momentum: float
+    learning_rate: float
+    epochs: int
+    use_early_stopping: bool
+    patience: int
+
+    is_private_model: bool
+
+    l2_norm_clip: float = field(init=False, default=None)
+    noise_multiplier: float = field(init=False, default=None)
+    num_microbatches: float = field(init=False, default=None)
+    epsilon: float = field(init=False, default=None)
 
     model: Optional[keras.Sequential] = field(init=False, default=None)
     history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
@@ -40,6 +53,18 @@ class Model(ABC):
     @abstractmethod
     def reset_model_optimizer(self):
         pass
+
+    def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float,  num_microbatches: int):
+        delta = compute_delta(num_train_samples)
+        self.noise_multiplier = compute_noise(
+            num_train_samples, self.batch_size, epsilon, self.epochs, delta)
+        self.l2_norm_clip = l2_norm_clip
+        self.num_microbatches = num_microbatches
+
+        # calculate epsilon to verify calculated noise values
+        calc_epsilon = compute_dp_sgd_privacy(num_train_samples, self.batch_size,
+                                              self.noise_multiplier, self.epochs, delta)
+        print(f"Calculated epsilon is {calc_epsilon}")
 
     def build_compile(self):
         """Build and compile CNN model."""
@@ -118,27 +143,8 @@ class Model(ABC):
         self.model = tf.keras.models.load_model(filepath=self.model_path)
 
 
-@dataclass
+@ dataclass
 class SmallCNNModel(Model):
-    img_height: int
-    img_width: int
-    color_channels: int
-    num_classes: int
-    batch_size: int
-    model_name: str = "small_cnn"
-    model_path: str = "models"
-
-    momentum: float = 0.9
-    learning_rate: float = 0.02
-    epochs: int = 500
-
-    use_early_stopping: bool = True
-    # used for EarlyStopping
-    patience: int = 15
-
-    model: Optional[keras.Sequential] = field(init=False, default=None)
-    history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
-
     def build_model(self):
         print("Building model")
         model = tf.keras.models.Sequential()
@@ -164,7 +170,57 @@ class SmallCNNModel(Model):
                 learning_rate=self.learning_rate,
                 momentum=self.momentum),
             loss=tf.keras.losses.SparseCategoricalCrossentropy(
-                from_logits=True), metrics=["accuracy"])
+                from_logits=True),
+            metrics=["accuracy"])
+
+    def reset_model_optimizer(self):
+        """Reset tensorflow model, optimizer and history by overwriting old instances with new initialization.
+
+        Should only be called after a copy of CNNModel class was created.
+        """
+        self.model = keras.Sequential()
+        self.optimizer = tf.keras.optimizers.SGD(
+            learning_rate=self.learning_rate,
+            momentum=self.momentum
+        )
+        self.history = None
+
+
+@ dataclass
+class PrivateSmallCNNModel(Model):
+    def build_model(self):
+        print("Building model")
+        model = tf.keras.models.Sequential()
+        # Add a layer to do random horizontal augmentation.
+        model.add(tf.keras.layers.RandomFlip('horizontal',
+                  input_shape=(self.img_height, self.img_width, 3)))
+
+        for _ in range(3):
+            model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu'))
+            model.add(tf.keras.layers.MaxPooling2D())
+
+        model.add(tf.keras.layers.Flatten())
+        model.add(tf.keras.layers.Dense(64, activation='relu'))
+        model.add(tf.keras.layers.Dense(10))
+
+        self.model = None
+        self.model = model
+
+    def compile_model(self):
+        print("Compiling model")
+        optimizer = VectorizedDPKerasSGDOptimizer(
+            l2_norm_clip=self.l2_norm_clip,
+            noise_multiplier=self.noise_multiplier,
+            num_microbatches=self.num_microbatches,
+            learning_rate=self.learning_rate)
+
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(
+            from_logits=True, reduction=tf.losses.Reduction.NONE)
+
+        self.model.compile(
+            optimizer=optimizer,
+            loss=loss,
+            metrics=["accuracy"])
 
     def reset_model_optimizer(self):
         """Reset tensorflow model, optimizer and history by overwriting old instances with new initialization.

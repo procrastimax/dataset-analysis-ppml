@@ -6,6 +6,8 @@ import os
 import pickle
 import pandas as pd
 from ppml_datasets.utils import check_create_folder
+from tensorflow_privacy.privacy.analysis.compute_noise_from_budget_lib import compute_noise as tfp_compute_noise
+from tensorflow_privacy.privacy.analysis.compute_dp_sgd_privacy_lib import compute_dp_sgd_privacy
 
 
 def visualize_training(history: tf.keras.callbacks.History,
@@ -126,3 +128,25 @@ def plot_histogram(counts: np.array, bins: np.array, filename: str, title: str, 
     plt.xlabel(xlabel)
     plt.savefig(filename)
     plt.close()
+
+
+def compute_privacy(n: int, batch_size: int, noise_multiplier: float, epochs: int, delta: float) -> float:
+    """Calculate value of epsilon for given DP-SGD parameters."""
+    return compute_dp_sgd_privacy(n, batch_size, noise_multiplier, epochs, delta)
+
+
+def compute_noise(num_train_samples: int, batch_size: int, target_epsilon: float, epochs: int, delta: float, min_noise: float = 1e-5) -> float:
+    """Calculate noise for given training hyperparameters."""
+    return tfp_compute_noise(num_train_samples, batch_size, target_epsilon, epochs, delta, min_noise)
+
+
+def compute_delta(num_train_samples: int):
+    """Calculate Delta for given training dataset size n.
+
+    Code from Lucas Lange: https://github.com/luckyos-code/mia-covid/blob/main/mia_covid/evaluation.py
+    """
+    # delta should be one magnitude lower than inverse of training set size: 1/n
+    # e.g. 1e-5 for n=60.000
+    # take 1e-x, were x is the magnitude of training set size
+    delta = np.power(10, - float(len(str(num_train_samples))))  # remove all trailing decimals
+    return delta

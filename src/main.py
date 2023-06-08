@@ -5,22 +5,26 @@ import os
 from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
-from util import save_dataframe, plot_histogram
+from util import save_dataframe, plot_histogram, compute_privacy, compute_delta
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
-from ppml_datasets.utils import visualize_training, check_create_folder
+from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 
-from model import SmallCNNModel, Model
+from model import SmallCNNModel, Model, PrivateSmallCNNModel
 
-epochs: int = 500
+epochs: int = 150
 batch: int = 256
-dropout: float = 0.0
 learning_rate: float = 0.02
 momentum: float = 0.9
 weight_decay: Optional[float] = 0.0005
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 
 shadow_models: int = 16
+
+# Private Training Related Parameter
+l2_norm_clip: float = 1.0
+num_microbatches: int = 1
+
 
 data_path: str = "data"
 model_path: str = "models"
@@ -33,7 +37,7 @@ def parse_arguments() -> Dict[str, Any]:
         prog="Dataset Analysis for Privacy-Preserving-Machine-Learning",
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
-    parser.add_argument("-d", "--datasets", nargs="+", required=True, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
+    parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
                         help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
     parser.add_argument("-m", "--model", required=False, type=str, choices=["small_cnn", "private_small_cnn"],
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
@@ -59,6 +63,10 @@ def parse_arguments() -> Dict[str, Any]:
                         help="If this flag is set, the whole ds-info dict is not loaded from a json file but regenerated from scratch.")
     parser.add_argument("--include-mia", action="store_true",
                         help="If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.")
+    parser.add_argument("-e", "--epsilon", type=float,
+                        help="The desired epsilon value for DP-SGD learning. Can be any value: 0, 0.1, 1, 10, None (if not set)")
+    parser.add_argument("--calculate-epsilon", nargs="+", type=str,
+                        help="The estimated epsilon for DP-SGD is calculated given a number of arguments in this order, : number of trainings points, batch_size, noise_multiplier, train_epochs. This parameter has nothing to do with training/ attacking models but is just a convenience funtion.")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -70,7 +78,6 @@ def main():
     args = parse_arguments()
 
     list_of_ds: List[str] = args["datasets"]
-    list_of_ds.sort()  # sort ds name list to create deterministic filenames
     run_number: int = args["run_number"]
     model_name: str = args["model"]
     num_shadow_models: int = args["shadow_model_number"]
@@ -83,6 +90,22 @@ def main():
     is_generating_ds_info: bool = args["generate_ds_info"]
     is_including_mia: bool = args["include_mia"]
     is_forcing_ds_info_regeneration: bool = args["force_ds_info_regeneration"]
+    privacy_epsilon: float = args["epsilon"]
+
+    # Order of arguments: number of training samples, batch_size, noise_multiplier, train_epochs
+    calculate_epsilon_values: List[str] = args["calculate_epsilon"]
+
+    if calculate_epsilon_values is not None:
+        if len(calculate_epsilon_values) != 4:
+            print("The argument 'calculate-epsilon' expects 4 parameter: num of train samples, batch_size, noise_multiplier, train_epochs!")
+            sys.exit(1)
+        n = int(calculate_epsilon_values[0])
+        batch_size = int(calculate_epsilon_values[1])
+        noise_multiplier = float(calculate_epsilon_values[2])
+        train_epochs = int(calculate_epsilon_values[3])
+        delta = compute_delta(n)
+        compute_privacy(n=n, batch_size=batch_size,
+                        noise_multiplier=noise_multiplier, epochs=train_epochs, delta=delta)
 
     loaded_ds_list: List[AbstractDataset] = []
 
@@ -99,6 +122,16 @@ def main():
         if model_name is None:
             print("No model specified! A model is required when training/ attacking/ testing models!")
             sys.exit(1)
+
+        if list_of_ds is None:
+            print("No datasets specified! A datasets is required when training/ attacking/ testing models!")
+            sys.exit(1)
+
+    if is_generating_ds_info and list_of_ds is None:
+        print("No datasets specified! A datasets is required when training/ attacking/ testing models!")
+        sys.exit(1)
+
+    list_of_ds.sort()  # sort ds name list to create deterministic filenames
 
     for ds_name in list_of_ds:
         ds = get_dataset(ds_name)
@@ -127,7 +160,15 @@ def main():
                                model_name=model_name,
                                num_of_classes=ds.num_classes)
 
-        if is_training_single_model:
+            # set values for private training
+            if model.is_private_model:
+                print("Setting private training parameter")
+                num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))
+                model.set_privacy_parameter(epsilon=privacy_epsilon,
+                                            num_train_samples=num_train_samples,
+                                            l2_norm_clip=l2_norm_clip,
+                                            num_microbatches=num_microbatches)
+
             print("---------------------")
             print("Training single model")
             print("---------------------")
@@ -221,13 +262,28 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
                               color_channels=3,
                               num_classes=num_of_classes,
                               batch_size=batch,
+                              model_name="small_cnn",
                               model_path=model_path,
                               epochs=epochs,
                               learning_rate=learning_rate,
                               momentum=momentum,
                               patience=15,
-                              use_early_stopping=True)
-        print(model)
+                              use_early_stopping=True,
+                              is_private_model=False)
+    elif model_name == "private_small_cnn":
+        model = PrivateSmallCNNModel(img_height=32,
+                                     img_width=32,
+                                     color_channels=3,
+                                     num_classes=num_of_classes,
+                                     batch_size=batch,
+                                     model_name="private_small_cnn",
+                                     model_path=model_path,
+                                     epochs=epochs,
+                                     learning_rate=learning_rate,
+                                     momentum=momentum,
+                                     patience=15,
+                                     use_early_stopping=True,
+                                     is_private_model=True)
     return model
 
 
