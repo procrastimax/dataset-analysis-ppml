@@ -22,8 +22,8 @@ model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 shadow_models: int = 16
 
 # Private Training Related Parameter
-l2_norm_clip: float = 1.5
-num_microbatches: int = 8
+l2_norm_clip: float = 1.0
+num_microbatches: int = 32
 
 
 data_path: str = "data"
@@ -279,7 +279,7 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
                                      model_name="private_small_cnn",
                                      model_path=model_path,
                                      epochs=epochs,
-                                     learning_rate=learning_rate,
+                                     learning_rate=0.001,
                                      momentum=momentum,
                                      patience=15,
                                      use_early_stopping=False,

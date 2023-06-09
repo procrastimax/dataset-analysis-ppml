@@ -1,6 +1,6 @@
 from ppml_datasets.utils import check_create_folder, visualize_training
 import tensorflow as tf
-from tensorflow_privacy import VectorizedDPKerasSGDOptimizer
+from tensorflow_privacy import VectorizedDPKerasAdamOptimizer
 from tensorflow import keras
 from keras.callbacks import EarlyStopping
 from util import compute_delta, compute_noise, compute_dp_sgd_privacy
@@ -48,10 +48,6 @@ class Model(ABC):
 
     @abstractmethod
     def compile_model(self):
-        pass
-
-    @abstractmethod
-    def reset_model_optimizer(self):
         pass
 
     def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float,  num_microbatches: int):
@@ -173,18 +169,6 @@ class SmallCNNModel(Model):
                 from_logits=True),
             metrics=["accuracy"])
 
-    def reset_model_optimizer(self):
-        """Reset tensorflow model, optimizer and history by overwriting old instances with new initialization.
-
-        Should only be called after a copy of CNNModel class was created.
-        """
-        self.model = keras.Sequential()
-        self.optimizer = tf.keras.optimizers.SGD(
-            learning_rate=self.learning_rate,
-            momentum=self.momentum
-        )
-        self.history = None
-
 
 @ dataclass
 class PrivateSmallCNNModel(Model):
@@ -208,7 +192,7 @@ class PrivateSmallCNNModel(Model):
 
     def compile_model(self):
         print("Compiling model")
-        optimizer = VectorizedDPKerasSGDOptimizer(
+        optimizer = VectorizedDPKerasAdamOptimizer(
             l2_norm_clip=self.l2_norm_clip,
             noise_multiplier=self.noise_multiplier,
             num_microbatches=self.num_microbatches,
@@ -221,15 +205,3 @@ class PrivateSmallCNNModel(Model):
             optimizer=optimizer,
             loss=loss,
             metrics=["accuracy"])
-
-    def reset_model_optimizer(self):
-        """Reset tensorflow model, optimizer and history by overwriting old instances with new initialization.
-
-        Should only be called after a copy of CNNModel class was created.
-        """
-        self.model = keras.Sequential()
-        self.optimizer = tf.keras.optimizers.SGD(
-            learning_rate=self.learning_rate,
-            momentum=self.momentum
-        )
-        self.history = None
