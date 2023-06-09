@@ -14,7 +14,7 @@ from model import SmallCNNModel, Model, PrivateSmallCNNModel
 
 epochs: int = 150
 batch: int = 256
-learning_rate: float = 0.02
+learning_rate: float = 0.25
 momentum: float = 0.9
 weight_decay: Optional[float] = 0.0005
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
@@ -22,8 +22,8 @@ model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 shadow_models: int = 16
 
 # Private Training Related Parameter
-l2_norm_clip: float = 1.0
-num_microbatches: int = 1
+l2_norm_clip: float = 1.5
+num_microbatches: int = 8
 
 
 data_path: str = "data"
@@ -282,7 +282,7 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
                                      learning_rate=learning_rate,
                                      momentum=momentum,
                                      patience=15,
-                                     use_early_stopping=True,
+                                     use_early_stopping=False,
                                      is_private_model=True)
     return model
 
