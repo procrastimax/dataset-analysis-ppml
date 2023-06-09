@@ -12,9 +12,13 @@ import os
 import math
 from io import BytesIO
 
+import cv2
 import PIL
 
 from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
+from ppml_datasets.piqe import piqe
+
+import sys
 
 
 @dataclass(eq=True, frozen=False)
@@ -436,6 +440,29 @@ class AbstractDataset():
         B: float = H / np.log(k)
         return B
 
+    def calculate_piqe_score(self) -> Dict[int, np.array]:
+        """Calculate Perception-based Image QUality Evaluator (PIQUE) score without reference on train dataset."""
+        class_dict: Dict[int, List[float]] = defaultdict(list)
+
+        counter = 0
+        for (img, label) in self.ds_train:
+            label = int(label.numpy().astype("uint8"))
+            img = img.numpy().astype("uint8")
+
+            # cut off last dimension if grayscale image
+            if img.shape[2] == 1:
+                img = img[:, :, 0]
+
+            score, _, _, _ = piqe(img)
+
+            class_dict[label].append(score)
+
+            counter += 1
+            if counter % 100 == 0:
+                print(f"Calculated PIQE score of {counter} images")
+
+        return class_dict
+
     def calculate_compressed_image_size(self) -> Dict[int, np.array]:
         """Calculate compressed image size of all train dataset images.
 
@@ -447,14 +474,15 @@ class AbstractDataset():
         """
         class_dict: Dict[int, np.array] = {}
 
+        counter = 0
         for (img, label) in self.ds_train:
-            label = label.numpy().astype("uint8")
+            label = int(label.numpy().astype("uint8"))
             # check if grayscale or color image
             if img.shape[2] == 1:
-                compressed_img: PIL.Image.Image = PIL.Image.fromarray(
+                compressed_img = PIL.Image.fromarray(
                     img[:, :, 0].numpy().astype("uint8"))
             else:
-                compressed_img: PIL.Image.Image = PIL.Image.fromarray(img.numpy().astype("uint8"))
+                compressed_img = PIL.Image.fromarray(img.numpy().astype("uint8"))
 
             entropy = compressed_img.entropy()
 
@@ -479,8 +507,10 @@ class AbstractDataset():
                 current = class_dict[label]
                 class_dict[label] = np.vstack((current, values))
 
-        # convert keys from uint8 to int for jsonify
-        class_dict = {int(k): v for k, v in class_dict.items()}
+            counter += 1
+            if counter % 100 == 0:
+                print(f"Calculated Compression rates of {counter} images")
+
         return class_dict
 
     def calculate_image_fractal_dimension(self) -> Dict[int, List[float]]:
@@ -656,13 +686,26 @@ class AbstractDataset():
                 avg_ds_fractal_dim += np.sum(v)
                 avg_class_fractal_dim[k] = np.mean(v)
 
-            print(avg_ds_fractal_dim)
-            print(len(fractal_dim_dict.items()))
             avg_ds_fractal_dim = avg_ds_fractal_dim / \
                 len([item for sublist in fractal_dim_dict.values() for item in sublist])
 
             self.ds_info["avg_fractal_dim"] = avg_ds_fractal_dim
             self.ds_info["class_avg_fractal_dim"] = avg_class_fractal_dim
+
+        if "class_avg_piqe" not in self.ds_info or "avg_piqe" not in self.ds_info:
+            avg_class_piqe: Dict[int, float] = {}
+            avg_ds_piqe: float = 0.0
+            piqe_dict = self.calculate_piqe_score()
+
+            for k, v in piqe_dict.items():
+                avg_ds_piqe += np.sum(v)
+                avg_class_piqe[k] = np.mean(v)
+
+            avg_ds_piqe = avg_ds_piqe / \
+                len([item for sublist in piqe_dict.values() for item in sublist])
+
+            self.ds_info["avg_piqe"] = avg_ds_piqe
+            self.ds_info["class_avg_piqe"] = avg_class_piqe
 
         print(self.ds_info)
 
@@ -678,6 +721,7 @@ class AbstractDataset():
         del (dict_cpy["class_avg_jpeg_size"])
         del (dict_cpy["class_avg_jpeg_ratio"])
         del (dict_cpy["class_avg_fractal_dim"])
+        del (dict_cpy["class_avg_piqe"])
         del (dict_cpy["name"])
 
         dict_cpy["dataset_img_shape"] = "/".join(map(str, dict_cpy["dataset_img_shape"]))
