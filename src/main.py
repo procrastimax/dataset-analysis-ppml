@@ -15,7 +15,7 @@ from model import SmallCNNModel, Model, PrivateSmallCNNModel
 epochs: int = 150
 batch: int = 256
 learning_rate: float = 0.25
-momentum: float = 0.9
+momentum: float = 0.999
 weight_decay: Optional[float] = 0.0005
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 
@@ -47,6 +47,14 @@ def parse_arguments() -> Dict[str, Any]:
                         help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
     parser.add_argument("--train-single-model", action="store_true",
                         help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
+    parser.add_argument("-l", "--learning-rate", type=float,
+                        help="The learning rate used for training models.")
+    parser.add_argument("--momentum", type=float,
+                        help="Momentum value used for training the models.")
+    parser.add_argument("-c", "--l2-norm-clip", type=float,
+                        help="The L2 norm clip value set for private training models.")
+    parser.add_argument("-b", "--microbatches", type=float,
+                        help="Number of microbatches used for private training.")
     parser.add_argument("--load-test-single-model", action="store_true",
                         help="If this flag is set, a single model is loaded based on run number and dataset name. Then predictions are run on the test and train dataset.")
     parser.add_argument("--run-amia-attack", action="store_true",
@@ -91,6 +99,26 @@ def main():
     is_including_mia: bool = args["include_mia"]
     is_forcing_ds_info_regeneration: bool = args["force_ds_info_regeneration"]
     privacy_epsilon: float = args["epsilon"]
+    arg_momentum: float = args["momentum"]
+    arg_learning_rate: float = args["learning_rate"]
+    arg_l2_clip_norm: float = args["l2_norm_clip"]
+    arg_microbatches: float = args["microbatches"]
+
+    if arg_momentum is not None:
+        global momentum
+        momentum = arg_momentum
+
+    if arg_learning_rate is not None:
+        global learning_rate
+        learning_rate = arg_learning_rate
+
+    if arg_l2_clip_norm is not None:
+        global l2_norm_clip
+        l2_norm_clip = arg_l2_clip_norm
+
+    if arg_microbatches is not None:
+        global num_microbatches
+        num_microbatches = arg_microbatches
 
     # Order of arguments: number of training samples, batch_size, noise_multiplier, train_epochs
     calculate_epsilon_values: List[str] = args["calculate_epsilon"]
@@ -162,7 +190,8 @@ def main():
 
             # set values for private training
             if model.is_private_model:
-                print("Setting private training parameter")
+                print(
+                    f"Setting private training parameter epsilon: {privacy_epsilon}, l2_norm_clip: {l2_norm_clip}, num_microbatches: {num_microbatches}")
                 num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))
                 model.set_privacy_parameter(epsilon=privacy_epsilon,
                                             num_train_samples=num_train_samples,
