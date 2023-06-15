@@ -47,6 +47,8 @@ def parse_arguments() -> Dict[str, Any]:
                         help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
     parser.add_argument("--train-single-model", action="store_true",
                         help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
+    parser.add_argument("--epochs", type=int,
+                        help="The number of epochs the model should be trained on.")
     parser.add_argument("-l", "--learning-rate", type=float,
                         help="The learning rate used for training models.")
     parser.add_argument("--momentum", type=float,
@@ -103,6 +105,7 @@ def main():
     arg_learning_rate: float = args["learning_rate"]
     arg_l2_clip_norm: float = args["l2_norm_clip"]
     arg_microbatches: float = args["microbatches"]
+    arg_epochs: int = args["epochs"]
 
     if arg_momentum is not None:
         global momentum
@@ -119,6 +122,10 @@ def main():
     if arg_microbatches is not None:
         global num_microbatches
         num_microbatches = arg_microbatches
+
+    if arg_epochs is not None:
+        global epochs
+        epochs = arg_epochs
 
     # Order of arguments: number of training samples, batch_size, noise_multiplier, train_epochs
     calculate_epsilon_values: List[str] = args["calculate_epsilon"]
