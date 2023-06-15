@@ -196,7 +196,7 @@ def main():
                                num_of_classes=ds.num_classes)
 
             # set values for private training
-            if model.is_private_model:
+            if model.is_private_model and (is_training_single_model or is_running_amia_attack):
                 print(
                     f"Setting private training parameter epsilon: {privacy_epsilon}, l2_norm_clip: {l2_norm_clip}, num_microbatches: {num_microbatches}")
                 num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))

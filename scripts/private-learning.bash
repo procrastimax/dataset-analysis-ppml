@@ -80,3 +80,4 @@ module load TensorFlow/2.7.1-foss-2021b-CUDA-11.4.1
 source env/bin/activate
 
 srun python src/main.py -d $ds -r $SLURM_ARRAY_TASK_ID --train-single-model -e 0.1 -m private_small_cnn -l $lr -c $l2_norm_clip --momentum $momentum -b $microbatches
+srun python src/main.py -d $ds -r $SLURM_ARRAY_TASK_ID -m private_small_cnn --load-test-single-model
