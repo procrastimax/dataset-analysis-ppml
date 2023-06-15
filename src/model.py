@@ -199,7 +199,8 @@ class PrivateSmallCNNModel(Model):
             learning_rate=self.learning_rate)
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(
-            from_logits=True, reduction=tf.losses.Reduction.NONE)
+            from_logits=True,
+            reduction=tf.compat.v1.losses.Reduction.NONE)
 
         self.model.compile(
             optimizer=optimizer,
