@@ -55,7 +55,7 @@ def parse_arguments() -> Dict[str, Any]:
                         help="Momentum value used for training the models.")
     parser.add_argument("-c", "--l2-norm-clip", type=float,
                         help="The L2 norm clip value set for private training models.")
-    parser.add_argument("-b", "--microbatches", type=float,
+    parser.add_argument("-b", "--microbatches", type=int,
                         help="Number of microbatches used for private training.")
     parser.add_argument("--load-test-single-model", action="store_true",
                         help="If this flag is set, a single model is loaded based on run number and dataset name. Then predictions are run on the test and train dataset.")
@@ -104,7 +104,7 @@ def main():
     arg_momentum: float = args["momentum"]
     arg_learning_rate: float = args["learning_rate"]
     arg_l2_clip_norm: float = args["l2_norm_clip"]
-    arg_microbatches: float = args["microbatches"]
+    arg_microbatches: int = args["microbatches"]
     arg_epochs: int = args["epochs"]
 
     if arg_momentum is not None:
