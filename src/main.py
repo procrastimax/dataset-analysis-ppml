@@ -59,12 +59,14 @@ def parse_arguments() -> Dict[str, Any]:
                         help="The L2 norm clip value set for private training models.")
     parser.add_argument("-b", "--microbatches", type=int,
                         help="Number of microbatches used for private training.")
+    parser.add_argument("--batch-size", type=int, default=256,
+                        help="Size of batch used for training.")
     parser.add_argument("--load-test-single-model", action="store_true",
                         help="If this flag is set, a single model is loaded based on run number and dataset name. Then predictions are run on the test and train dataset.")
     parser.add_argument("--run-amia-attack", action="store_true",
-                        help="If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved. This can be seen as Step 2 in the analysis pipeline.")
+                        help="If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved.")
     parser.add_argument("--generate-results", action="store_true",
-                        help="If this flag is set, all saved results are compiled and compared with each other, allowing dataset comparison. This can be seen as Step 3 in the analysis pipeline.")
+                        help="If this flag is set, all saved results are compiled and compared with each other, allowing dataset comparison.")
     parser.add_argument("--force-model-retrain", action="store_true",
                         help="If this flag is set, the shadow models, even if they already exist.")
     parser.add_argument("--force-stat-recalculation", action="store_true",
@@ -106,6 +108,7 @@ def main():
     arg_l2_clip_norm: float = args["l2_norm_clip"]
     arg_microbatches: int = args["microbatches"]
     arg_epochs: int = args["epochs"]
+    arg_batch: int = args["batch_size"]
 
     if arg_momentum is not None:
         global momentum
@@ -126,6 +129,10 @@ def main():
     if arg_epochs is not None:
         global epochs
         epochs = arg_epochs
+
+    if arg_batch is not None:
+        global batch
+        batch = arg_batch
 
     loaded_ds_list: List[AbstractDataset] = []
 
@@ -215,6 +222,11 @@ def main():
             shadow_model_save_path: str = os.path.join(
                 model_path, str(run_number), "shadow_models", ds.dataset_name)
             check_create_folder(shadow_model_save_path)
+
+            # make sure that the num_microbatches var is not set when training non-private models
+            if not model.is_private_model:
+                num_microbatches = None
+
             run_amia_attack(ds=ds,
                             model=model,
                             num_shadow_models=num_shadow_models,
@@ -222,7 +234,8 @@ def main():
                             amia_result_path=amia_result_path,
                             force_retrain=force_model_retraining,
                             force_stat_recalculation=force_stat_recalculation,
-                            include_mia=is_including_mia)
+                            include_mia=is_including_mia,
+                            num_microbatches=num_microbatches)
 
     if is_generating_results:
         print("---------------------")
@@ -419,7 +432,8 @@ def run_amia_attack(ds: AbstractDataset,
                     amia_result_path: str,
                     force_retrain: bool,
                     force_stat_recalculation: bool,
-                    include_mia: bool):
+                    include_mia: bool,
+                    num_microbatches: Optional[int] = None):
     amia = AmiaAttack(model=model,
                       ds=ds,
                       num_shadow_models=num_shadow_models,
@@ -427,7 +441,8 @@ def run_amia_attack(ds: AbstractDataset,
                       result_path=amia_result_path,
                       include_mia=include_mia)
     amia.train_load_shadow_models(force_retraining=force_retrain,
-                                  force_recalculation=force_stat_recalculation)
+                                  force_recalculation=force_stat_recalculation,
+                                  num_microbatch=num_microbatches)
     amia.attack_shadow_models_amia()
 
 

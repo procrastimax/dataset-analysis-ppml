@@ -2,7 +2,7 @@ import tensorflow as tf
 from typing import Optional
 from model import Model
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
-from ppml_datasets.utils import check_create_folder, visualize_training
+from ppml_datasets.utils import check_create_folder
 import numpy as np
 
 from util import pickle_object, unpickle_object
@@ -47,7 +47,7 @@ class AmiaAttack():
         self.result_path = result_path
         check_create_folder(self.result_path)
 
-        self.cnn_model:  Model = model
+        self.cnn_model: Model = model
 
         if ds.ds_train is None:
             print("Error: Dataset needs to have an initialized train dataset!")
@@ -87,7 +87,7 @@ class AmiaAttack():
         self.attack_baseline_result_list_filename = os.path.join(
             self.attack_statistics_folder, "pickles", f"{ds.dataset_name}_attack_baseline_results.pckl")
 
-    def train_load_shadow_models(self, force_retraining: bool = False, force_recalculation: bool = False):
+    def train_load_shadow_models(self, force_retraining: bool = False, force_recalculation: bool = False, num_microbatch: Optional[int] = None):
         """Trains, or if shadow models are already trained and saved, loads shadow models from filesystem.
 
         After training/ loading the shadow models statistics and losses are calulcated over all shadow models.
@@ -133,8 +133,14 @@ class AmiaAttack():
                 keep: np.ndarray = self.in_indices[i]
             else:
                 # Generate a binary array indicating which example to include for training
-                keep: np.ndarray = np.random.binomial(
+                # make sure that the number of True elements is dividible by 2 for the microbatches
+                keep = np.random.binomial(
                     1, 0.5, size=self.num_training_samples).astype(bool)
+
+                if num_microbatch is not None:
+                    while keep.sum() % num_microbatch != 0:
+                        keep = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
+
                 self.in_indices.append(keep)
 
             # prepare model for new train iteration

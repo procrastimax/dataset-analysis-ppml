@@ -54,7 +54,7 @@ class Model(ABC):
     def get_optimizer(self):
         pass
 
-    def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float,  num_microbatches: int):
+    def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float, num_microbatches: int):
         delta = compute_delta(num_train_samples)
         self.noise_multiplier = compute_noise(
             num_train_samples, self.batch_size, epsilon, self.epochs, delta)
