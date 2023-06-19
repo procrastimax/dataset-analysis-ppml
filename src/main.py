@@ -198,7 +198,7 @@ def main():
                                num_of_classes=ds.num_classes)
 
             # set values for private training
-            if model.is_private_model and (is_training_single_model or is_running_amia_attack):
+            if model.is_private_model:
                 print(
                     f"Setting private training parameter epsilon: {privacy_epsilon}, l2_norm_clip: {l2_norm_clip}, num_microbatches: {num_microbatches}")
                 num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))
@@ -401,6 +401,7 @@ def train_model(ds: AbstractDataset, model: Model, run_number: int):
 
 def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int) -> pd.DataFrame:
     model.load_model()
+    model.compile_model()
     model.print_summary()
     test_df = pd.DataFrame(columns=["type", "accuracy", "loss"])
     print("testing train DS:")

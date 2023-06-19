@@ -50,6 +50,10 @@ class Model(ABC):
     def compile_model(self):
         pass
 
+    @abstractmethod
+    def get_optimizer(self):
+        pass
+
     def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float,  num_microbatches: int):
         delta = compute_delta(num_train_samples)
         self.noise_multiplier = compute_noise(
@@ -136,7 +140,11 @@ class Model(ABC):
         self.model.save(filepath=self.model_path, save_format="h5", overwrite=True)
 
     def load_model(self):
-        self.model = tf.keras.models.load_model(filepath=self.model_path)
+        """Load from model filepath.
+
+        The model is loaded uncompiled, so the model has to be compiled after loading it.
+        """
+        self.model = tf.keras.models.load_model(filepath=self.model_path, compile=False)
 
 
 @ dataclass
@@ -146,7 +154,7 @@ class SmallCNNModel(Model):
         model = tf.keras.models.Sequential()
         # Add a layer to do random horizontal augmentation.
         model.add(tf.keras.layers.RandomFlip('horizontal',
-                  input_shape=(self.img_height, self.img_width, 3)))
+                                             input_shape=(self.img_height, self.img_width, 3)))
 
         for _ in range(3):
             model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu'))
@@ -161,13 +169,17 @@ class SmallCNNModel(Model):
 
     def compile_model(self):
         print("Compiling model")
+        optimizer = self.get_optimizer()
         self.model.compile(
-            optimizer=tf.keras.optimizers.SGD(
-                learning_rate=self.learning_rate,
-                momentum=self.momentum),
+            optimizer=optimizer,
             loss=tf.keras.losses.SparseCategoricalCrossentropy(
                 from_logits=True),
             metrics=["accuracy"])
+
+    def get_optimizer(self):
+        return tf.keras.optimizers.SGD(
+            learning_rate=self.learning_rate,
+            momentum=self.momentum)
 
 
 @ dataclass
@@ -177,7 +189,7 @@ class PrivateSmallCNNModel(Model):
         model = tf.keras.models.Sequential()
         # Add a layer to do random horizontal augmentation.
         model.add(tf.keras.layers.RandomFlip('horizontal',
-                  input_shape=(self.img_height, self.img_width, 3)))
+                                             input_shape=(self.img_height, self.img_width, 3)))
 
         for _ in range(3):
             model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu'))
@@ -192,11 +204,7 @@ class PrivateSmallCNNModel(Model):
 
     def compile_model(self):
         print("Compiling model")
-        optimizer = VectorizedDPKerasAdamOptimizer(
-            l2_norm_clip=self.l2_norm_clip,
-            noise_multiplier=self.noise_multiplier,
-            num_microbatches=self.num_microbatches,
-            learning_rate=self.learning_rate)
+        optimizer = self.get_optimizer()
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True,
@@ -206,3 +214,11 @@ class PrivateSmallCNNModel(Model):
             optimizer=optimizer,
             loss=loss,
             metrics=["accuracy"])
+
+    def get_optimizer(self):
+        optimizer = VectorizedDPKerasAdamOptimizer(
+            l2_norm_clip=self.l2_norm_clip,
+            noise_multiplier=self.noise_multiplier,
+            num_microbatches=self.num_microbatches,
+            learning_rate=self.learning_rate)
+        return optimizer
