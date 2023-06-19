@@ -15,6 +15,7 @@ epochs=150
 lr=0.001
 l2_clip=1.0
 microbatches=8
+batch=64
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in
@@ -44,4 +45,4 @@ echo "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
 
 module load TensorFlow/2.7.1-foss-2021b-CUDA-11.4.1
 source env/bin/activate
-srun python src/main.py -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID -l $lr --epochs $epochs -c $l2_clip -b $microbatches -e $eps --run-amia-attack --generate-results --force-model-retrain
+srun python src/main.py -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID -l $lr --epochs $epochs -c $l2_clip -b $microbatches -e $eps --batch-size $batch --run-amia-attack --generate-results --force-model-retrain
