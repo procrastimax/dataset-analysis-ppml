@@ -168,6 +168,8 @@ def main():
 
     list_of_ds.sort()  # sort ds name list to create deterministic filenames
 
+    single_model_test_df = None
+
     for ds_name in list_of_ds:
         ds = get_dataset(ds_name)
 
@@ -214,7 +216,11 @@ def main():
             print("---------------------")
             print("Loading and testing single model")
             print("---------------------")
-            load_and_test_model(ds, model, run_number)
+            result_df = load_and_test_model(ds, model, run_number)
+            if single_model_test_df is None:
+                single_model_test_df = result_df
+            else:
+                result_df = pd.concat([single_model_test_df, result_df])
 
         if is_running_amia_attack:
             print("---------------------")
@@ -252,6 +258,13 @@ def main():
         ds_info_df_file = os.path.join(
             ds_info_path, f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
         save_dataframe(ds_info_df, ds_info_df_file)
+
+    if is_load_test_single_model:
+        # save result_df with model's accuracy, loss, etc. gathered as csv
+        result_df_filename = os.path.join(result_path, str(
+            run_number), "single-model-train", f'{"-".join(list_of_ds)}_model_predict_results.csv')
+        check_create_folder(os.path.dirname(result_df_filename))
+        save_dataframe(single_model_test_df, result_df_filename)
 
 
 def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame, force_ds_info_regen: bool) -> pd.DataFrame:
@@ -385,7 +398,7 @@ def train_model(ds: AbstractDataset, model: Model, run_number: int):
                              image_name=f"{ds.dataset_name}_model_train_history.png")
 
 
-def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int):
+def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int) -> pd.DataFrame:
     model.load_model()
     model.print_summary()
     test_df = pd.DataFrame(columns=["type", "accuracy", "loss"])
@@ -401,6 +414,7 @@ def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int):
     check_create_folder(os.path.dirname(result_df_filename))
     print(f"Saving model test predictions to csv file: {result_df_filename}")
     save_dataframe(test_df, result_df_filename)
+    return result_df_filename
 
 
 def run_amia_attack(ds: AbstractDataset,
