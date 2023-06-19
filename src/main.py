@@ -265,7 +265,7 @@ def main():
         result_df_filename = os.path.join(result_path, str(
             run_number), "single-model-train", f'{"-".join(list_of_ds)}_model_predict_results.csv')
         check_create_folder(os.path.dirname(result_df_filename))
-        save_dataframe(single_model_test_df, result_df_filename)
+        save_dataframe(df=single_model_test_df, filename=result_df_filename)
 
 
 def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame, force_ds_info_regen: bool) -> pd.DataFrame:
@@ -403,20 +403,13 @@ def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int) -> p
     model.load_model()
     model.compile_model()
     model.print_summary()
+
     test_df = pd.DataFrame(columns=["type", "accuracy", "loss"])
-    print("testing train DS:")
     train_loss, train_acc = model.test_model(ds.ds_train)
-    print("testing test DS:")
     test_loss, test_acc = model.test_model(ds.ds_test)
     test_df.loc[0] = ["train", train_acc, train_loss]
     test_df.loc[1] = ["test", test_acc, test_loss]
-
-    result_df_filename = os.path.join(result_path, str(
-        run_number), "single-model-train", f"{ds.dataset_name}_model_predict_results.csv")
-    check_create_folder(os.path.dirname(result_df_filename))
-    print(f"Saving model test predictions to csv file: {result_df_filename}")
-    save_dataframe(test_df, result_df_filename)
-    return result_df_filename
+    return test_df
 
 
 def run_amia_attack(ds: AbstractDataset,
