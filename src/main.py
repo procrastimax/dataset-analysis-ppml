@@ -207,6 +207,7 @@ def main():
                                             l2_norm_clip=l2_norm_clip,
                                             num_microbatches=num_microbatches)
 
+        if is_training_single_model:
             print("---------------------")
             print("Training single model")
             print("---------------------")
@@ -328,7 +329,7 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
                                      model_name="private_small_cnn",
                                      model_path=model_path,
                                      epochs=epochs,
-                                     learning_rate=0.001,
+                                     learning_rate=learning_rate,
                                      momentum=momentum,
                                      patience=15,
                                      use_early_stopping=False,
