@@ -44,32 +44,18 @@ case $SLURM_ARRAY_TASK_ID in
                 microbatches=8
                 ;;
         4)
-                # baselne with smaller l2 norm clip
+                # baseline with smaller l2 norm clip
                 lr=0.001
                 l2_norm_clip=1.5
                 momentum=0.99
                 microbatches=8
                 ;;
         5)
-                # baselien with no momentum
+                # baseline with no momentum
                 lr=0.001
                 l2_norm_clip=1.0
                 momentum=0.0
                 microbatches=8
-                ;;
-        6)
-                # baseline with 1 as microbatches
-                lr=0.001
-                l2_norm_clip=1.0
-                momentum=0.99
-                microbatches=1
-                ;;
-        7)
-                # baseline with 16 as microbatches
-                lr=0.001
-                l2_norm_clip=1.0
-                momentum=0.99
-                microbatches=16
                 ;;
 esac
 
@@ -79,5 +65,4 @@ module load TensorFlow/2.7.1-foss-2021b-CUDA-11.4.1
 
 source env/bin/activate
 
-srun python src/main.py -d $ds -r $SLURM_ARRAY_TASK_ID --train-single-model -e 0.1 -m private_small_cnn -l $lr -c $l2_norm_clip --momentum $momentum -b $microbatches
-srun python src/main.py -d $ds -r $SLURM_ARRAY_TASK_ID -m private_small_cnn --load-test-single-model
+srun python src/main.py -d $ds -r $SLURM_ARRAY_TASK_ID -e 0.1 -m private_small_cnn -l $lr -c $l2_norm_clip --momentum $momentum -b $microbatches --train-single-model --load-test-single-model
