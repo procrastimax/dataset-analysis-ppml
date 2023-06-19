@@ -10,13 +10,15 @@ from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cif
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 
+import json
+
 from model import SmallCNNModel, Model, PrivateSmallCNNModel
 
 epochs: int = 150
 batch: int = 256
 learning_rate: float = 0.25
 momentum: float = 0.999
-weight_decay: Optional[float] = 0.0005
+weight_decay: Optional[float] = None
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 
 shadow_models: int = 16
@@ -75,8 +77,6 @@ def parse_arguments() -> Dict[str, Any]:
                         help="If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.")
     parser.add_argument("-e", "--epsilon", type=float,
                         help="The desired epsilon value for DP-SGD learning. Can be any value: 0, 0.1, 1, 10, None (if not set)")
-    parser.add_argument("--calculate-epsilon", nargs="+", type=str,
-                        help="The estimated epsilon for DP-SGD is calculated given a number of arguments in this order, : number of trainings points, batch_size, noise_multiplier, train_epochs. This parameter has nothing to do with training/ attacking models but is just a convenience funtion.")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -126,21 +126,6 @@ def main():
     if arg_epochs is not None:
         global epochs
         epochs = arg_epochs
-
-    # Order of arguments: number of training samples, batch_size, noise_multiplier, train_epochs
-    calculate_epsilon_values: List[str] = args["calculate_epsilon"]
-
-    if calculate_epsilon_values is not None:
-        if len(calculate_epsilon_values) != 4:
-            print("The argument 'calculate-epsilon' expects 4 parameter: num of train samples, batch_size, noise_multiplier, train_epochs!")
-            sys.exit(1)
-        n = int(calculate_epsilon_values[0])
-        batch_size = int(calculate_epsilon_values[1])
-        noise_multiplier = float(calculate_epsilon_values[2])
-        train_epochs = int(calculate_epsilon_values[3])
-        delta = compute_delta(n)
-        compute_privacy(n=n, batch_size=batch_size,
-                        noise_multiplier=noise_multiplier, epochs=train_epochs, delta=delta)
 
     loaded_ds_list: List[AbstractDataset] = []
 
@@ -266,6 +251,21 @@ def main():
             run_number), "single-model-train", f'{"-".join(list_of_ds)}_model_predict_results.csv')
         check_create_folder(os.path.dirname(result_df_filename))
         save_dataframe(df=single_model_test_df, filename=result_df_filename, use_index=False)
+
+    # save run parameter as json
+    run_params = {"epochs": epochs,
+                  "batch": batch,
+                  "learning_rate": learning_rate,
+                  "momentum": momentum,
+                  "weight_decay": weight_decay,
+                  "shadow_models": shadow_models,
+                  "l2_norm_clip": l2_norm_clip,
+                  "num_microbatches": num_microbatches}
+
+    param_filepath = os.path.join(result_path, model.model_name, str(run_number), "parameter.csv")
+    print(f"Saving program parameter to: {param_filepath}")
+    with open(param_filepath, "w") as f:
+        json.dump(run_params, f)
 
 
 def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame, force_ds_info_regen: bool) -> pd.DataFrame:
