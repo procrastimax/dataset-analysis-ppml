@@ -265,7 +265,7 @@ def main():
         result_df_filename = os.path.join(result_path, model.model_name, str(
             run_number), "single-model-train", f'{"-".join(list_of_ds)}_model_predict_results.csv')
         check_create_folder(os.path.dirname(result_df_filename))
-        save_dataframe(df=single_model_test_df, filename=result_df_filename)
+        save_dataframe(df=single_model_test_df, filename=result_df_filename, use_index=False)
 
 
 def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame, force_ds_info_regen: bool) -> pd.DataFrame:
