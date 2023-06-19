@@ -177,9 +177,9 @@ class SmallCNNModel(Model):
             metrics=["accuracy"])
 
     def get_optimizer(self):
-        return tf.keras.optimizers.SGD(
-            learning_rate=self.learning_rate,
-            momentum=self.momentum)
+        return tf.keras.optimizers.Adam(
+            learning_rate=self.learning_rate
+        )
 
 
 @ dataclass

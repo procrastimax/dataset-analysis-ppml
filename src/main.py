@@ -5,7 +5,7 @@ import os
 from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
-from util import save_dataframe, plot_histogram, compute_privacy, compute_delta
+from util import save_dataframe, plot_histogram
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
@@ -17,7 +17,7 @@ from model import SmallCNNModel, Model, PrivateSmallCNNModel
 epochs: int = 150
 batch: int = 256
 learning_rate: float = 0.25
-momentum: float = 0.999
+momentum: Optional[float] = None
 weight_decay: Optional[float] = None
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 
