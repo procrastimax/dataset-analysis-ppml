@@ -262,7 +262,7 @@ def main():
 
     if is_load_test_single_model:
         # save result_df with model's accuracy, loss, etc. gathered as csv
-        result_df_filename = os.path.join(result_path, str(
+        result_df_filename = os.path.join(result_path, model.model_name, str(
             run_number), "single-model-train", f'{"-".join(list_of_ds)}_model_predict_results.csv')
         check_create_folder(os.path.dirname(result_df_filename))
         save_dataframe(df=single_model_test_df, filename=result_df_filename)
