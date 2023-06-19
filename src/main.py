@@ -221,7 +221,7 @@ def main():
             if single_model_test_df is None:
                 single_model_test_df = result_df
             else:
-                result_df = pd.concat([single_model_test_df, result_df])
+                single_model_test_df = pd.concat([single_model_test_df, result_df])
 
         if is_running_amia_attack:
             print("---------------------")
@@ -404,11 +404,11 @@ def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int) -> p
     model.compile_model()
     model.print_summary()
 
-    test_df = pd.DataFrame(columns=["type", "accuracy", "loss"])
     train_loss, train_acc = model.test_model(ds.ds_train)
     test_loss, test_acc = model.test_model(ds.ds_test)
-    test_df.loc[0] = ["train", train_acc, train_loss]
-    test_df.loc[1] = ["test", test_acc, test_loss]
+    data = [[ds.dataset_name, "train", train_acc, train_loss]]
+    data.append([ds.dataset_name, "test", test_acc, test_loss])
+    test_df = pd.DataFrame(data=data, columns=["dataset", "type", "accuracy", "loss"])
     return test_df
 
 
