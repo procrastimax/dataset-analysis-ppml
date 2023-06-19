@@ -44,4 +44,4 @@ echo "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
 
 module load TensorFlow/2.7.1-foss-2021b-CUDA-11.4.1
 source env/bin/activate
-srun python src/main.py -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID -l $lr --epochs $epochs -c $l2_clip -b $microbatches -e $eps --run-amia-attack --generate-results
+srun python src/main.py -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID -l $lr --epochs $epochs -c $l2_clip -b $microbatches -e $eps --run-amia-attack --generate-results --force-model-retrain
