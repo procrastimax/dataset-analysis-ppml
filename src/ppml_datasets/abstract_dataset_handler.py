@@ -3,6 +3,7 @@ import tensorflow_datasets as tfds
 import numpy as np
 import pandas as pd
 from sklearn.utils import class_weight
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 from tensorflow.keras.layers import Layer, Resizing, Rescaling, RandomFlip, RandomRotation, RandomTranslation, RandomZoom
 from dataclasses import dataclass, field
@@ -12,13 +13,12 @@ import os
 import math
 from io import BytesIO
 
-import cv2
+import sys
+
 import PIL
 
 from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
 from ppml_datasets.piqe import piqe
-
-import sys
 
 
 @dataclass(eq=True, frozen=False)
@@ -590,13 +590,33 @@ class AbstractDataset():
         D = np.polyfit(x, y, 1)[0]  # D = lim r -> 0 log(Nr)/log(1/r)
         return D
 
+    def calculate_fdr(self) -> float:
+        values = []
+        labels = []
+        for x, y in self.ds_train.as_numpy_iterator():
+            values.append(x.reshape(-1))  # transform (20, 20, 3) shape to (20*20*3) 1-D array shape
+            labels.append(y)
+        values = np.asarray(values)
+        labels = np.asarray(labels)
+
+        lda = LinearDiscriminantAnalysis()
+        lda.fit(values, labels)
+
+        between_class_eigenvalues = lda.explained_variance_ratio_
+        within_class_eigenvalues = lda.priors_ * (1 - lda.priors_) * (lda.means_ ** 2).sum(axis=1)
+
+        fdr = np.sum(between_class_eigenvalues) / np.sum(within_class_eigenvalues)
+
+        print(f"Fisher's Discriminant Ratio (FDR): {fdr}")
+        return fdr
+
     def build_ds_info(self, force_regeneration: bool = False):
         """Build dataset info dictionary.
 
-        This function needs to be called after initializing and loading the dataset, but before calling preprocessing on it!
+        This function needs to be called after initializing and loading the dataset,
+        but before calling preprocessing on it!
 
         """
-
         # before building new ds_info try to load an existing one
         if not force_regeneration:
             self.load_ds_info_from_json()
@@ -706,6 +726,10 @@ class AbstractDataset():
 
             self.ds_info["avg_piqe"] = avg_ds_piqe
             self.ds_info["class_avg_piqe"] = avg_class_piqe
+
+        if "fdr" not in self.ds_info:
+            fdr = self.calculate_fdr()
+            self.ds_info["fdr"] = fdr
 
         print(self.ds_info)
 
