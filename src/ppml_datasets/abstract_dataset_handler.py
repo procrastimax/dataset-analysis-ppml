@@ -13,12 +13,12 @@ import os
 import math
 from io import BytesIO
 
-import sys
-
 import PIL
 
 from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
 from ppml_datasets.piqe import piqe
+
+import sys
 
 
 @dataclass(eq=True, frozen=False)
@@ -610,6 +610,29 @@ class AbstractDataset():
         print(f"Fisher's Discriminant Ratio (FDR): {fdr}")
         return fdr
 
+    def calculate_std(self) -> Dict[str, float]:
+        """Calculate standard deviation of all dataset classes and for the whole dataset.
+
+        Return:
+        ------
+        Dicŧ[str, float] - returns dict containing all classes std values and for the 'all' key the std value for the complete dataset
+
+        """
+        class_values: Dict[str, list] = defaultdict(list)
+        all_values: List = []
+        for x, y in self.ds_train.as_numpy_iterator():
+            # combine all samples to one long list of values in a class
+            # transform (20, 20, 3) shape to (20*20*3) 1-D array shape
+            class_values[y].append(x.reshape(-1) / 255.0)
+            all_values.append(x.reshape(-1) / 255.0)
+
+        std_dict: Dict[str, float] = {}
+        for k in class_values.keys():
+            std_dict[k] = np.asarray(class_values[k]).std()
+
+        std_dict["all"] = np.asarray(all_values).std()
+        return std_dict
+
     def build_ds_info(self, force_regeneration: bool = False):
         """Build dataset info dictionary.
 
@@ -731,6 +754,13 @@ class AbstractDataset():
             fdr = self.calculate_fdr()
             self.ds_info["fdr"] = fdr
 
+        if "class_std" not in self.ds_info or "std" not in self.ds_info:
+            std_dict = self.calculate_std()
+            self.ds_info["std"] = std_dict["all"]
+            # the "all" entry contains the std for the complete dataset, if we remove this entry, only the per-class std is left
+            del (std_dict["all"])
+            self.ds_info["class_std"] = std_dict
+
         print(self.ds_info)
 
     def get_ds_info_as_df(self) -> pd.DataFrame:
@@ -746,6 +776,7 @@ class AbstractDataset():
         del (dict_cpy["class_avg_jpeg_ratio"])
         del (dict_cpy["class_avg_fractal_dim"])
         del (dict_cpy["class_avg_piqe"])
+        del (dict_cpy["class_std"])
         del (dict_cpy["name"])
 
         dict_cpy["dataset_img_shape"] = "/".join(map(str, dict_cpy["dataset_img_shape"]))
