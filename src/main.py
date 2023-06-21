@@ -25,7 +25,7 @@ shadow_models: int = 16
 
 # Private Training Related Parameter
 l2_norm_clip: float = 1.0
-num_microbatches: int = 32
+num_microbatches: int = 1
 
 
 data_path: str = "data"
