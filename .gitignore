@@ -8,3 +8,4 @@ src/ppml_datasets/__pycache__/
 *.log
 results/
 run.bash
+*.sif
