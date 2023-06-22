@@ -27,7 +27,8 @@ class MnistDataset(AbstractDataset):
                          convert_to_rgb=True,
                          augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True, is_tfds_ds=True,
+                         shuffle=True,
+                         is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
 
@@ -50,7 +51,8 @@ class MnistDatasetCustomClassSize(AbstractDataset):
                          convert_to_rgb=True,
                          augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True, is_tfds_ds=True,
+                         shuffle=True,
+                         is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
         self.class_size = class_size
 
@@ -82,7 +84,8 @@ class FashionMnistDataset(AbstractDataset):
                          convert_to_rgb=True,
                          augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True, is_tfds_ds=True,
+                         shuffle=True,
+                         is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
 
@@ -105,7 +108,8 @@ class FashionMnistDatasetCustomClassSize(AbstractDataset):
                          convert_to_rgb=True,
                          augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True, is_tfds_ds=True,
+                         shuffle=True,
+                         is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
         self.class_size = class_size
@@ -137,7 +141,8 @@ class Cifar10Dataset(AbstractDataset):
                          convert_to_rgb=False,
                          augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True, is_tfds_ds=True,
+                         shuffle=True,
+                         is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
 
@@ -159,7 +164,8 @@ class Cifar10DatasetGray(AbstractDataset):
                          convert_to_rgb=True,
                          augment_train=augment_train,
                          preprocessing_function=preprocessing_func,
-                         shuffle=True, is_tfds_ds=True,
+                         shuffle=True,
+                         is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
     def _load_dataset(self):

@@ -1,6 +1,6 @@
 from ppml_datasets.utils import check_create_folder, visualize_training
 import tensorflow as tf
-from tensorflow_privacy import VectorizedDPKerasAdamOptimizer
+from tensorflow_privacy import VectorizedDPKerasAdamOptimizer, VectorizedDPKerasSGDOptimizer
 from tensorflow import keras
 from keras.callbacks import EarlyStopping
 from util import compute_delta, compute_noise, compute_dp_sgd_privacy
@@ -156,9 +156,11 @@ class SmallCNNModel(Model):
         model.add(tf.keras.layers.RandomFlip('horizontal',
                                              input_shape=(self.img_height, self.img_width, 3)))
 
-        for _ in range(3):
-            model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu'))
-            model.add(tf.keras.layers.MaxPooling2D())
+        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), padding="same", activation='relu'))
+        model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
+
+        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), padding="same", activation='relu'))
+        model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
 
         model.add(tf.keras.layers.Flatten())
         model.add(tf.keras.layers.Dense(64, activation='relu'))
@@ -178,7 +180,8 @@ class SmallCNNModel(Model):
 
     def get_optimizer(self):
         return tf.keras.optimizers.Adam(
-            learning_rate=self.learning_rate
+            learning_rate=self.learning_rate,
+            epsilon=1.0
         )
 
 
@@ -191,9 +194,11 @@ class PrivateSmallCNNModel(Model):
         model.add(tf.keras.layers.RandomFlip('horizontal',
                                              input_shape=(self.img_height, self.img_width, 3)))
 
-        for _ in range(3):
-            model.add(tf.keras.layers.Conv2D(32, (3, 3), activation='relu'))
-            model.add(tf.keras.layers.MaxPooling2D())
+        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(5, 5), padding="same", activation='relu'))
+        model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
+
+        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), padding="same", activation='relu'))
+        model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
 
         model.add(tf.keras.layers.Flatten())
         model.add(tf.keras.layers.Dense(64, activation='relu'))
@@ -204,11 +209,11 @@ class PrivateSmallCNNModel(Model):
 
     def compile_model(self):
         print("Compiling model")
-        optimizer = self.get_optimizer()
+        optimizer: tf.keras.optimizers.Optimizer = self.get_optimizer()
 
         loss = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True,
-            reduction=tf.compat.v1.losses.Reduction.NONE)
+            reduction=tf.losses.Reduction.NONE)
 
         self.model.compile(
             optimizer=optimizer,
@@ -220,5 +225,7 @@ class PrivateSmallCNNModel(Model):
             l2_norm_clip=self.l2_norm_clip,
             noise_multiplier=self.noise_multiplier,
             num_microbatches=self.num_microbatches,
-            learning_rate=self.learning_rate)
+            learning_rate=self.learning_rate,
+            epsilon=0.1
+        )
         return optimizer
