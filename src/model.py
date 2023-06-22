@@ -156,17 +156,19 @@ class SmallCNNModel(Model):
         model.add(tf.keras.layers.RandomFlip('horizontal',
                                              input_shape=(self.img_height, self.img_width, 3)))
 
-        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(3, 3), padding="same", activation='relu'))
+        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
+            4, 4), padding="same", activation='relu'))
         model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
 
-        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), padding="same", activation='relu'))
+        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
+            2, 2), padding="same", activation='relu'))
         model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
 
         model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(64, activation='relu'))
+        model.add(tf.keras.layers.Dense(256, activation='relu'))
         model.add(tf.keras.layers.Dense(10))
 
-        self.model = None
+        self.model = None  # reset previous model
         self.model = model
 
     def compile_model(self):
@@ -181,7 +183,6 @@ class SmallCNNModel(Model):
     def get_optimizer(self):
         return tf.keras.optimizers.Adam(
             learning_rate=self.learning_rate,
-            epsilon=1.0
         )
 
 
@@ -194,17 +195,19 @@ class PrivateSmallCNNModel(Model):
         model.add(tf.keras.layers.RandomFlip('horizontal',
                                              input_shape=(self.img_height, self.img_width, 3)))
 
-        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(5, 5), padding="same", activation='relu'))
+        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
+            4, 4), padding="same", activation='relu'))
         model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
 
-        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(3, 3), padding="same", activation='relu'))
+        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
+            2, 2), padding="same", activation='relu'))
         model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
 
         model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(64, activation='relu'))
+        model.add(tf.keras.layers.Dense(256, activation='relu'))
         model.add(tf.keras.layers.Dense(10))
 
-        self.model = None
+        self.model = None  # reset previous model
         self.model = model
 
     def compile_model(self):
@@ -226,6 +229,5 @@ class PrivateSmallCNNModel(Model):
             noise_multiplier=self.noise_multiplier,
             num_microbatches=self.num_microbatches,
             learning_rate=self.learning_rate,
-            epsilon=0.1
         )
         return optimizer
