@@ -1,6 +1,6 @@
 from ppml_datasets.utils import check_create_folder, visualize_training
 import tensorflow as tf
-from tensorflow_privacy import VectorizedDPKerasAdamOptimizer, VectorizedDPKerasSGDOptimizer
+from tensorflow_privacy import VectorizedDPKerasAdamOptimizer
 from tensorflow import keras
 from keras.callbacks import EarlyStopping
 from util import compute_delta, compute_noise, compute_dp_sgd_privacy
@@ -8,7 +8,7 @@ import numpy as np
 import os
 from abc import ABC, abstractmethod
 
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple
 from dataclasses import dataclass, field
 
 

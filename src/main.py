@@ -272,6 +272,7 @@ def main():
                   "momentum": momentum,
                   "weight_decay": weight_decay,
                   "shadow_models": shadow_models,
+                  "privacy_epsilon": privacy_epsilon,
                   "l2_norm_clip": l2_norm_clip,
                   "num_microbatches": num_microbatches}
 
