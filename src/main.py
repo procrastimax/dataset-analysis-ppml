@@ -14,7 +14,7 @@ import json
 
 from model import SmallCNNModel, Model, PrivateSmallCNNModel
 
-epochs: int = 40
+epochs: int = 30
 batch: int = 250
 learning_rate: float = 0.001
 momentum: Optional[float] = None
