@@ -208,15 +208,18 @@ class PrivateSmallCNNModel(Model):
                                              input_shape=(self.img_height, self.img_width, 3)))
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
-            4, 4), padding="same", activation='relu'))
-        model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
+            3, 3), strides=1, padding="same", activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
+        model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
-        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
-            2, 2), padding="same", activation='relu'))
-        model.add(tf.keras.layers.MaxPooling2D(pool_size=2))
+        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(
+            3, 3), strides=1, padding="same", activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
+        model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
         model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(256, activation='relu'))
+        model.add(tf.keras.layers.Dense(128, activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(10))
 
         self.model = None  # reset previous model
