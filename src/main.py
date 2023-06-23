@@ -15,7 +15,7 @@ import json
 from model import SmallCNNModel, Model, PrivateSmallCNNModel
 
 epochs: int = 40
-batch: int = 256
+batch: int = 250
 learning_rate: float = 0.001
 momentum: Optional[float] = None
 weight_decay: Optional[float] = None
@@ -59,7 +59,7 @@ def parse_arguments() -> Dict[str, Any]:
                         help="The L2 norm clip value set for private training models.")
     parser.add_argument("-b", "--microbatches", type=int,
                         help="Number of microbatches used for private training.")
-    parser.add_argument("--batch-size", type=int, default=256,
+    parser.add_argument("--batch-size", type=int,
                         help="Size of batch used for training.")
     parser.add_argument("--load-test-single-model", action="store_true",
                         help="If this flag is set, a single model is loaded based on run number and dataset name. Then predictions are run on the test and train dataset.")

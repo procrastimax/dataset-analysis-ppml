@@ -76,16 +76,22 @@ class Model(ABC):
         self.model.summary()
 
     def train_model_from_ds(self,
-                            train_ds: Optional[Union[tf.data.Dataset, np.ndarray]] = None,
-                            val_ds: Optional[Union[tf.data.Dataset]] = None) -> tf.keras.callbacks.History:
+                            train_ds: tf.data.Dataset,
+                            val_ds: tf.data.Dataset) -> tf.keras.callbacks.History:
         callback_list = []
         if self.use_early_stopping:
             es = EarlyStopping(monitor='val_loss', mode='min', verbose=1,
                                patience=self.patience, restore_best_weights=False)
             callback_list.append(es)
 
-        self.history = self.model.fit(x=train_ds, validation_data=val_ds,
-                                      epochs=self.epochs, callbacks=callback_list)
+        ds_len = len(list(train_ds.unbatch().as_numpy_iterator()))
+        steps_per_epoch = ds_len // self.batch_size
+
+        self.history = self.model.fit(x=train_ds,
+                                      validation_data=val_ds,
+                                      epochs=self.epochs,
+                                      steps_per_epoch=steps_per_epoch,
+                                      callbacks=callback_list)
 
         return self.history
 
@@ -106,10 +112,13 @@ class Model(ABC):
         if val_x is not None and val_y is not None:
             validation_data = (val_x, val_y)
 
+        steps_per_epoch = len(x) // self.batch_size
+
         self.history = self.model.fit(x=x, y=y, validation_data=validation_data,
                                       validation_split=val_split,
                                       epochs=self.epochs,
                                       batch_size=batch,
+                                      steps_per_epoch=steps_per_epoch,
                                       callbacks=callback_list)
         return self.history
 
