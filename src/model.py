@@ -176,7 +176,7 @@ class SmallCNNModel(Model):
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
         model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(128, activation='relu'))
+        model.add(tf.keras.layers.Dense(256, activation='relu'))
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(10))
 
@@ -218,7 +218,7 @@ class PrivateSmallCNNModel(Model):
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
         model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(128, activation='relu'))
+        model.add(tf.keras.layers.Dense(256, activation='relu'))
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(10))
 
