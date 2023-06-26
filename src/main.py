@@ -125,17 +125,18 @@ def main():
         global l2_norm_clip
         l2_norm_clip = arg_l2_clip_norm
 
-    if arg_microbatches is not None:
-        global num_microbatches
-        num_microbatches = arg_microbatches
-
     if arg_epochs is not None:
         global epochs
         epochs = arg_epochs
 
     if arg_batch is not None:
         global batch
+        global num_microbatches
         batch = arg_batch
+        num_microbatches = batch
+
+    if arg_microbatches is not None:
+        num_microbatches = arg_microbatches
 
     loaded_ds_list: List[AbstractDataset] = []
 
