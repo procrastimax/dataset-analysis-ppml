@@ -167,15 +167,19 @@ class SmallCNNModel(Model):
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
             3, 3), strides=1, padding="same", activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
             3, 3), strides=1, padding="same", activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
         model.add(tf.keras.layers.Flatten())
         model.add(tf.keras.layers.Dense(256, activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(128, activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(10))
 
         self.model = None  # reset previous model
@@ -207,15 +211,19 @@ class PrivateSmallCNNModel(Model):
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
             3, 3), strides=1, padding="same", activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
             3, 3), strides=1, padding="same", activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
         model.add(tf.keras.layers.Flatten())
         model.add(tf.keras.layers.Dense(256, activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(128, activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(10))
 
         self.model = None  # reset previous model
