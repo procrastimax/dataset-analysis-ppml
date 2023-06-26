@@ -81,7 +81,7 @@ class Model(ABC):
         callback_list = []
         if self.use_early_stopping:
             es = EarlyStopping(monitor='val_loss', mode='min', verbose=1,
-                               patience=self.patience, restore_best_weights=False)
+                               patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
         ds_len = len(list(train_ds.unbatch().as_numpy_iterator()))
