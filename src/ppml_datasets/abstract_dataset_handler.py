@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.utils import class_weight
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from imblearn.datasets import make_imbalance
 
 from tensorflow.keras.layers import Layer, Resizing, Rescaling, RandomFlip, RandomRotation, RandomTranslation, RandomZoom
 from dataclasses import dataclass, field
@@ -15,10 +16,10 @@ from io import BytesIO
 
 import PIL
 
+import sys
+
 from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
 from ppml_datasets.piqe import piqe
-
-import sys
 
 
 @dataclass(eq=True, frozen=False)
@@ -399,9 +400,6 @@ class AbstractDataset():
         f.e.: ([1,2,3,4,5],[404,133,313,122,10], [4,1,0,2,5,4,1,4,3,2,4,3,3,1,...])
 
         """
-        if self.class_counts is not None and self.class_labels is not None and self.class_distribution is not None:
-            return (self.class_labels, self.class_counts, self.class_distribution)
-
         if ds is not None:
             y_train = np.fromiter(ds.map(lambda _, y: y), int)
         else:
@@ -414,6 +412,20 @@ class AbstractDataset():
         self.class_distribution = y_train
 
         return distribution + (y_train,)
+
+    def calculate_class_imbalance2(self, ds: tf.data.Dataset) -> float:
+        # Convert dataset to numpy arrays
+        _, labels = zip(*list(ds.as_numpy_iterator()))
+        labels = np.array(labels)
+
+        # Calculate class distribution
+        class_counts = np.bincount(labels)
+        total_samples = len(labels)
+
+        # Calculate class imbalance ratio
+        class_imbalance_ratio = np.max(class_counts) / total_samples
+
+        return class_imbalance_ratio
 
     def calculate_class_imbalance(self) -> float:
         """Calculate class imbalance value for the train dataset.
@@ -590,6 +602,60 @@ class AbstractDataset():
         D = np.polyfit(x, y, 1)[0]  # D = lim r -> 0 log(Nr)/log(1/r)
         return D
 
+    def make_unbalanced_dataset(self,
+                                ds: tf.data.Dataset,
+                                imbalance_ratio: float,
+                                distribution: str = "lin"):
+        """Create an unbalanced dataset from a balanced one.
+
+        Parameter:
+        --------
+        ds : dataset to be unbalanced
+        imbalance_ratio : float[0-1] -  the unbalance factor to be applied,
+                                        a value between 0 (lesser imbalance) and 1 (more imbalance)
+        """
+        # Convert balanced dataset to numpy arrays
+        print("Creating unbalanced dataset")
+
+        (values, labels) = get_ds_as_numpy(ds, unbatch=False)
+
+        classes, class_count, _ = self.get_class_distribution(ds)
+
+        # generate distribution based class imbalance
+        if distribution == "lin":
+            def linear_descending_distr(class_count: Dict[int, int], subtraction: int) -> list:
+                subtraction = int(subtraction)
+
+                sorted_class_count = dict(
+                    sorted(class_count.items(), key=lambda x: x[1], reverse=True))
+                i = 0
+                for (k, v) in sorted_class_count.items():
+                    sorted_class_count[k] = abs(v - (subtraction * i))
+                    i += 1
+                return sorted_class_count
+
+            subtraction = max(class_count) / ((len(class_count) +
+                                               len(class_count) * (1-imbalance_ratio)))
+
+            class_count_dict = dict(zip(classes, class_count))
+
+            d1, d2, d3, d4 = values.shape
+            values = values.reshape((d1, d2*d3*d4))
+
+            class_count_dict = linear_descending_distr(class_count_dict, subtraction)
+            (values, labels) = make_imbalance(X=values,
+                                              y=labels,
+                                              sampling_strategy=class_count_dict,
+                                              random_state=self.random_seed)
+
+            d1, _ = values.shape
+            values = values.reshape((d1, d2, d3, d4))
+            return tf.data.Dataset.from_tensor_slices((values, labels))
+
+        else:
+            print(f"distribution {distribution} is not implemented! Cannot imbalance dataset.")
+            return None
+
     def calculate_fdr(self) -> float:
         values = []
         labels = []
@@ -650,7 +716,7 @@ class AbstractDataset():
         self.ds_info['model_img_shape'] = self.model_img_shape
 
         count_keys = set(["total_count", "train_count", "val_count", "test_count",
-                         "num_classes", "class_weights", "class_counts"])
+                          "num_classes", "class_weights", "class_counts"])
         if not count_keys.issubset(set(self.ds_info.keys())):
             class_counts, class_weights = self.calculate_class_weights()
             ds_count = self.get_dataset_count()
@@ -828,25 +894,25 @@ class AbstractDataset():
 
         return ds
 
-    def get_train_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+    def get_train_ds_as_numpy(self, unbatch: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """Return Train Dataset as unbatched (values, labels) numpy arrays."""
-        return get_ds_as_numpy(self.ds_train)
+        return get_ds_as_numpy(self.ds_train, unbatch=unbatch)
 
-    def get_test_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+    def get_test_ds_as_numpy(self, unbatch: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """Return Test Dataset as unbatched (values, labels) numpy arrays."""
-        return get_ds_as_numpy(self.ds_test)
+        return get_ds_as_numpy(self.ds_test, unbatch)
 
-    def get_val_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+    def get_val_ds_as_numpy(self, unbatch: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """Return Validation Dataset as unbatched (values, labels) numpy arrays."""
-        return get_ds_as_numpy(self.ds_val)
+        return get_ds_as_numpy(self.ds_val, unbatch)
 
-    def get_attack_train_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+    def get_attack_train_ds_as_numpy(self, unbatch: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """Return Attack Train Dataset as unbatched (values, labels) numpy arrays."""
-        return get_ds_as_numpy(self.ds_attack_train)
+        return get_ds_as_numpy(self.ds_attack_train, unbatch)
 
-    def get_attack_test_ds_as_numpy(self) -> Tuple[np.ndarray, np.ndarray]:
+    def get_attack_test_ds_as_numpy(self, unbatch: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """Return Attack Test Dataset as unbatched (values, labels) numpy arrays."""
-        return get_ds_as_numpy(self.ds_attack_test)
+        return get_ds_as_numpy(self.ds_attack_test, unbatch)
 
 
 class GrayscaleToRgb(Layer):

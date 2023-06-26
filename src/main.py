@@ -6,7 +6,7 @@ from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
 from util import save_dataframe, plot_histogram
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize, MnistDatasetCustomClassImbalance
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
@@ -42,8 +42,8 @@ def parse_arguments() -> Dict[str, Any]:
         prog="Dataset Analysis for Privacy-Preserving-Machine-Learning",
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
-    parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
-                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
+    parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str,
+                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, mnist_cX, fmnist, fmnist_cX, cifar10, cifar10gray, mnist_iY. X stands for an arbitrary integer value and Y for an arbitrary float value between 0 and 1.")
     parser.add_argument("-m", "--model", required=False, type=str, choices=["small_cnn", "private_small_cnn"],
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
     parser.add_argument("-r", "--run-number", required=False, type=int,
@@ -364,23 +364,32 @@ def get_dataset(ds_name: str) -> AbstractDataset:
                           batch_size=batch,
                           augment_train=False)
 
-    elif ds_name == "mnist_c5000":
+    elif ds_name.startswith("mnist_c"):
+        class_size = int(ds_name.removeprefix("mnist_c"))
         ds = MnistDatasetCustomClassSize(model_img_shape=model_input_shape,
-                                         class_size=5000,
+                                         class_size=class_size,
                                          builds_ds_info=False,
                                          batch_size=batch,
                                          augment_train=False)
 
+    elif ds_name.startswith("mnist_i"):
+        imbalance = float(ds_name.removeprefix("mnist_i"))
+        ds = MnistDatasetCustomClassImbalance(model_img_shape=model_input_shape,
+                                              imbalance_ratio=imbalance,
+                                              builds_ds_info=False,
+                                              batch_size=batch,
+                                              augment_train=False)
     elif ds_name == "fmnist":
         ds = FashionMnistDataset(model_img_shape=model_input_shape,
                                  builds_ds_info=False,
                                  batch_size=batch,
                                  augment_train=False)
 
-    elif ds_name == "fmnist_c5000":
+    elif ds_name.startswith("fmnist_c"):
+        class_size = int(ds_name.removeprefix("fmnist_c"))
         ds = FashionMnistDatasetCustomClassSize(
             model_img_shape=model_input_shape,
-            class_size=5000,
+            class_size=class_size,
             builds_ds_info=False,
             batch_size=batch,
             augment_train=False)
