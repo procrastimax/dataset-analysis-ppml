@@ -80,7 +80,7 @@ def parse_arguments() -> Dict[str, Any]:
                         help="If this flag is set, the whole ds-info dict is not loaded from a json file but regenerated from scratch.")
     parser.add_argument("--include-mia", action="store_true",
                         help="If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.")
-    parser.add_argument("-e", "--epsilon", type=float,
+    parser.add_argument("-e", "--epsilon", type=float, default=1.0,
                         help="The desired epsilon value for DP-SGD learning. Can be any value: 0, 0.1, 1, 10, None (if not set)")
 
     args = parser.parse_args()
