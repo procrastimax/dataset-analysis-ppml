@@ -170,7 +170,7 @@ class SmallCNNModel(Model):
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
-        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(
+        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
             3, 3), strides=1, padding="same", activation='relu'))
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
@@ -212,7 +212,7 @@ class PrivateSmallCNNModel(Model):
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
-        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(
+        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
             3, 3), strides=1, padding="same", activation='relu'))
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
