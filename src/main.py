@@ -9,8 +9,11 @@ from util import save_dataframe, plot_histogram
 from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
+import tensorflow as tf
 
+import gc
 import json
+
 
 from model import SmallCNNModel, Model, PrivateSmallCNNModel
 
@@ -411,6 +414,9 @@ def train_model(ds: AbstractDataset, model: Model, run_number: int):
         result_path, model.model_name, str(run_number), "single-model-train")
     model.save_train_history(folder_name=train_history_folder,
                              image_name=f"{ds.dataset_name}_model_train_history.png")
+    # avoid OOM
+    tf.keras.backend.clear_session()
+    gc.collect()
 
 
 def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int) -> pd.DataFrame:
