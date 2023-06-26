@@ -6,10 +6,12 @@ from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
 from util import save_dataframe, plot_histogram
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize, MnistDatasetCustomClassImbalance
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
+
+import numpy as np
 
 import gc
 import json
@@ -42,7 +44,7 @@ def parse_arguments() -> Dict[str, Any]:
         prog="Dataset Analysis for Privacy-Preserving-Machine-Learning",
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
-    parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray"],
+    parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str, choices=["mnist", "mnist_c5000", "fmnist", "fmnist_c5000", "cifar10", "cifar10gray", "mnist_i"],
                         help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here.")
     parser.add_argument("-m", "--model", required=False, type=str, choices=["small_cnn", "private_small_cnn"],
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
@@ -371,6 +373,12 @@ def get_dataset(ds_name: str) -> AbstractDataset:
                                          batch_size=batch,
                                          augment_train=False)
 
+    elif ds_name == "mnist_i":
+        ds = MnistDatasetCustomClassImbalance(model_img_shape=model_input_shape,
+                                              imbalance_ratio=0.5,
+                                              builds_ds_info=False,
+                                              batch_size=batch,
+                                              augment_train=False)
     elif ds_name == "fmnist":
         ds = FashionMnistDataset(model_img_shape=model_input_shape,
                                  builds_ds_info=False,

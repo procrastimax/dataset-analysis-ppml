@@ -57,13 +57,44 @@ class MnistDatasetCustomClassSize(AbstractDataset):
         self.class_size = class_size
 
     def _load_dataset(self):
-        # load default cifar10 from tfds
         self._load_from_tfds()
 
         # shuffle ds before reducing class size
         self.ds_train = self.ds_train.shuffle(
             buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
         self.reduce_samples_per_class_train_ds(self.class_size)
+
+
+class MnistDatasetCustomClassImbalance(AbstractDataset):
+    def __init__(self, model_img_shape: Tuple[int, int, int],
+                 imbalance_ratio: float,
+                 builds_ds_info: bool = False,
+                 batch_size: int = 32,
+                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
+                 augment_train: bool = True,
+                 dataset_path: str = "data"):
+        """Initialize the MNIST dataset from AbstractDataset class."""
+        super().__init__(tfds_name="mnist",
+                         dataset_name=f"mnist_i{imbalance_ratio}",
+                         dataset_path=dataset_path,
+                         dataset_img_shape=(28, 28, 1),
+                         num_classes=10,
+                         model_img_shape=model_img_shape,
+                         batch_size=batch_size,
+                         convert_to_rgb=True,
+                         augment_train=augment_train,
+                         preprocessing_function=preprocessing_func,
+                         shuffle=True,
+                         is_tfds_ds=True,
+                         builds_ds_info=builds_ds_info)
+        self.imbalance_ratio = imbalance_ratio
+
+    def _load_dataset(self):
+        self._load_from_tfds()
+        self.ds_train = self.make_unbalanced_dataset(
+            self.ds_train, self.imbalance_ratio, distribution="lin")
+        self.ds_train = self.ds_train.shuffle(
+            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
 
 
 class FashionMnistDataset(AbstractDataset):

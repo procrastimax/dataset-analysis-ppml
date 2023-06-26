@@ -108,16 +108,22 @@ def filter_labels(y, allowed_classes: list):
     return tf.greater(reduced_sum, tf.constant(0.))
 
 
-def get_ds_as_numpy(ds: tf.data.Dataset) -> Tuple[np.ndarray, np.ndarray]:
+def get_ds_as_numpy(ds: tf.data.Dataset, unbatch: bool = True) -> Tuple[np.ndarray, np.ndarray]:
     if ds is None:
         print("Cannot convert dataset to numpy arrays! Dataset is not initialized!")
         return
 
     values = []
     labels = []
-    for x, y in ds.unbatch().as_numpy_iterator():
-        values.append(x)
-        labels.append(y)
+
+    if unbatch:
+        for x, y in ds.unbatch().as_numpy_iterator():
+            values.append(x)
+            labels.append(y)
+    else:
+        for x, y in ds.as_numpy_iterator():
+            values.append(x)
+            labels.append(y)
     return (np.asarray(values), np.asarray(labels))
 
 
