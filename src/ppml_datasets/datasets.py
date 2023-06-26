@@ -58,6 +58,7 @@ class MnistDatasetCustomClassSize(AbstractDataset):
 
     def _load_dataset(self):
         self._load_from_tfds()
+        print(f"Creating Mnist dataset with custom class size of {self.class_size}")
 
         # shuffle ds before reducing class size
         self.ds_train = self.ds_train.shuffle(
@@ -91,6 +92,7 @@ class MnistDatasetCustomClassImbalance(AbstractDataset):
 
     def _load_dataset(self):
         self._load_from_tfds()
+        print(f"Creating Mnist dataset with custom imbalance of {self.imbalance_ratio}")
         self.ds_train = self.make_unbalanced_dataset(
             self.ds_train, self.imbalance_ratio, distribution="lin")
         self.ds_train = self.ds_train.shuffle(
@@ -146,6 +148,7 @@ class FashionMnistDatasetCustomClassSize(AbstractDataset):
         self.class_size = class_size
 
     def _load_dataset(self):
+        print(f"Creating Fashion Mnist dataset with custom class size of {self.class_size}")
         # load default cifar10 from tfds
         self._load_from_tfds()
         # shuffle ds before reducing class size
