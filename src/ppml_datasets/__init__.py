@@ -1,1 +1,1 @@
-from ppml_datasets.datasets import MnistDataset, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDataset, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance, Cifar10Dataset, Cifar10DatasetGray
+from ppml_datasets.datasets import MnistDataset, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDataset, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10GrayDataset, Cifar10GrayDatasetClassSize

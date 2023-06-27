@@ -19,8 +19,6 @@ import PIL
 from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
 from ppml_datasets.piqe import piqe
 
-import json
-
 
 @dataclass(eq=True, frozen=False)
 class AbstractDataset():
@@ -750,7 +748,7 @@ class AbstractDataset():
             self.load_ds_info_from_json()
             print(self.ds_info)
 
-        self.ds_info["name"] = self.dataset_name,  # not useful for dataframe
+        self.ds_info['name'] = str(self.dataset_name),  # not useful for dataframe
         self.ds_info['dataset_img_shape'] = self.dataset_img_shape
         self.ds_info['model_img_shape'] = self.model_img_shape
 

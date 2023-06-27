@@ -6,7 +6,7 @@ from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
 from util import save_dataframe, plot_histogram
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10GrayDataset, Cifar10GrayDatasetClassSize, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
@@ -173,8 +173,6 @@ def main():
         check_create_folder(ds_info_path_specific)
 
         ds = get_dataset(ds_name)
-
-        print(f"----------------{ds_info_path_specific}")
 
         # generate ds_info before preprocessing dataset
         if is_generating_ds_info:
@@ -418,17 +416,28 @@ def get_dataset(ds_name: str) -> AbstractDataset:
                                                    imbalance_mode=imbalance_mode,
                                                    imbalance_ratio=imbalance_ratio)
 
-    elif ds_name == "cifar10":
+    elif ds_name.startswith("cifar10"):
         ds = Cifar10Dataset(model_img_shape=model_input_shape,
                             builds_ds_info=False,
                             batch_size=batch,
                             augment_train=False)
 
-    elif ds_name == "cifar10gray":
-        ds = Cifar10DatasetGray(model_img_shape=model_input_shape,
-                                builds_ds_info=False,
-                                batch_size=batch,
-                                augment_train=False)
+        if ds_name.startswith("cifar10_c"):
+            class_size = int(ds_name.removeprefix("cifar10_c"))
+            ds = Cifar10DatasetClassSize(ds=ds,
+                                         class_size=class_size)
+
+        elif ds_name.startswith("cifar10gray"):
+            ds = Cifar10GrayDataset(model_img_shape=model_input_shape,
+                                    builds_ds_info=False,
+                                    batch_size=batch,
+                                    augment_train=False)
+
+            if ds_name.startswith("cifar10gray_c"):
+                class_size = int(ds_name.removeprefix("cifar10gray_c"))
+                ds = Cifar10GrayDatasetClassSize(ds=ds,
+                                                 class_size=class_size)
+
     else:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
         sys.exit(1)
@@ -436,12 +445,11 @@ def get_dataset(ds_name: str) -> AbstractDataset:
     ds.ds_info_path = os.path.join(ds_info_path, ds.dataset_name)
     ds.load_dataset()
 
-    ds.build_ds_info(force_regeneration=False,
+    ds.build_ds_info(force_regeneration=True,
                      include_compression=False,
                      include_piqe=False,
                      include_fract_dim=False,
                      include_fdr=False)
-    print(ds.ds_info)
     return ds
 
 

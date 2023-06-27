@@ -158,41 +158,26 @@ class Cifar10Dataset(AbstractDataset):
                          builds_ds_info=builds_ds_info)
 
 
-class Cifar10Dataset(AbstractDataset):
-    def __init__(self, model_img_shape: Tuple[int, int, int],
-                 class_size: int,
-                 builds_ds_info: bool = False,
-                 batch_size: int = 32,
-                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
-                 augment_train: bool = True,
-                 dataset_path: str = "data"):
-        """Initialize the CIFAR10 dataset from AbstractDataset class."""
-        super().__init__(tfds_name="cifar10",
-                         dataset_name="cifar10",
-                         dataset_path=dataset_path,
-                         dataset_img_shape=(32, 32, 3),
-                         num_classes=10,
-                         model_img_shape=model_img_shape,
-                         batch_size=batch_size,
-                         convert_to_rgb=False,
-                         augment_train=augment_train,
-                         preprocessing_function=preprocessing_func,
-                         shuffle=True,
-                         is_tfds_ds=True,
-                         builds_ds_info=builds_ds_info)
+class Cifar10DatasetClassSize(AbstractDatasetClassSize):
+    def __init__(self,
+                 ds: Cifar10Dataset,
+                 class_size: int):
         self.class_size = class_size
+        self.ds = ds
+        super().__init__(tfds_name=self.ds.tfds_name,
+                         num_classes=self.ds.num_classes,
+                         dataset_name=f"{self.ds.dataset_name}_c{class_size}",
+                         dataset_path=self.ds.dataset_path,
+                         model_img_shape=self.ds.model_img_shape,
+                         batch_size=self.ds.batch_size,
+                         convert_to_rgb=self.ds.convert_to_rgb,
+                         augment_train=self.ds.augment_train,
+                         shuffle=self.ds.shuffle,
+                         is_tfds_ds=self.ds.is_tfds_ds,
+                         builds_ds_info=self.ds.builds_ds_info)
 
-    def _load_dataset(self):
-        print(f"Creating Cifar10 dataset with custom class size of {self.class_size}")
-        # load default cifar10 from tfds
-        self._load_from_tfds()
-        # shuffle ds before reducing class size
-        self.ds_train = self.ds_train.shuffle(
-            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
-        self.reduce_samples_per_class_train_ds(self.class_size)
 
-
-class Cifar10DatasetGray(AbstractDataset):
+class Cifar10GrayDataset(AbstractDataset):
     def __init__(self, model_img_shape: Tuple[int, int, int],
                  builds_ds_info: bool = False,
                  batch_size: int = 32,
@@ -214,20 +199,46 @@ class Cifar10DatasetGray(AbstractDataset):
                          is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
 
-    def _load_dataset(self):
-
-        # load default cifar10 from tfds
-        self._load_from_tfds()
-
+    def convertds_to_grayscale(self, ds: tf.data.Dataset) -> tf.data.Dataset:
         to_grayscale = tf.keras.Sequential([
             RgbToGrayscale()
         ])
+        ds = ds.map(
+            lambda x, y: (to_grayscale(x, training=True), y))
+        return ds
 
-        print("Creating cifar10gray")
-        self.ds_train = self.ds_train.map(
-            lambda x, y: (to_grayscale(x, training=True), y))
-        self.ds_test = self.ds_test.map(
-            lambda x, y: (to_grayscale(x, training=True), y))
+    def _load_dataset(self):
+        # load default cifar10 from tfds
+        self._load_from_tfds()
+
+        self.ds_test = self.convertds_to_grayscale(self.ds_test)
+        self.ds_train = self.convertds_to_grayscale(self.ds_train)
+
+
+class Cifar10GrayDatasetClassSize(AbstractDatasetClassSize):
+    def __init__(self,
+                 ds: Cifar10GrayDataset,
+                 class_size: int):
+        self.class_size = class_size
+        self.ds = ds
+        super().__init__(tfds_name=self.ds.tfds_name,
+                         num_classes=self.ds.num_classes,
+                         dataset_name=f"{self.ds.dataset_name}_c{class_size}",
+                         dataset_path=self.ds.dataset_path,
+                         model_img_shape=self.ds.model_img_shape,
+                         batch_size=self.ds.batch_size,
+                         convert_to_rgb=self.ds.convert_to_rgb,
+                         augment_train=self.ds.augment_train,
+                         shuffle=self.ds.shuffle,
+                         is_tfds_ds=self.ds.is_tfds_ds,
+                         builds_ds_info=self.ds.builds_ds_info)
+
+    def _load_dataset(self):
+        # load default cifar10 from tfds
+        super()._load_dataset()
+
+        self.ds_test = self.ds.convertds_to_grayscale(self.ds_test)
+        self.ds_train = self.ds.convertds_to_grayscale(self.ds_train)
 
 
 class Cifar100Dataset(AbstractDataset):
