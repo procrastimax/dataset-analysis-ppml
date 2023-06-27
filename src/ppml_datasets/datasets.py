@@ -5,20 +5,18 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from typing import Callable, Tuple, List, Dict, Optional
 
-from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale
+from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale, AbstractDatasetClassSize, AbstractDatasetClassImbalance
 from ppml_datasets.utils import get_img
-
-import sys
 
 
 class MnistDataset(AbstractDataset):
-    def __init__(self, model_img_shape: Tuple[int, int, int],
+    def __init__(self,
+                 model_img_shape: Tuple[int, int, int],
                  builds_ds_info: bool = False,
                  batch_size: int = 32,
                  preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
                  augment_train: bool = True,
                  dataset_path: str = "data"):
-        """Initialize the MNIST dataset from AbstractDataset class."""
         super().__init__(tfds_name="mnist",
                          dataset_name="mnist",
                          dataset_path=dataset_path,
@@ -34,84 +32,54 @@ class MnistDataset(AbstractDataset):
                          builds_ds_info=builds_ds_info)
 
 
-class MnistDatasetCustomClassSize(AbstractDataset):
-    def __init__(self, model_img_shape: Tuple[int, int, int],
-                 class_size: int,
-                 builds_ds_info: bool = False,
-                 batch_size: int = 32,
-                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
-                 augment_train: bool = True,
-                 dataset_path: str = "data"):
-        """Initialize the MNIST dataset from AbstractDataset class."""
-        super().__init__(tfds_name="mnist",
-                         dataset_name=f"mnist_c{class_size}",
-                         dataset_path=dataset_path,
-                         dataset_img_shape=(28, 28, 1),
-                         num_classes=10,
-                         model_img_shape=model_img_shape,
-                         batch_size=batch_size,
-                         convert_to_rgb=True,
-                         augment_train=augment_train,
-                         preprocessing_function=preprocessing_func,
-                         shuffle=True,
-                         is_tfds_ds=True,
-                         builds_ds_info=builds_ds_info)
+class MnistDatasetClassSize(AbstractDatasetClassSize):
+    def __init__(self,
+                 ds: MnistDataset,
+                 class_size: int):
         self.class_size = class_size
+        self.ds = ds
+        super().__init__(tfds_name=self.ds.tfds_name,
+                         num_classes=self.ds.num_classes,
+                         dataset_name=f"{self.ds.dataset_name}_c{class_size}",
+                         dataset_path=self.ds.dataset_path,
+                         model_img_shape=self.ds.model_img_shape,
+                         batch_size=self.ds.batch_size,
+                         convert_to_rgb=self.ds.convert_to_rgb,
+                         augment_train=self.ds.augment_train,
+                         shuffle=self.ds.shuffle,
+                         is_tfds_ds=self.ds.is_tfds_ds,
+                         builds_ds_info=self.ds.builds_ds_info)
 
-    def _load_dataset(self):
-        self._load_from_tfds()
-        print(f"Creating Mnist dataset with custom class size of {self.class_size}")
 
-        # shuffle ds before reducing class size
-        self.ds_train = self.ds_train.shuffle(
-            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
-        self.reduce_samples_per_class_train_ds(self.class_size)
-
-
-class MnistDatasetCustomClassImbalance(AbstractDataset):
-    def __init__(self, model_img_shape: Tuple[int, int, int],
-                 imbalance_ratio: float,
-                 builds_ds_info: bool = False,
-                 batch_size: int = 32,
-                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
-                 augment_train: bool = True,
-                 dataset_path: str = "data"):
-        """Initialize the MNIST dataset from AbstractDataset class."""
-        super().__init__(tfds_name="mnist",
-                         dataset_name=f"mnist_i{imbalance_ratio}",
-                         dataset_path=dataset_path,
-                         dataset_img_shape=(28, 28, 1),
-                         num_classes=10,
-                         model_img_shape=model_img_shape,
-                         batch_size=batch_size,
-                         convert_to_rgb=True,
-                         augment_train=augment_train,
-                         preprocessing_function=preprocessing_func,
-                         shuffle=True,
-                         is_tfds_ds=True,
-                         builds_ds_info=builds_ds_info)
+class MnistDatasetClassImbalance(AbstractDatasetClassImbalance):
+    def __init__(self,
+                 ds: MnistDataset,
+                 imbalance_mode: str,
+                 imbalance_ratio: float):
+        self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
-
-    def _load_dataset(self):
-        self._load_from_tfds()
-        print(f"Creating Mnist dataset with custom imbalance of {self.imbalance_ratio}")
-        self.ds_train = self.make_unbalanced_dataset(
-            self.ds_train, self.imbalance_ratio, distribution="norm")
-
-        sys.exit(1)
-
-        self.ds_train = self.ds_train.shuffle(
-            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
+        self.ds = ds
+        super().__init__(tfds_name=self.ds.tfds_name,
+                         num_classes=self.ds.num_classes,
+                         dataset_name=f"{self.ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+                         dataset_path=self.ds.dataset_path,
+                         model_img_shape=self.ds.model_img_shape,
+                         batch_size=self.ds.batch_size,
+                         convert_to_rgb=self.ds.convert_to_rgb,
+                         augment_train=self.ds.augment_train,
+                         shuffle=self.ds.shuffle,
+                         is_tfds_ds=self.ds.is_tfds_ds,
+                         builds_ds_info=self.ds.builds_ds_info)
 
 
 class FashionMnistDataset(AbstractDataset):
-    def __init__(self, model_img_shape: Tuple[int, int, int],
+    def __init__(self,
+                 model_img_shape: Tuple[int, int, int],
                  builds_ds_info: bool = False,
                  batch_size: int = 32,
                  preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
                  augment_train: bool = True,
                  dataset_path: str = "data"):
-        """Initialize the FMNIST dataset from AbstractDataset class."""
         super().__init__(tfds_name="fashion_mnist",
                          dataset_name="fmnist",
                          dataset_path=dataset_path,
@@ -127,39 +95,44 @@ class FashionMnistDataset(AbstractDataset):
                          builds_ds_info=builds_ds_info)
 
 
-class FashionMnistDatasetCustomClassSize(AbstractDataset):
-    def __init__(self, model_img_shape: Tuple[int, int, int],
-                 class_size: int,
-                 builds_ds_info: bool = False,
-                 batch_size: int = 32,
-                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
-                 augment_train: bool = True,
-                 dataset_path: str = "data"):
-        """Initialize the FMNIST dataset from AbstractDataset class."""
-        super().__init__(dataset_name=f"fmnist_c{class_size}",
-                         tfds_name="fashion_mnist",
-                         dataset_path=dataset_path,
-                         dataset_img_shape=(28, 28, 1),
-                         num_classes=10,
-                         model_img_shape=model_img_shape,
-                         batch_size=batch_size,
-                         convert_to_rgb=True,
-                         augment_train=augment_train,
-                         preprocessing_function=preprocessing_func,
-                         shuffle=True,
-                         is_tfds_ds=True,
-                         builds_ds_info=builds_ds_info)
-
+class FashionMnistDatasetClassSize(AbstractDatasetClassSize):
+    def __init__(self,
+                 ds: FashionMnistDataset,
+                 class_size: int):
         self.class_size = class_size
+        self.ds = ds
+        super().__init__(tfds_name=self.ds.tfds_name,
+                         num_classes=self.ds.num_classes,
+                         dataset_name=f"{self.ds.dataset_name}_c{class_size}",
+                         dataset_path=self.ds.dataset_path,
+                         model_img_shape=self.ds.model_img_shape,
+                         batch_size=self.ds.batch_size,
+                         convert_to_rgb=self.ds.convert_to_rgb,
+                         augment_train=self.ds.augment_train,
+                         shuffle=self.ds.shuffle,
+                         is_tfds_ds=self.ds.is_tfds_ds,
+                         builds_ds_info=self.ds.builds_ds_info)
 
-    def _load_dataset(self):
-        print(f"Creating Fashion Mnist dataset with custom class size of {self.class_size}")
-        # load default cifar10 from tfds
-        self._load_from_tfds()
-        # shuffle ds before reducing class size
-        self.ds_train = self.ds_train.shuffle(
-            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
-        self.reduce_samples_per_class_train_ds(self.class_size)
+
+class FashionMnistDatasetClassImbalance(AbstractDatasetClassImbalance):
+    def __init__(self,
+                 ds: FashionMnistDataset,
+                 imbalance_mode: str,
+                 imbalance_ratio: float):
+        self.imbalance_mode = imbalance_mode
+        self.imbalance_ratio = imbalance_ratio
+        self.ds = ds
+        super().__init__(tfds_name=self.ds.tfds_name,
+                         num_classes=self.ds.num_classes,
+                         dataset_name=f"{self.ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+                         dataset_path=self.ds.dataset_path,
+                         model_img_shape=self.ds.model_img_shape,
+                         batch_size=self.ds.batch_size,
+                         convert_to_rgb=self.ds.convert_to_rgb,
+                         augment_train=self.ds.augment_train,
+                         shuffle=self.ds.shuffle,
+                         is_tfds_ds=self.ds.is_tfds_ds,
+                         builds_ds_info=self.ds.builds_ds_info)
 
 
 class Cifar10Dataset(AbstractDataset):
@@ -183,6 +156,40 @@ class Cifar10Dataset(AbstractDataset):
                          shuffle=True,
                          is_tfds_ds=True,
                          builds_ds_info=builds_ds_info)
+
+
+class Cifar10Dataset(AbstractDataset):
+    def __init__(self, model_img_shape: Tuple[int, int, int],
+                 class_size: int,
+                 builds_ds_info: bool = False,
+                 batch_size: int = 32,
+                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
+                 augment_train: bool = True,
+                 dataset_path: str = "data"):
+        """Initialize the CIFAR10 dataset from AbstractDataset class."""
+        super().__init__(tfds_name="cifar10",
+                         dataset_name="cifar10",
+                         dataset_path=dataset_path,
+                         dataset_img_shape=(32, 32, 3),
+                         num_classes=10,
+                         model_img_shape=model_img_shape,
+                         batch_size=batch_size,
+                         convert_to_rgb=False,
+                         augment_train=augment_train,
+                         preprocessing_function=preprocessing_func,
+                         shuffle=True,
+                         is_tfds_ds=True,
+                         builds_ds_info=builds_ds_info)
+        self.class_size = class_size
+
+    def _load_dataset(self):
+        print(f"Creating Cifar10 dataset with custom class size of {self.class_size}")
+        # load default cifar10 from tfds
+        self._load_from_tfds()
+        # shuffle ds before reducing class size
+        self.ds_train = self.ds_train.shuffle(
+            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
+        self.reduce_samples_per_class_train_ds(self.class_size)
 
 
 class Cifar10DatasetGray(AbstractDataset):

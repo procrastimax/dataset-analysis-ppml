@@ -6,7 +6,7 @@ from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
 from util import save_dataframe, plot_histogram
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetCustomClassSize, FashionMnistDatasetCustomClassSize, MnistDatasetCustomClassImbalance
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetGray, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
@@ -270,15 +270,16 @@ def main():
         save_dataframe(df=single_model_test_df, filename=result_df_filename, use_index=False)
 
     # save run parameter as json
-    run_params = {"epochs": epochs,
-                  "batch": batch,
-                  "learning_rate": learning_rate,
-                  "momentum": momentum,
-                  "weight_decay": weight_decay,
-                  "shadow_models": shadow_models,
-                  "privacy_epsilon": privacy_epsilon,
-                  "l2_norm_clip": l2_norm_clip,
-                  "num_microbatches": num_microbatches}
+    run_params = {
+        "epochs": epochs,
+        "batch": batch,
+        "learning_rate": learning_rate,
+        "momentum": momentum,
+        "weight_decay": weight_decay,
+        "shadow_models": shadow_models,
+        "privacy_epsilon": privacy_epsilon,
+        "l2_norm_clip": l2_norm_clip,
+        "num_microbatches": num_microbatches}
 
     param_filepath = os.path.join(result_path, model.model_name, str(run_number), "parameter.csv")
     print(f"Saving program parameter to: {param_filepath}")
@@ -355,44 +356,62 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
     return model
 
 
+def parse_imbalance_name(complete_str: str, base_str: str) -> (str, float):
+    """Parse a complete imbalance dataset name to the imbalance mode and imbalance ratio values.
+
+    Parameter:
+    --------
+    complete_str : str - full name of the passed dataset name, e.g.: mnist_iN0.4
+    base_str : str - name of the passed dataset modification (in this case imbalance modification), e.g.: mnist_i
+    """
+    imbalance_mode = str(complete_str.removeprefix(base_str))
+    imbalance_ratio = float(imbalance_mode[1:])
+
+    imbalance_mode = imbalance_mode[0]
+
+    if imbalance_mode not in ("L", "N"):
+        print(f"Unknown imbalance mode: {imbalance_mode}!")
+        sys.exit(1)
+
+    return (imbalance_mode, imbalance_ratio)
+
+
 def get_dataset(ds_name: str) -> AbstractDataset:
     ds = None
 
-    if ds_name == "mnist":
+    if ds_name.startswith("mnist"):
         ds = MnistDataset(model_img_shape=model_input_shape,
                           builds_ds_info=False,
                           batch_size=batch,
                           augment_train=False)
 
-    elif ds_name.startswith("mnist_c"):
-        class_size = int(ds_name.removeprefix("mnist_c"))
-        ds = MnistDatasetCustomClassSize(model_img_shape=model_input_shape,
-                                         class_size=class_size,
-                                         builds_ds_info=False,
-                                         batch_size=batch,
-                                         augment_train=False)
+        if ds_name.startswith("mnist_c"):
+            class_size = int(ds_name.removeprefix("mnist_c"))
+            ds = MnistDatasetClassSize(ds=ds,
+                                       class_size=class_size)
 
-    elif ds_name.startswith("mnist_i"):
-        imbalance = float(ds_name.removeprefix("mnist_i"))
-        ds = MnistDatasetCustomClassImbalance(model_img_shape=model_input_shape,
-                                              imbalance_ratio=imbalance,
-                                              builds_ds_info=False,
-                                              batch_size=batch,
-                                              augment_train=False)
-    elif ds_name == "fmnist":
+        elif ds_name.startswith("mnist_i"):
+            imbalance_mode, imbalance_ratio = parse_imbalance_name(ds_name, "mnist_i")
+            ds = MnistDatasetClassImbalance(ds=ds,
+                                            imbalance_mode=imbalance_mode,
+                                            imbalance_ratio=imbalance_ratio)
+
+    elif ds_name.startswith("fmnist"):
         ds = FashionMnistDataset(model_img_shape=model_input_shape,
                                  builds_ds_info=False,
                                  batch_size=batch,
                                  augment_train=False)
 
-    elif ds_name.startswith("fmnist_c"):
-        class_size = int(ds_name.removeprefix("fmnist_c"))
-        ds = FashionMnistDatasetCustomClassSize(
-            model_img_shape=model_input_shape,
-            class_size=class_size,
-            builds_ds_info=False,
-            batch_size=batch,
-            augment_train=False)
+        if ds_name.startswith("fmnist_c"):
+            class_size = int(ds_name.removeprefix("fmnist_c"))
+            ds = FashionMnistDatasetClassSize(ds=ds,
+                                              class_size=class_size)
+
+        elif ds_name.startswith("fmnist_i"):
+            imbalance_mode, imbalance_ratio = parse_imbalance_name(ds_name, "fmnist_i")
+            ds = FashionMnistDatasetClassImbalance(ds=ds,
+                                                   imbalance_mode=imbalance_mode,
+                                                   imbalance_ratio=imbalance_ratio)
 
     elif ds_name == "cifar10":
         ds = Cifar10Dataset(model_img_shape=model_input_shape,

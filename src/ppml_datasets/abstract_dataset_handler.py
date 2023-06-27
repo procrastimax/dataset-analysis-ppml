@@ -16,8 +16,6 @@ from io import BytesIO
 
 import PIL
 
-import sys
-
 from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
 from ppml_datasets.piqe import piqe
 
@@ -605,7 +603,7 @@ class AbstractDataset():
     def make_unbalanced_dataset(self,
                                 ds: tf.data.Dataset,
                                 imbalance_ratio: float,
-                                distribution: str = "lin"):
+                                distribution: str = "N"):
         """Create an unbalanced dataset from a balanced one.
 
         Parameter:
@@ -613,7 +611,7 @@ class AbstractDataset():
         ds : dataset to be unbalanced
         imbalance_ratio : float[0-1] -  the unbalance factor to be applied,
                                         a value between 0 (lesser imbalance) and 1 (more imbalance)
-        distribution : str -    either 'lin' (linear) or 'norm' (normal distribution), specifies how the dataset is resampled to introduce imbalance
+        distribution : str -    either 'L' (linear) or 'N' (normal distribution), specifies how the dataset is resampled to introduce imbalance
                                 lin -> the class count is reduced linearely starting from the class with the most samples in class: [100, 90, 80, 70, 60, 50], the imbalance factor specifies how much is subtracted in each iteration
                                 norm -> te class count is reduced with a normal distribution: [50, 60, 70, 60, 50], the imbalance_ratio factor specifies the norm scale, the loc is set to 1-imbalance_ratio
         """
@@ -625,7 +623,7 @@ class AbstractDataset():
         classes, class_count, _ = self.get_class_distribution(ds)
 
         # generate distribution based class imbalance
-        if distribution == "lin":
+        if distribution == "L":
             def linear_descending_distr(class_count: Dict[int, int], subtraction: int) -> list:
                 subtraction = int(subtraction)
 
@@ -655,7 +653,7 @@ class AbstractDataset():
             values = values.reshape((d1, d2, d3, d4))
             return tf.data.Dataset.from_tensor_slices((values, labels))
 
-        elif distribution == "norm":
+        elif distribution == "N":
             random_array = np.random.normal(
                 loc=1-imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
 
@@ -982,3 +980,41 @@ class ModelPreprocessing(Layer):
 
     def call(self, x):
         return self.pre_func(x)
+
+
+@dataclass
+class AbstractDatasetClassSize(AbstractDataset):
+    class_size: int = field(init=False, repr=True)
+
+    def _load_dataset(self):
+        print(f"Creating {self.dataset_name} dataset with class size of {self.class_size}")
+
+        # if we dont use tfds here, the data has to be loaded before calling this function
+        if self.is_tfds_ds:
+            self._load_from_tfds()
+
+        # shuffle ds before reducing class size
+        self.ds_train = self.ds_train.shuffle(
+            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
+
+        self.reduce_samples_per_class_train_ds(self.class_size)
+
+
+@dataclass
+class AbstractDatasetClassImbalance(AbstractDataset):
+    # can eiter be N - normal, L - linear
+    imbalance_mode: str = field(init=False, repr=True)
+    imbalance_ratio: str = field(init=False, repr=True)
+
+    def _load_dataset(self):
+        # if we dont use tfds here, the data has to be loaded before calling this function
+        if self.is_tfds_ds:
+            self._load_from_tfds()
+        print(
+            f"Creating {self.dataset_name} dataset with imbalance of {self.imbalance_ratio} in {self.imbalance_mode} mode")
+
+        self.ds_train = self.make_unbalanced_dataset(
+            self.ds_train, self.imbalance_ratio, distribution=self.imbalance_mode)
+
+        self.ds_train = self.ds_train.shuffle(
+            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
