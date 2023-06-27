@@ -4,7 +4,7 @@
 #SBATCH --mem=16G
 #SBATCH --partition=clara
 #SBATCH --gres=gpu:v100:1
-#SBATCH --time=1-00:00:00
+#SBATCH --time=0-05:00:00
 #SBATCH -o logs/%A-%x-%a.out
 #SBATCH -e logs/%A-%x-%a.error
 #SBATCH --mail-type=FAIL,END
