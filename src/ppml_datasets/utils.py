@@ -2,7 +2,7 @@ import tensorflow as tf
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from typing import Tuple, Any, Dict
+from typing import Tuple, Any, Dict, Optional
 import json
 
 
@@ -144,7 +144,11 @@ def save_dict_as_json(dict_object: Dict[Any, Any], filename: str):
         json.dump(dict_object, f, cls=NpEncoder, indent=2)
 
 
-def load_dict_from_json(filename: str) -> Dict[Any, Any]:
+def load_dict_from_json(filename: str) -> Optional[Dict[Any, Any]]:
     print(f"Loading dict from json file {filename}")
+    if not os.path.isfile(filename):
+        print(f"File {filename} does not exist! Returning None.")
+        return None
+
     with open(filename, "r") as f:
         return json.load(f)

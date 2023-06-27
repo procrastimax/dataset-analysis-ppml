@@ -167,15 +167,20 @@ def main():
     single_model_test_df = None
 
     for ds_name in list_of_ds:
+        # create folder for ds-info
+        # we need this since we save some more information on datasets
+        ds_info_path_specific = os.path.join("ds-info", ds_name)
+        check_create_folder(ds_info_path_specific)
+
         ds = get_dataset(ds_name)
+
+        print(f"----------------{ds_info_path_specific}")
 
         # generate ds_info before preprocessing dataset
         if is_generating_ds_info:
             print("---------------------")
             print("Generating Dataset Info")
             print("---------------------")
-            ds_info_path_specific = os.path.join("ds-info", ds.dataset_name)
-            check_create_folder(ds_info_path_specific)
             ds_info_df = generate_ds_info(ds_info_path=ds_info_path_specific,
                                           ds=ds,
                                           ds_info_df=ds_info_df,
@@ -430,6 +435,13 @@ def get_dataset(ds_name: str) -> AbstractDataset:
 
     ds.ds_info_path = os.path.join(ds_info_path, ds.dataset_name)
     ds.load_dataset()
+
+    ds.build_ds_info(force_regeneration=False,
+                     include_compression=False,
+                     include_piqe=False,
+                     include_fract_dim=False,
+                     include_fdr=False)
+    print(ds.ds_info)
     return ds
 
 

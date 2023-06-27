@@ -19,6 +19,8 @@ import PIL
 from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
 from ppml_datasets.piqe import piqe
 
+import json
+
 
 @dataclass(eq=True, frozen=False)
 class AbstractDataset():
@@ -616,8 +618,6 @@ class AbstractDataset():
                                 norm -> te class count is reduced with a normal distribution: [50, 60, 70, 60, 50], the imbalance_ratio factor specifies the norm scale, the loc is set to 1-imbalance_ratio
         """
         # Convert balanced dataset to numpy arrays
-        print("Creating unbalanced dataset")
-
         (values, labels) = get_ds_as_numpy(ds, unbatch=False)
 
         classes, class_count, _ = self.get_class_distribution(ds)
@@ -654,14 +654,24 @@ class AbstractDataset():
             return tf.data.Dataset.from_tensor_slices((values, labels))
 
         elif distribution == "N":
-            random_array = np.random.normal(
-                loc=1-imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
 
-            # clip array to prevent values greater 1 or too small values
-            random_array = np.clip(random_array, 0.1, 1.0)
-            class_count = (class_count * random_array).astype(int)
+            class_count_dict_path = os.path.join(
+                self.ds_info_path, f"{self.dataset_name}_class_count_dict.json")
+            # check if we can load a previous class_count_dict, and then load it
+            class_count_dict = load_dict_from_json(class_count_dict_path)
+            if class_count_dict is None:
+                # create new class_count_dict if we could not load it
+                random_array = np.random.normal(
+                    loc=1-imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
 
-            class_count_dict = dict(zip(classes, class_count))
+                # clip array to prevent values greater 1 or too small values
+                random_array = np.clip(random_array, 0.1, 1.0)
+                class_count = (class_count * random_array).astype(int)
+                class_count_dict = dict(zip(classes, class_count))
+
+            # convert dict keys to int
+            class_count_dict = {int(k): v for k, v in class_count_dict.items()}
+
             d1, d2, d3, d4 = values.shape
             values = values.reshape((d1, d2*d3*d4))
             (values, labels) = make_imbalance(X=values,
@@ -671,6 +681,9 @@ class AbstractDataset():
 
             d1, _ = values.shape
             values = values.reshape((d1, d2, d3, d4))
+
+            # save the class_count dict to reproduce this dataset
+            save_dict_as_json(class_count_dict, class_count_dict_path)
             return tf.data.Dataset.from_tensor_slices((values, labels))
 
         else:
@@ -720,7 +733,12 @@ class AbstractDataset():
         std_dict["all"] = np.asarray(all_values).std()
         return std_dict
 
-    def build_ds_info(self, force_regeneration: bool = False):
+    def build_ds_info(self,
+                      force_regeneration: bool = False,
+                      include_compression: bool = True,
+                      include_fract_dim: bool = True,
+                      include_piqe: bool = True,
+                      include_fdr: bool = True):
         """Build dataset info dictionary.
 
         This function needs to be called after initializing and loading the dataset,
@@ -755,7 +773,7 @@ class AbstractDataset():
 
         pil_keys = set(["avg_png_size", "avg_jpeg_size", "avg_png_ratio", "avg_jpeg_ratio", "avg_entropy", "avg_byte_count",
                         "clas_avg_entropy", "class_avg_png_size", "class_avg_jpeg_size", "class_avg_png_ratio", "class_avg_jpeg_ratio"])
-        if not pil_keys.issubset(set(self.ds_info.keys())):
+        if (not pil_keys.issubset(set(self.ds_info.keys()))) and include_compression:
             compression_dict = self.calculate_compressed_image_size()
             # calculate metrics for every class and for the whole DS
             dataset_compression = None
@@ -807,7 +825,7 @@ class AbstractDataset():
             # not useful for dataframe
             self.ds_info["class_imbalance"] = self.calculate_class_imbalance()
 
-        if "class_avg_fractal_dim" not in self.ds_info or "avg_fractal_dim" not in self.ds_info:
+        if (("class_avg_fractal_dim" not in self.ds_info) or ("avg_fractal_dim" not in self.ds_info)) and include_fract_dim:
             avg_class_fractal_dim: Dict[int, float] = {}
             avg_ds_fractal_dim: float = 0.0
             fractal_dim_dict = self.calculate_image_fractal_dimension()
@@ -822,7 +840,7 @@ class AbstractDataset():
             self.ds_info["avg_fractal_dim"] = avg_ds_fractal_dim
             self.ds_info["class_avg_fractal_dim"] = avg_class_fractal_dim
 
-        if "class_avg_piqe" not in self.ds_info or "avg_piqe" not in self.ds_info:
+        if ("class_avg_piqe" not in self.ds_info or "avg_piqe" not in self.ds_info) and include_piqe:
             avg_class_piqe: Dict[int, float] = {}
             avg_ds_piqe: float = 0.0
             piqe_dict = self.calculate_piqe_score()
@@ -837,7 +855,7 @@ class AbstractDataset():
             self.ds_info["avg_piqe"] = avg_ds_piqe
             self.ds_info["class_avg_piqe"] = avg_class_piqe
 
-        if "fdr" not in self.ds_info:
+        if "fdr" not in self.ds_info and include_fdr:
             fdr = self.calculate_fdr()
             self.ds_info["fdr"] = fdr
 
@@ -982,7 +1000,7 @@ class ModelPreprocessing(Layer):
         return self.pre_func(x)
 
 
-@dataclass
+@ dataclass
 class AbstractDatasetClassSize(AbstractDataset):
     class_size: int = field(init=False, repr=True)
 
@@ -1000,7 +1018,7 @@ class AbstractDatasetClassSize(AbstractDataset):
         self.reduce_samples_per_class_train_ds(self.class_size)
 
 
-@dataclass
+@ dataclass
 class AbstractDatasetClassImbalance(AbstractDataset):
     # can eiter be N - normal, L - linear
     imbalance_mode: str = field(init=False, repr=True)
