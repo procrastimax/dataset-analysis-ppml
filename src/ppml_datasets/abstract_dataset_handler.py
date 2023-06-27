@@ -613,6 +613,9 @@ class AbstractDataset():
         ds : dataset to be unbalanced
         imbalance_ratio : float[0-1] -  the unbalance factor to be applied,
                                         a value between 0 (lesser imbalance) and 1 (more imbalance)
+        distribution : str -    either 'lin' (linear) or 'norm' (normal distribution), specifies how the dataset is resampled to introduce imbalance
+                                lin -> the class count is reduced linearely starting from the class with the most samples in class: [100, 90, 80, 70, 60, 50], the imbalance factor specifies how much is subtracted in each iteration
+                                norm -> te class count is reduced with a normal distribution: [50, 60, 70, 60, 50], the imbalance_ratio factor specifies the norm scale, the loc is set to 1-imbalance_ratio
         """
         # Convert balanced dataset to numpy arrays
         print("Creating unbalanced dataset")
@@ -643,6 +646,26 @@ class AbstractDataset():
             values = values.reshape((d1, d2*d3*d4))
 
             class_count_dict = linear_descending_distr(class_count_dict, subtraction)
+            (values, labels) = make_imbalance(X=values,
+                                              y=labels,
+                                              sampling_strategy=class_count_dict,
+                                              random_state=self.random_seed)
+
+            d1, _ = values.shape
+            values = values.reshape((d1, d2, d3, d4))
+            return tf.data.Dataset.from_tensor_slices((values, labels))
+
+        elif distribution == "norm":
+            random_array = np.random.normal(
+                loc=1-imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
+
+            # clip array to prevent values greater 1 or too small values
+            random_array = np.clip(random_array, 0.1, 1.0)
+            class_count = (class_count * random_array).astype(int)
+
+            class_count_dict = dict(zip(classes, class_count))
+            d1, d2, d3, d4 = values.shape
+            values = values.reshape((d1, d2*d3*d4))
             (values, labels) = make_imbalance(X=values,
                                               y=labels,
                                               sampling_strategy=class_count_dict,

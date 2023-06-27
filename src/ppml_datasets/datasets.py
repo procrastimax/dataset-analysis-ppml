@@ -8,6 +8,8 @@ from typing import Callable, Tuple, List, Dict, Optional
 from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale
 from ppml_datasets.utils import get_img
 
+import sys
+
 
 class MnistDataset(AbstractDataset):
     def __init__(self, model_img_shape: Tuple[int, int, int],
@@ -94,7 +96,10 @@ class MnistDatasetCustomClassImbalance(AbstractDataset):
         self._load_from_tfds()
         print(f"Creating Mnist dataset with custom imbalance of {self.imbalance_ratio}")
         self.ds_train = self.make_unbalanced_dataset(
-            self.ds_train, self.imbalance_ratio, distribution="lin")
+            self.ds_train, self.imbalance_ratio, distribution="norm")
+
+        sys.exit(1)
+
         self.ds_train = self.ds_train.shuffle(
             buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
 
