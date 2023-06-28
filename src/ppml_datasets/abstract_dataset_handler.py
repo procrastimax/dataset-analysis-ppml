@@ -1009,10 +1009,6 @@ class AbstractDatasetClassSize(AbstractDataset):
         if self.is_tfds_ds:
             self._load_from_tfds()
 
-        # shuffle ds before reducing class size
-        self.ds_train = self.ds_train.shuffle(
-            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
-
         self.reduce_samples_per_class_train_ds(self.class_size)
 
 

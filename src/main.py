@@ -43,7 +43,7 @@ def parse_arguments() -> Dict[str, Any]:
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
     parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str,
-                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, mnist_cX, fmnist, fmnist_cX, cifar10, cifar10gray, mnist_iY. X stands for an arbitrary integer value and Y for an arbitrary float value between 0 and 1.")
+                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, mnist_cX, mnist_iY, fmnist, fmnist_cX, fmnist_iY, cifar10, cifar10_cX, cifar10gray, cifar10gray_cX. X stands for an arbitrary integer value and Y for an arbitrary float value between 0 and 1.")
     parser.add_argument("-m", "--model", required=False, type=str, choices=["small_cnn", "private_small_cnn"],
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
     parser.add_argument("-r", "--run-number", required=False, type=int,
