@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J non-private-attacker
 #SBATCH --ntasks=1
-#SBATCH --mem=16G
+#SBATCH --mem=25G
 #SBATCH --partition=clara
 #SBATCH --gres=gpu:v100:1
 #SBATCH --time=0-10:00:00
@@ -14,7 +14,6 @@ shadow_models=32
 epochs=50
 model="small_cnn"
 batch=250
-
 
 echo "non-private attacking" "$ds" - "$model"
 srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -s $shadow_models -r 0 --epochs $epochs --batch-size $batch --run-amia-attack --generate-results --force-model-retrain

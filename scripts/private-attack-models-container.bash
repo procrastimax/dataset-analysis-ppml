@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J private-attacker
 #SBATCH --ntasks=1
-#SBATCH --mem=16G
+#SBATCH --mem=25G
 #SBATCH --partition=clara
 #SBATCH --gres=gpu:v100:1
 #SBATCH --time=0-15:00:00
