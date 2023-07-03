@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J gen-ds-info
 #SBATCH --ntasks=1
-#SBATCH --mem=16G
+#SBATCH --mem=25G
 #SBATCH --partition=clara
 #SBATCH --time=0-10:00:00
 #SBATCH -o logs/%A-%x-%a.out

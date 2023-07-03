@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J private-learning-single-model-container
 #SBATCH --ntasks=1
-#SBATCH --mem=16G
+#SBATCH --mem=40G
 #SBATCH --partition=clara
 #SBATCH --gres=gpu:v100:1
 #SBATCH --time=0-05:00:00
