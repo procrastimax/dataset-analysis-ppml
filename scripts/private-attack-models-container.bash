@@ -13,7 +13,7 @@ ds='mnist_c5000 fmnist_c5000 cifar10_c5000 cifar10gray_c5000'
 shadow_models=32
 epochs=15
 model="private_small_cnn"
-batch=250
+batch=200
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in

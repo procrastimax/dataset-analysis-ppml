@@ -41,8 +41,8 @@ case $SLURM_ARRAY_TASK_ID in
                 ;;
 esac
 
-batch=250
-micro_batch=250
+batch=200
+micro_batch=200
 
 echo "$SLURM_ARRAY_TASK_ID" "-" "$ds" "-" "$eps"
 srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -r $SLURM_ARRAY_TASK_ID -e $eps -m private_small_cnn -c $l2_norm_clip --epochs $epochs --train-single-model --load-test-single-model --batch-size $batch -b $micro_batch
