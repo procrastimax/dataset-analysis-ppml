@@ -11,4 +11,4 @@
 
 ds='mnist_c5000 fmnist_c5000 cifar10_c5000 cifar10gray_c5000'
 echo "Generating ds-info for $ds"
-srun singularity exec container-dataset-analysis.sif python3.9 src/main.py -d $ds --generate-ds-info
+srun singularity exec container-dataset-analysis.sif python3.9 src/main.py -d $ds --generate-ds-info --force-ds-info-regeneration
