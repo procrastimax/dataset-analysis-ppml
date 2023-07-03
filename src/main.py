@@ -272,22 +272,23 @@ def main():
         check_create_folder(os.path.dirname(result_df_filename))
         save_dataframe(df=single_model_test_df, filename=result_df_filename, use_index=False)
 
-    # save run parameter as json
-    run_params = {
-        "epochs": epochs,
-        "batch": batch,
-        "learning_rate": learning_rate,
-        "momentum": momentum,
-        "weight_decay": weight_decay,
-        "shadow_models": shadow_models,
-        "privacy_epsilon": privacy_epsilon,
-        "l2_norm_clip": l2_norm_clip,
-        "num_microbatches": num_microbatches}
+    if model is not None:
+        # save run parameter as json
+        run_params = {
+            "epochs": epochs,
+            "batch": batch,
+            "learning_rate": learning_rate,
+            "momentum": momentum,
+            "weight_decay": weight_decay,
+            "shadow_models": shadow_models,
+            "privacy_epsilon": privacy_epsilon,
+            "l2_norm_clip": l2_norm_clip,
+            "num_microbatches": num_microbatches}
 
-    param_filepath = os.path.join(result_path, model.model_name, str(run_number), "parameter.csv")
-    print(f"Saving program parameter to: {param_filepath}")
-    with open(param_filepath, "w") as f:
-        json.dump(run_params, f)
+        param_filepath = os.path.join(result_path, model.model_name, str(run_number), "parameter.csv")
+        print(f"Saving program parameter to: {param_filepath}")
+        with open(param_filepath, "w") as f:
+            json.dump(run_params, f)
 
 
 def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame, force_ds_info_regen: bool) -> pd.DataFrame:

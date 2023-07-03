@@ -141,7 +141,7 @@ class NpEncoder(json.JSONEncoder):
 def save_dict_as_json(dict_object: Dict[Any, Any], filename: str):
     print(f"Saving dict as json file {filename}")
     with open(filename, "w") as f:
-        json.dump(dict_object, f, cls=NpEncoder, indent=2)
+        json.dump(dict_object, f, cls=NpEncoder, indent=2, ensure_ascii=True)
 
 
 def load_dict_from_json(filename: str) -> Optional[Dict[Any, Any]]:

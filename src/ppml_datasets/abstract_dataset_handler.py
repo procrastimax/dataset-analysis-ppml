@@ -347,7 +347,7 @@ class AbstractDataset():
                 class_weights[f"{self.class_names[y]}({y})"] = weight
         else:
             class_weights = dict(enumerate(weights))
-        return (class_counts_dict, class_weights)
+        return class_counts_dict, class_weights
 
     def get_data_histogram(self, use_mean: bool = False) -> Tuple[np.array, np.array]:
         """Calculate histogram from train datasets.
@@ -363,7 +363,7 @@ class AbstractDataset():
             samples = np.mean(samples, axis=(0))
 
         hist, bins = np.histogram(samples, bins=range(255), density=True)
-        return (hist, bins)
+        return hist, bins
 
     def get_dataset_count(self) -> Dict[str, int]:
         """Calculate number of datapoints for each part of the dataset (train,test,val)."""
@@ -634,12 +634,12 @@ class AbstractDataset():
                 return sorted_class_count
 
             subtraction = max(class_count) / ((len(class_count) +
-                                               len(class_count) * (1-imbalance_ratio)))
+                                               len(class_count) * (1 - imbalance_ratio)))
 
             class_count_dict = dict(zip(classes, class_count))
 
             d1, d2, d3, d4 = values.shape
-            values = values.reshape((d1, d2*d3*d4))
+            values = values.reshape((d1, d2 * d3 * d4))
 
             class_count_dict = linear_descending_distr(class_count_dict, subtraction)
             (values, labels) = make_imbalance(X=values,
@@ -660,7 +660,7 @@ class AbstractDataset():
             if class_count_dict is None:
                 # create new class_count_dict if we could not load it
                 random_array = np.random.normal(
-                    loc=1-imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
+                    loc=1 - imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
 
                 # clip array to prevent values greater 1 or too small values
                 random_array = np.clip(random_array, 0.1, 1.0)
@@ -671,7 +671,7 @@ class AbstractDataset():
             class_count_dict = {int(k): v for k, v in class_count_dict.items()}
 
             d1, d2, d3, d4 = values.shape
-            values = values.reshape((d1, d2*d3*d4))
+            values = values.reshape((d1, d2 * d3 * d4))
             (values, labels) = make_imbalance(X=values,
                                               y=labels,
                                               sampling_strategy=class_count_dict,
@@ -726,7 +726,7 @@ class AbstractDataset():
 
         std_dict: Dict[str, float] = {}
         for k in class_values.keys():
-            std_dict[k] = np.asarray(class_values[k]).std()
+            std_dict[int(k)] = np.asarray(class_values[k]).std()
 
         std_dict["all"] = np.asarray(all_values).std()
         return std_dict
@@ -801,11 +801,11 @@ class AbstractDataset():
                 avg_jpeg_size = np.average(v[:, 4])
                 avg_jpeg_ratio = np.average(v[:, 5])
 
-                avg_class_entropy[k] = avg_entropy
-                avg_class_png_size[k] = avg_png_size
-                avg_class_png_ratio[k] = avg_png_ratio
-                avg_class_jpeg_size[k] = avg_jpeg_size
-                avg_class_jpeg_ratio[k] = avg_jpeg_ratio
+                avg_class_entropy[int(k)] = avg_entropy
+                avg_class_png_size[int(k)] = avg_png_size
+                avg_class_png_ratio[int(k)] = avg_png_ratio
+                avg_class_jpeg_size[int(k)] = avg_jpeg_size
+                avg_class_jpeg_ratio[int(k)] = avg_jpeg_ratio
 
             self.ds_info['avg_byte_count'] = avg_ds_byte_size,
             self.ds_info['avg_entropy'] = avg_ds_entropy,
@@ -864,6 +864,12 @@ class AbstractDataset():
             del (std_dict["all"])
             self.ds_info["class_std"] = std_dict
 
+        # prettify ds info dict
+        for k, v in self.ds_info.items():
+            if isinstance(v, tuple):
+                if len(v) == 1:
+                    # unpack tupled values
+                    self.ds_info[k], = v
         print(self.ds_info)
 
     def get_ds_info_as_df(self) -> pd.DataFrame:
