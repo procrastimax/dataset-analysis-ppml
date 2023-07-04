@@ -230,7 +230,7 @@ def main():
             print("Running AMIA attack (train shadow models, calc statistics, run attack)")
             print("---------------------")
             shadow_model_save_path: str = os.path.join(
-                model_path, run_name, str(run_number), "shadow_models", ds.dataset_name)
+                model_path, model_name, run_name, str(run_number), "shadow_models", ds.dataset_name)
             check_create_folder(shadow_model_save_path)
 
             # make sure that the num_microbatches var is not set when training non-private models
