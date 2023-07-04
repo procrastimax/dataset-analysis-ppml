@@ -133,13 +133,14 @@ class AmiaAttack():
                 keep: np.ndarray = self.in_indices[i]
             else:
                 # Generate a binary array indicating which example to include for training
-                # make sure that the number of True elements is dividible by 2 for the microbatches
+                # make sure that the number of True elements is dividible by the number of values in microbatches
                 keep = np.random.binomial(
                     1, 0.5, size=self.num_training_samples).astype(bool)
 
                 if num_microbatch is not None:
                     while keep.sum() % num_microbatch != 0:
-                        keep = np.random.binomial(1, 0.5, size=self.num_training_samples).astype(bool)
+                        keep = np.random.binomial(
+                            1, 0.5, size=self.num_training_samples).astype(bool)
 
                 self.in_indices.append(keep)
 
