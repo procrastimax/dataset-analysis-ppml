@@ -48,6 +48,8 @@ def parse_arguments() -> Dict[str, Any]:
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
     parser.add_argument("-r", "--run-number", required=False, type=int,
                         help="The run number to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results.", metavar="R")
+    parser.add_argument("-n", "--run-name", required=False, type=str, default="default",
+                        help="The run name to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results. The naming hierarchy here is: model_name/run_name/run_number.", metavar="N")
     parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int,
                         help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
     parser.add_argument("--train-single-model", action="store_true",
@@ -81,7 +83,7 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument("--include-mia", action="store_true",
                         help="If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.")
     parser.add_argument("-e", "--epsilon", type=float, default=1.0,
-                        help="The desired epsilon value for DP-SGD learning. Can be any value: 0, 0.1, 1, 10, None (if not set)")
+                        help="The desired epsilon value for DP-SGD learning. Can be any value: 0.1, 1, 10, ...")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -94,6 +96,7 @@ def main():
 
     list_of_ds: List[str] = args["datasets"]
     run_number: int = args["run_number"]
+    run_name: str = args["run_name"]
     model_name: str = args["model"]
     num_shadow_models: int = args["shadow_model_number"]
     is_training_single_model: bool = args["train_single_model"]
@@ -189,7 +192,7 @@ def main():
         model = None
         if is_training_single_model or is_load_test_single_model or is_running_amia_attack:
             model_save_path: str = os.path.join(
-                model_path, model_name, str(run_number), ds.dataset_name)
+                model_path, model_name, run_name, str(run_number), ds.dataset_name)
             check_create_folder(model_save_path)
             model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
             model = load_model(model_save_file,
@@ -210,13 +213,13 @@ def main():
             print("---------------------")
             print("Training single model")
             print("---------------------")
-            train_model(ds=ds, model=model, run_number=run_number)
+            train_model(ds=ds, model=model, run_name=run_name, run_number=run_number)
 
         if is_load_test_single_model:
             print("---------------------")
             print("Loading and testing single model")
             print("---------------------")
-            result_df = load_and_test_model(ds, model, run_number)
+            result_df = load_and_test_model(ds, model)
             if single_model_test_df is None:
                 single_model_test_df = result_df
             else:
@@ -227,7 +230,7 @@ def main():
             print("Running AMIA attack (train shadow models, calc statistics, run attack)")
             print("---------------------")
             shadow_model_save_path: str = os.path.join(
-                model_path, str(run_number), "shadow_models", ds.dataset_name)
+                model_path, run_name, str(run_number), "shadow_models", ds.dataset_name)
             check_create_folder(shadow_model_save_path)
 
             # make sure that the num_microbatches var is not set when training non-private models
@@ -267,7 +270,7 @@ def main():
 
     if is_load_test_single_model:
         # save result_df with model's accuracy, loss, etc. gathered as csv
-        result_df_filename = os.path.join(result_path, model.model_name, str(
+        result_df_filename = os.path.join(result_path, model.model_name, run_name, str(
             run_number), "single-model-train", f'{"-".join(list_of_ds)}_model_predict_results.csv')
         check_create_folder(os.path.dirname(result_df_filename))
         save_dataframe(df=single_model_test_df, filename=result_df_filename, use_index=False)
@@ -285,7 +288,8 @@ def main():
             "l2_norm_clip": l2_norm_clip,
             "num_microbatches": num_microbatches}
 
-        param_filepath = os.path.join(result_path, model.model_name, str(run_number), "parameter.csv")
+        param_filepath = os.path.join(result_path, model.model_name, run_name,
+                                      str(run_number), "parameter.csv")
         print(f"Saving program parameter to: {param_filepath}")
         with open(param_filepath, "w") as f:
             json.dump(run_params, f)
@@ -454,14 +458,14 @@ def get_dataset(ds_name: str) -> AbstractDataset:
     return ds
 
 
-def train_model(ds: AbstractDataset, model: Model, run_number: int):
+def train_model(ds: AbstractDataset, model: Model, run_name: str, run_number: int):
     model.build_compile()
     model.print_summary()
     model.train_model_from_ds(train_ds=ds.ds_train, val_ds=ds.ds_test)
     model.save_model()
 
     train_history_folder = os.path.join(
-        result_path, model.model_name, str(run_number), "single-model-train")
+        result_path, model.model_name, run_name, str(run_number), "single-model-train")
     model.save_train_history(folder_name=train_history_folder,
                              image_name=f"{ds.dataset_name}_model_train_history.png")
     # avoid OOM
@@ -469,7 +473,7 @@ def train_model(ds: AbstractDataset, model: Model, run_number: int):
     gc.collect()
 
 
-def load_and_test_model(ds: AbstractDataset, model: Model, run_number: int) -> pd.DataFrame:
+def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
     model.load_model()
     model.compile_model()
     model.print_summary()
