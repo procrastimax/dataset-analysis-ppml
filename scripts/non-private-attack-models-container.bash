@@ -16,4 +16,4 @@ model="small_cnn"
 batch=150
 
 echo "non-private attacking" "$ds" - "$model"
-srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -s $shadow_models -r 0 --epochs $epochs --batch-size $batch --run-amia-attack --generate-results --force-model-retrain
+srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -s $shadow_models -r 0 --epochs $epochs --batch-size $batch --run-amia-attack --generate-results --force-model-retrain -n "non-private-attack-c5000"

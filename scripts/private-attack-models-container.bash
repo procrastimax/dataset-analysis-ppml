@@ -26,4 +26,4 @@ case $SLURM_ARRAY_TASK_ID in
 esac
 
 echo "private-attacking" "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
-srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -e $eps -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID --epochs $epochs -b $batch --batch-size $batch --run-amia-attack --generate-results --force-model-retrain
+srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -e $eps -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID --epochs $epochs -b $batch --batch-size $batch --run-amia-attack --generate-results --force-model-retrain -n "private-attack-c5000"
