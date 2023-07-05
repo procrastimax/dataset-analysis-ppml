@@ -17,27 +17,37 @@ case $SLURM_ARRAY_TASK_ID in
         0)
                 l2_norm_clip=1.0
                 eps=1.0
-                epochs=20
+                epochs=10
                 ;;
         1)
                 l2_norm_clip=2.0
                 eps=1.0
-                epochs=20
+                epochs=10
                 ;;
         2)
                 l2_norm_clip=1.0
                 eps=1.0
-                epochs=30
+                epochs=15
                 ;;
         3)
                 l2_norm_clip=1.0
                 eps=0.1
-                epochs=20
+                epochs=10
                 ;;
         4)
                 l2_norm_clip=1.0
                 eps=10
-                epochs=20
+                epochs=10
+                ;;
+        5)
+                l2_norm_clip=1.0
+                eps=30
+                epochs=10
+                ;;
+        6)
+                l2_norm_clip=1.0
+                eps=50
+                epochs=10
                 ;;
 esac
 
