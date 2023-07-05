@@ -2,7 +2,7 @@ import tensorflow as tf
 from typing import Optional
 from model import Model
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
-from ppml_datasets.utils import check_create_folder
+from ppml_datasets.utils import check_create_folder, get_ds_as_numpy
 import numpy as np
 
 from util import pickle_object, unpickle_object
@@ -130,28 +130,14 @@ class AmiaAttack():
                                       f"shadow_model_{i}_lr{self.cnn_model.learning_rate}_b{self.cnn_model.batch_size}_e{self.cnn_model.epochs}")
 
             if loaded_indices:
-                keep: np.ndarray = self.in_indices[i]
+                keep = self.in_indices[i]
             else:
-                # Generate a binary array indicating which example to include for training
-                # make sure that the number of True elements is dividible by the number of values in microbatches
-                keep = np.random.binomial(
-                    1, 0.5, size=self.num_training_samples).astype(bool)
-
-                if num_microbatch is not None:
-                    while keep.sum() % num_microbatch != 0:
-                        keep = np.random.binomial(
-                            1, 0.5, size=self.num_training_samples).astype(bool)
-
+                keep = self.ds.generate_class_dependent_in_indices(train_samples, train_labels, reduction_factor=0.5)
                 self.in_indices.append(keep)
 
             # prepare model for new train iteration
             self.cnn_model.model_path = model_path
             self.cnn_model.history = None
-
-            train_count = keep.sum()
-
-            print(
-                f"Using {train_count} training samples")
 
             # load model if already trained, else train & save it
             if os.path.exists(model_path) and not force_retraining:

@@ -118,17 +118,6 @@ class AbstractDataset():
             self.ds_train = ds_dict["train"]
             print("Loaded train DS")
 
-    def split_val_from_train(self, val_split: float = 0.3) -> Tuple[int, int]:
-        """Split train dataset into validation and train dataset.
-
-        Returns new length of train and validation DS
-        """
-        self.ds_train, self.ds_val = tf.keras.utils.split_dataset(
-            self.ds_train, right_size=val_split,
-            shuffle=True, seed=self.random_seed)
-
-        return (len(self.ds_train), len(self.ds_val))
-
     def resplit_datasets(self, train_val_test_split: Tuple[float, float, float], percentage_loaded_data: int = 100):
         """Resplits all datasets (train, val, test) into new split values.
 
@@ -164,7 +153,53 @@ class AbstractDataset():
             self.ds_val, self.ds_test = tf.keras.utils.split_dataset(
                 right_ds, left_size=val_split / (val_split + test_split), shuffle=False)
 
-    def reduce_samples_per_class_train_ds(self, max_samples_per_class: int):
+    def generate_class_dependent_in_indices(self, values: np.array, labels: np.array, reduction_factor: float) -> np.array:
+        """Generate a in_indices/keep list dependant on the class size. This reduces the dataset size not generally by a specific factor, but reduces each class by this factor.
+
+        Parameter:
+        --------
+        values : np.array - samples/ values numpy array
+        labels : np.array - labels numpy array
+        reduction_factor : float - the factor which specifies the amount of data sampls removed per class
+
+        Return:
+        ------
+        np.array - keep in_indices
+
+        """
+        class_arrays_in: Dict[int, list] = defaultdict(list)
+
+        for data, label in zip(values, labels):
+            class_arrays_in[int(label)].append(data)
+
+        for class_name, data_list in class_arrays_in.items():
+            class_arrays_in[class_name] = np.array(data_list)
+
+        class_keep = {}
+        for k, v in class_arrays_in.items():
+            # generate random bool array with exactly X True values
+            keep = np.zeros(len(v), dtype=bool)
+            true_indices = np.random.choice(keep.size, int(len(v) * reduction_factor), replace=False)
+            keep.flat[true_indices] = True
+            class_keep[k] = keep
+
+        in_indices: List[bool] = []
+        for data, label in zip(values, labels):
+            in_indices.append(class_keep[label][0])
+            class_keep[label] = class_keep[label][1:]
+
+        return np.array(in_indices)
+
+    def reduce_samples_per_class_train_ds(self, max_samples_per_class: int) -> None:
+        """Reduce all samples in the train_ds per class to a specific value.
+
+        The train_ds is directly modified, no dataset copy is returned.
+
+        Parameter:
+        --------
+        max_samples_per_class : int - the number of samples that all classes should get reduced to
+
+        """
         sample_counters = defaultdict(int)
         reduced_samples = []
 

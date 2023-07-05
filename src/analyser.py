@@ -16,6 +16,8 @@ from datasetstore import DatasetStore
 class Analyser():
     def __init__(self,
                  ds_list: List[AbstractDataset],
+                 model_name: str,
+                 run_name: str,
                  run_number: int,
                  result_path: str,
                  model_path: str,
@@ -30,7 +32,7 @@ class Analyser():
         self.ds_list = ds_list
         self.num_shadow_models = num_shadow_models
 
-        self.amia_result_path = os.path.join(result_path, str(run_number))
+        self.amia_result_path = os.path.join(result_path, model_name, run_name, str(run_number))
         self.attack_statistics_folder: str = os.path.join(
             self.amia_result_path, "attack-statistics")
         self.single_model_train_results: str = os.path.join(
@@ -43,9 +45,9 @@ class Analyser():
         self.dataset_data: Dict[str, DatasetStore] = {}
 
         for ds in ds_list:
-            model_save_path: str = os.path.join(model_path, str(run_number), ds.dataset_name)
+            model_save_path: str = os.path.join(model_path, model_name, run_name, str(run_number), ds.dataset_name)
             shadow_model_save_path: str = os.path.join(
-                model_path, str(run_number), "shadow_models", ds.dataset_name)
+                model_path, model_name, run_name, str(run_number), "shadow_models", ds.dataset_name)
             numpy_path: str = os.path.join(shadow_model_save_path, "data")
             in_indices_filename = os.path.join(numpy_path, "in_indices.pckl")
             stat_filename = os.path.join(numpy_path, "model_stat.pckl")

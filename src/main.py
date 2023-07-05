@@ -145,7 +145,7 @@ def main():
 
     ds_info_df = pd.DataFrame()
 
-    amia_result_path = os.path.join(result_path, str(run_number))
+    amia_result_path = os.path.join(result_path, model_name, run_name, str(run_number))
     ds_info_path = "ds-info"
 
     if is_training_single_model or is_load_test_single_model or is_running_amia_attack:
@@ -252,6 +252,8 @@ def main():
         print("Compiling attack results")
         print("---------------------")
         analyser = Analyser(ds_list=loaded_ds_list,
+                            model_name=model.model_name,
+                            run_name=run_name,
                             run_number=run_number,
                             result_path=result_path,
                             model_path=model_path,
@@ -289,7 +291,9 @@ def main():
             "num_microbatches": num_microbatches}
 
         param_filepath = os.path.join(result_path, model.model_name, run_name,
-                                      str(run_number), "parameter.csv")
+                                      str(run_number))
+        check_create_folder(param_filepath)
+        param_filepath = os.path.join(param_filepath, "parameter.csv")
         print(f"Saving program parameter to: {param_filepath}")
         with open(param_filepath, "w") as f:
             json.dump(run_params, f)
@@ -450,11 +454,6 @@ def get_dataset(ds_name: str) -> AbstractDataset:
     ds.ds_info_path = os.path.join(ds_info_path, ds.dataset_name)
     ds.load_dataset()
 
-    ds.build_ds_info(force_regeneration=True,
-                     include_compression=False,
-                     include_piqe=False,
-                     include_fract_dim=False,
-                     include_fdr=False)
     return ds
 
 
