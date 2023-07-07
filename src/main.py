@@ -24,8 +24,6 @@ momentum: Optional[float] = None
 weight_decay: Optional[float] = None
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 
-shadow_models: int = 16
-
 # Private Training Related Parameter
 l2_norm_clip: float = 1.0
 num_microbatches: int = batch
@@ -285,7 +283,7 @@ def main():
             "learning_rate": learning_rate,
             "momentum": momentum,
             "weight_decay": weight_decay,
-            "shadow_models": shadow_models,
+            "shadow_models": num_shadow_models,
             "privacy_epsilon": privacy_epsilon,
             "l2_norm_clip": l2_norm_clip,
             "num_microbatches": num_microbatches}
