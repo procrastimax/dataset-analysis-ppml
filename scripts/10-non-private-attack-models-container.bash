@@ -13,7 +13,7 @@ ds='mnist_c5000 fmnist_c5000 cifar10_c5000 cifar10gray_c5000'
 shadow_models=32
 epochs=50
 model="small_cnn"
-batch=150
+batch=200
 
 echo "non-private attacking" "$ds" - "$model"
 srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -s $shadow_models -r 0 --epochs $epochs --batch-size $batch --run-amia-attack --generate-results --force-model-retrain -n "non-private-attack-c5000"
