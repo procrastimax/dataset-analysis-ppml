@@ -132,7 +132,8 @@ class AmiaAttack():
             if loaded_indices:
                 keep = self.in_indices[i]
             else:
-                keep = self.ds.generate_class_dependent_in_indices(train_samples, train_labels, reduction_factor=0.5)
+                keep = self.ds.generate_class_dependent_in_indices(
+                    train_samples, train_labels, reduction_factor=0.5)
                 self.in_indices.append(keep)
 
             # prepare model for new train iteration
