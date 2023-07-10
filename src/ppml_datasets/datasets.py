@@ -182,6 +182,28 @@ class Cifar10DatasetClassSize(AbstractDatasetClassSize):
                          builds_ds_info=self.ds.builds_ds_info)
 
 
+class Cifar10DatsetClassImbalance(AbstractDatasetClassImbalance):
+    def __init__(self,
+                 ds: Cifar10Dataset,
+                 imbalance_mode: str,
+                 imbalance_ratio: float):
+        self.imbalance_mode = imbalance_mode
+        self.imbalance_ratio = imbalance_ratio
+        self.ds = ds
+        super().__init__(tfds_name=self.ds.tfds_name,
+                         num_classes=self.ds.num_classes,
+                         dataset_name=f"{self.ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+                         dataset_path=self.ds.dataset_path,
+                         model_img_shape=self.ds.model_img_shape,
+                         dataset_img_shape=self.ds.dataset_img_shape,
+                         batch_size=self.ds.batch_size,
+                         convert_to_rgb=self.ds.convert_to_rgb,
+                         augment_train=self.ds.augment_train,
+                         shuffle=self.ds.shuffle,
+                         is_tfds_ds=self.ds.is_tfds_ds,
+                         builds_ds_info=self.ds.builds_ds_info)
+
+
 class Cifar10GrayDataset(AbstractDataset):
     def __init__(self, model_img_shape: Tuple[int, int, int],
                  builds_ds_info: bool = False,

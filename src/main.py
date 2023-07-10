@@ -6,7 +6,7 @@ from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
 from util import save_dataframe, plot_histogram
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10GrayDataset, Cifar10GrayDatasetClassSize, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10GrayDataset, Cifar10GrayDatasetClassSize, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance, Cifar10DatsetClassImbalance
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
@@ -433,6 +433,11 @@ def get_dataset(ds_name: str) -> AbstractDataset:
             class_size = int(ds_name.removeprefix("cifar10_c"))
             ds = Cifar10DatasetClassSize(ds=ds,
                                          class_size=class_size)
+        elif ds_name.startswith("cifar10_i"):
+            imbalance_mode, imbalance_ratio = parse_imbalance_name(ds_name, "cifar10_i")
+            ds = Cifar10DatsetClassImbalance(ds=ds,
+                                             imbalance_mode=imbalance_mode,
+                                             imbalance_ratio=imbalance_ratio)
 
         elif ds_name.startswith("cifar10gray"):
             ds = Cifar10GrayDataset(model_img_shape=model_input_shape,
