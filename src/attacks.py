@@ -150,8 +150,7 @@ class AmiaAttack():
                 self.cnn_model.train_model_from_numpy(x=train_samples[keep],
                                                       y=train_labels[keep],
                                                       val_x=train_samples[~keep],
-                                                      val_y=train_labels[~keep],
-                                                      batch=self.cnn_model.batch_size)  # specify batch size here, since numpy data is unbatched
+                                                      val_y=train_labels[~keep])
                 self.cnn_model.save_model()
                 print(f"Trained and saved model: {model_path}")
 

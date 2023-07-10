@@ -84,8 +84,12 @@ class Model(ABC):
                                patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
-        ds_len = len(list(train_ds.unbatch().as_numpy_iterator()))
+        # create new DS and cut off the samples that did not fit into a batch
+        train_ds = train_ds.unbatch()
+        ds_len = len(list(train_ds.as_numpy_iterator()))
         steps_per_epoch = ds_len // self.batch_size
+        train_ds = train_ds.take(self.batch_size * steps_per_epoch)
+        train_ds = train_ds.batch(self.batch_size)
 
         self.history = self.model.fit(x=train_ds,
                                       validation_data=val_ds,
@@ -98,26 +102,25 @@ class Model(ABC):
     def train_model_from_numpy(self,
                                x: np.ndarray,
                                y: np.ndarray,
-                               batch: int,
-                               val_x: Optional[np.ndarray] = None,
-                               val_y: Optional[np.ndarray] = None,
-                               val_split: Optional[float] = None) -> tf.keras.callbacks.History:
+                               val_x: np.ndarray,
+                               val_y: np.ndarray) -> tf.keras.callbacks.History:
         callback_list = []
         if self.use_early_stopping:
             es = EarlyStopping(monitor='val_accuracy', mode='max', verbose=1,
                                patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
-        validation_data = None
-        if val_x is not None and val_y is not None:
-            validation_data = (val_x, val_y)
+        validation_data = (val_x, val_y)
 
         steps_per_epoch = len(x) // self.batch_size
 
+        # create new numpy array and cut off the samples that did not fit into a batch
+        x = x[:self.batch_size * steps_per_epoch]
+        y = y[:self.batch_size * steps_per_epoch]
+
         self.history = self.model.fit(x=x, y=y, validation_data=validation_data,
-                                      validation_split=val_split,
                                       epochs=self.epochs,
-                                      batch_size=batch,
+                                      batch_size=self.batch_size,
                                       steps_per_epoch=steps_per_epoch,
                                       callbacks=callback_list)
         return self.history
