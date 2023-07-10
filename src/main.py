@@ -167,6 +167,10 @@ def main():
 
     single_model_test_df = None
 
+    print("=========================================")
+    print("=========================================")
+    print("=========================================")
+
     for ds_name in list_of_ds:
         # create folder for ds-info
         # we need this since we save some more information on datasets
