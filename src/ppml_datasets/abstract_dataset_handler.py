@@ -179,7 +179,8 @@ class AbstractDataset():
         for k, v in class_arrays_in.items():
             # generate random bool array with exactly X True values
             keep = np.zeros(len(v), dtype=bool)
-            true_indices = np.random.choice(keep.size, int(len(v) * reduction_factor), replace=False)
+            true_indices = np.random.choice(keep.size, int(
+                len(v) * reduction_factor), replace=False)
             keep.flat[true_indices] = True
             class_keep[k] = keep
 

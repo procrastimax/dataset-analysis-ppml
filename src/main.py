@@ -23,6 +23,7 @@ learning_rate: float = 0.001
 momentum: Optional[float] = None
 weight_decay: Optional[float] = None
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
+random_seed: int = 42
 
 # Private Training Related Parameter
 l2_norm_clip: float = 1.0
@@ -343,6 +344,7 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
         model = SmallCNNModel(img_height=32,
                               img_width=32,
                               color_channels=3,
+                              seed=random_seed,
                               num_classes=num_of_classes,
                               batch_size=batch,
                               model_name="small_cnn",
@@ -357,6 +359,7 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
         model = PrivateSmallCNNModel(img_height=32,
                                      img_width=32,
                                      color_channels=3,
+                                     seed=random_seed,
                                      num_classes=num_of_classes,
                                      batch_size=batch,
                                      model_name="private_small_cnn",

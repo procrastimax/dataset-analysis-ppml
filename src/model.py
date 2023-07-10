@@ -20,6 +20,7 @@ class Model(ABC):
     num_classes: int
     batch_size: int
     epochs: int
+    random_seed: int
 
     model_path: str
     model_name: str
@@ -88,6 +89,7 @@ class Model(ABC):
         train_ds = train_ds.unbatch()
         ds_len = len(list(train_ds.as_numpy_iterator()))
         steps_per_epoch = ds_len // self.batch_size
+        train_ds = train_ds.repeat()
         train_ds = train_ds.take(self.batch_size * steps_per_epoch)
         train_ds = train_ds.batch(self.batch_size)
 
@@ -166,6 +168,7 @@ class SmallCNNModel(Model):
         model = tf.keras.models.Sequential()
         # Add a layer to do random horizontal augmentation.
         model.add(tf.keras.layers.RandomFlip('horizontal',
+                                             seed=self.random_seed,
                                              input_shape=(self.img_height, self.img_width, 3)))
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
@@ -210,6 +213,7 @@ class PrivateSmallCNNModel(Model):
         model = tf.keras.models.Sequential()
         # Add a layer to do random horizontal augmentation.
         model.add(tf.keras.layers.RandomFlip('horizontal',
+                                             seed=self.random_seed,
                                              input_shape=(self.img_height, self.img_width, 3)))
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
