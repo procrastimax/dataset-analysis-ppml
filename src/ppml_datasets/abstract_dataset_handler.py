@@ -699,7 +699,7 @@ class AbstractDataset():
                     loc=1 - imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
 
                 # clip array to prevent values greater 1 or too small values
-                random_array = np.clip(random_array, 0.1, 1.0)
+                random_array = np.clip(random_array, 0.05, 1.0)
                 class_count = (class_count * random_array).astype(int)
                 class_count_dict = dict(zip(classes, class_count))
 
