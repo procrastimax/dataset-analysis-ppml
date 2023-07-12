@@ -658,31 +658,30 @@ class AbstractDataset():
 
         # generate distribution based class imbalance
         if distribution == "L":
-            def linear_descending_distr(class_count: Dict[int, int], subtraction: int) -> list:
-                subtraction = int(subtraction)
 
-                sorted_class_count = dict(
-                    sorted(class_count.items(), key=lambda x: x[1], reverse=True))
-                i = 0
-                for (k, v) in sorted_class_count.items():
-                    sorted_class_count[k] = abs(v - (subtraction * i))
-                    i += 1
-                return sorted_class_count
+            classes_class_count = zip(classes, class_count)
+            # sort classes by class count, first entry is largest class
+            classes_class_count = sorted(classes_class_count, key=lambda x: x[1], reverse=True)
 
-            subtraction = max(class_count) / ((len(class_count) +
-                                               len(class_count) * (1 - imbalance_ratio)))
+            # create the imbalanced class counts
+            # the smallest class size is multiplied with the imbalance_ratio factor, therefore decreasing its size
+            new_class_counts = np.linspace(
+                classes_class_count[0][1], int(classes_class_count[-1][1] * imbalance_ratio), num=len(classes_class_count))
 
-            class_count_dict = dict(zip(classes, class_count))
+            class_count_dict = {}
+            for i, (class_count) in enumerate(classes_class_count):
+                # only reduce class size if is not already smaller than the newly calculated value for it
+                if class_count[1] > new_class_counts[i]:
+                    class_count_dict[class_count[0]] = int(new_class_counts[i])
+                else:
+                    class_count_dict[class_count[0]] = class_count[1]
 
             d1, d2, d3, d4 = values.shape
             values = values.reshape((d1, d2 * d3 * d4))
-
-            class_count_dict = linear_descending_distr(class_count_dict, subtraction)
             (values, labels) = make_imbalance(X=values,
                                               y=labels,
                                               sampling_strategy=class_count_dict,
                                               random_state=self.random_seed)
-
             d1, _ = values.shape
             values = values.reshape((d1, d2, d3, d4))
             return tf.data.Dataset.from_tensor_slices((values, labels))
