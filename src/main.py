@@ -373,47 +373,58 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
     return model
 
 
-def parse_imbalance_name(complete_str: str, base_str: str) -> (str, float):
-    """Parse a complete imbalance dataset name to the imbalance mode and imbalance ratio values.
+def _parse_dataset_name_parameter(ds_mods: List[str]) -> Dict[str, List[Any]]:
+    # check if there are really modifications
+    if len(ds_mods) <= 1:
+        return {}
 
-    Parameter:
-    --------
-    complete_str : str - full name of the passed dataset name, e.g.: mnist_iN0.4
-    base_str : str - name of the passed dataset modification (in this case imbalance modification), e.g.: mnist_i
-    """
-    imbalance_mode = str(complete_str.removeprefix(base_str))
-    imbalance_ratio = float(imbalance_mode[1:])
+    mod_dict = {}
+    for mod in ds_mods:
+        if mod.startswith("c"):
+            class_size = int(mod.removeprefix("c"))
+            mod_dict["c"] = [class_size]
 
-    imbalance_mode = imbalance_mode[0]
+        if mod.startswith("gray"):
+            mod_dict["gray"] = [True]
 
-    if imbalance_mode not in ("L", "N"):
-        print(f"Unknown imbalance mode: {imbalance_mode}!")
-        sys.exit(1)
+        if mod.startswith("i"):
+            mod = mod.removeprefix("i")
+            imbalance_ratio = float(mod[1:])
+            imbalance_mode = mod[0]
 
-    return (imbalance_mode, imbalance_ratio)
+            if imbalance_mode not in ("L", "N"):
+                print(f"Unknown imbalance mode: {imbalance_mode}")
+                continue
+            mod_dict["i"] = [imbalance_mode, imbalance_ratio]
+
+    return mod_dict
 
 
 def get_dataset(ds_name: str) -> AbstractDataset:
     ds = None
 
-    if ds_name.startswith("mnist"):
+    parameterized_name = ds_name.split("_")
+    mod_params = _parse_dataset_name_parameter(parameterized_name)
+
+    print(mod_params)
+
+    if parameterized_name[0] == "mnist":
         ds = MnistDataset(model_img_shape=model_input_shape,
                           builds_ds_info=False,
                           batch_size=batch,
                           augment_train=False)
 
-        if ds_name.startswith("mnist_c"):
-            class_size = int(ds_name.removeprefix("mnist_c"))
+        if "c" in mod_params:
+            class_size = mod_params["c"][0]
             ds = MnistDatasetClassSize(ds=ds,
                                        class_size=class_size)
-
-        elif ds_name.startswith("mnist_i"):
-            imbalance_mode, imbalance_ratio = parse_imbalance_name(ds_name, "mnist_i")
+        if "i" in mod_params:
+            (imbalance_mode, imbalance_ratio) = mod_params["i"]
             ds = MnistDatasetClassImbalance(ds=ds,
                                             imbalance_mode=imbalance_mode,
                                             imbalance_ratio=imbalance_ratio)
 
-    elif ds_name.startswith("fmnist"):
+    elif parameterized_name[0] == "fmnist":
         ds = FashionMnistDataset(model_img_shape=model_input_shape,
                                  builds_ds_info=False,
                                  batch_size=batch,
@@ -430,7 +441,7 @@ def get_dataset(ds_name: str) -> AbstractDataset:
                                                    imbalance_mode=imbalance_mode,
                                                    imbalance_ratio=imbalance_ratio)
 
-    elif ds_name.startswith("cifar10"):
+    elif parameterized_name[0] == "cifar10":
         ds = Cifar10Dataset(model_img_shape=model_input_shape,
                             builds_ds_info=False,
                             batch_size=batch,
