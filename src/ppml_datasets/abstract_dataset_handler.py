@@ -191,36 +191,6 @@ class AbstractDataset():
 
         return np.array(in_indices)
 
-    def reduce_samples_per_class_train_ds(self, max_samples_per_class: int) -> None:
-        """Reduce all samples in the train_ds per class to a specific value.
-
-        The train_ds is directly modified, no dataset copy is returned.
-
-        Parameter:
-        --------
-        max_samples_per_class : int - the number of samples that all classes should get reduced to
-
-        """
-        sample_counters = defaultdict(int)
-        reduced_samples = []
-
-        for sample, label in self.ds_train:
-            if sample_counters[label.numpy().tolist()] < max_samples_per_class:
-                sample_counters[label.numpy().tolist()] += 1
-                reduced_samples.append((sample, label))
-
-        reduced_dataset = tf.data.Dataset.from_generator(
-            lambda: (sample_label for sample_label in reduced_samples),
-            output_signature=(
-                tf.TensorSpec(shape=sample.shape, dtype=sample.dtype),
-                tf.TensorSpec(shape=label.shape, dtype=label.dtype)
-            )
-        )
-        self.ds_train = reduced_dataset
-        ds_len = sum(1 for _ in self.ds_train)
-        self.ds_train = self.ds_train.apply(tf.data.experimental.assert_cardinality(ds_len))
-        print(f"Reduced class size to {max_samples_per_class}")
-
     def merge_all_datasets(self, percentage_loaded_data: int = 100) -> tf.data.Dataset:
         """Merge all datasets (train, val, test) into train dataset.
 
@@ -636,93 +606,6 @@ class AbstractDataset():
         D = np.polyfit(x, y, 1)[0]  # D = lim r -> 0 log(Nr)/log(1/r)
         return D
 
-    def make_unbalanced_dataset(self,
-                                ds: tf.data.Dataset,
-                                imbalance_ratio: float,
-                                distribution: str = "N"):
-        """Create an unbalanced dataset from a balanced one.
-
-        Parameter:
-        --------
-        ds : dataset to be unbalanced
-        imbalance_ratio : float[0-1] -  the unbalance factor to be applied,
-                                        a value between 0 (lesser imbalance) and 1 (more imbalance)
-        distribution : str -    either 'L' (linear) or 'N' (normal distribution), specifies how the dataset is resampled to introduce imbalance
-                                lin -> the class count is reduced linearely starting from the class with the most samples in class: [100, 90, 80, 70, 60, 50], the imbalance factor specifies how much is subtracted in each iteration
-                                norm -> te class count is reduced with a normal distribution: [50, 60, 70, 60, 50], the imbalance_ratio factor specifies the norm scale, the loc is set to 1-imbalance_ratio
-        """
-        # Convert balanced dataset to numpy arrays
-        (values, labels) = get_ds_as_numpy(ds, unbatch=False)
-
-        classes, class_count, _ = self.get_class_distribution(ds)
-
-        # generate distribution based class imbalance
-        if distribution == "L":
-
-            classes_class_count = zip(classes, class_count)
-            # sort classes by class count, first entry is largest class
-            classes_class_count = sorted(classes_class_count, key=lambda x: x[1], reverse=True)
-
-            # create the imbalanced class counts
-            # the smallest class size is multiplied with the imbalance_ratio factor, therefore decreasing its size
-            new_class_counts = np.linspace(
-                classes_class_count[0][1], int(classes_class_count[-1][1] * imbalance_ratio), num=len(classes_class_count))
-
-            class_count_dict = {}
-            for i, (class_count) in enumerate(classes_class_count):
-                # only reduce class size if is not already smaller than the newly calculated value for it
-                if class_count[1] > new_class_counts[i]:
-                    class_count_dict[class_count[0]] = int(new_class_counts[i])
-                else:
-                    class_count_dict[class_count[0]] = class_count[1]
-
-            d1, d2, d3, d4 = values.shape
-            values = values.reshape((d1, d2 * d3 * d4))
-            (values, labels) = make_imbalance(X=values,
-                                              y=labels,
-                                              sampling_strategy=class_count_dict,
-                                              random_state=self.random_seed)
-            d1, _ = values.shape
-            values = values.reshape((d1, d2, d3, d4))
-            return tf.data.Dataset.from_tensor_slices((values, labels))
-
-        elif distribution == "N":
-
-            class_count_dict_path = os.path.join(
-                self.ds_info_path, f"{self.dataset_name}_class_count_dict.json")
-            # check if we can load a previous class_count_dict, and then load it
-            class_count_dict = load_dict_from_json(class_count_dict_path)
-            if class_count_dict is None:
-                # create new class_count_dict if we could not load it
-                random_array = np.random.normal(
-                    loc=1 - imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
-
-                # clip array to prevent values greater 1 or too small values
-                random_array = np.clip(random_array, 0.05, 1.0)
-                class_count = (class_count * random_array).astype(int)
-                class_count_dict = dict(zip(classes, class_count))
-
-            # convert dict keys to int
-            class_count_dict = {int(k): v for k, v in class_count_dict.items()}
-
-            d1, d2, d3, d4 = values.shape
-            values = values.reshape((d1, d2 * d3 * d4))
-            (values, labels) = make_imbalance(X=values,
-                                              y=labels,
-                                              sampling_strategy=class_count_dict,
-                                              random_state=self.random_seed)
-
-            d1, _ = values.shape
-            values = values.reshape((d1, d2, d3, d4))
-
-            # save the class_count dict to reproduce this dataset
-            save_dict_as_json(class_count_dict, class_count_dict_path)
-            return tf.data.Dataset.from_tensor_slices((values, labels))
-
-        else:
-            print(f"distribution {distribution} is not implemented! Cannot imbalance dataset.")
-            return None
-
     def calculate_fdr(self) -> float:
         values = []
         labels = []
@@ -1043,13 +926,38 @@ class ModelPreprocessing(Layer):
 class AbstractDatasetClassSize(AbstractDataset):
     class_size: int = field(init=False, repr=True)
 
+    def reduce_samples_per_class_train_ds(self, max_samples_per_class: int) -> None:
+        """Reduce all samples in the train_ds per class to a specific value.
+
+        The train_ds is directly modified, no dataset copy is returned.
+
+        Parameter:
+        --------
+        max_samples_per_class : int - the number of samples that all classes should get reduced to
+
+        """
+        sample_counters = defaultdict(int)
+        reduced_samples = []
+
+        for sample, label in self.ds_train:
+            if sample_counters[label.numpy().tolist()] < max_samples_per_class:
+                sample_counters[label.numpy().tolist()] += 1
+                reduced_samples.append((sample, label))
+
+        reduced_dataset = tf.data.Dataset.from_generator(
+            lambda: (sample_label for sample_label in reduced_samples),
+            output_signature=(
+                tf.TensorSpec(shape=sample.shape, dtype=sample.dtype),
+                tf.TensorSpec(shape=label.shape, dtype=label.dtype)
+            )
+        )
+        self.ds_train = reduced_dataset
+        ds_len = sum(1 for _ in self.ds_train)
+        self.ds_train = self.ds_train.apply(tf.data.experimental.assert_cardinality(ds_len))
+        print(f"Reduced class size to {max_samples_per_class}")
+
     def _load_dataset(self):
         print(f"Creating {self.dataset_name} dataset with class size of {self.class_size}")
-
-        # if we dont use tfds here, the data has to be loaded before calling this function
-        if self.is_tfds_ds:
-            self._load_from_tfds()
-
         self.reduce_samples_per_class_train_ds(self.class_size)
 
 
@@ -1059,15 +967,116 @@ class AbstractDatasetClassImbalance(AbstractDataset):
     imbalance_mode: str = field(init=False, repr=True)
     imbalance_ratio: str = field(init=False, repr=True)
 
+    def make_unbalanced_dataset(self,
+                                ds: tf.data.Dataset,
+                                imbalance_ratio: float,
+                                distribution: str = "N"):
+        """Create an unbalanced dataset from a balanced one.
+
+        Parameter:
+        --------
+        ds : dataset to be unbalanced
+        imbalance_ratio : float[0-1] -  the unbalance factor to be applied,
+                                        a value between 0 (lesser imbalance) and 1 (more imbalance)
+        distribution : str -    either 'L' (linear) or 'N' (normal distribution), specifies how the dataset is resampled to introduce imbalance
+                                lin -> the class count is reduced linearely starting from the class with the most samples in class: [100, 90, 80, 70, 60, 50], the imbalance factor specifies how much is subtracted in each iteration
+                                norm -> te class count is reduced with a normal distribution: [50, 60, 70, 60, 50], the imbalance_ratio factor specifies the norm scale, the loc is set to 1-imbalance_ratio
+        """
+        # Convert balanced dataset to numpy arrays
+        (values, labels) = get_ds_as_numpy(ds, unbatch=False)
+
+        classes, class_count, _ = self.get_class_distribution(ds)
+
+        # generate distribution based class imbalance
+        if distribution == "L":
+
+            classes_class_count = zip(classes, class_count)
+            # sort classes by class count, first entry is largest class
+            classes_class_count = sorted(classes_class_count, key=lambda x: x[1], reverse=True)
+
+            # create the imbalanced class counts
+            # the smallest class size is multiplied with the imbalance_ratio factor, therefore decreasing its size
+            new_class_counts = np.linspace(
+                classes_class_count[0][1], int(classes_class_count[-1][1] * imbalance_ratio), num=len(classes_class_count))
+
+            class_count_dict = {}
+            for i, (class_count) in enumerate(classes_class_count):
+                # only reduce class size if is not already smaller than the newly calculated value for it
+                if class_count[1] > new_class_counts[i]:
+                    class_count_dict[class_count[0]] = int(new_class_counts[i])
+                else:
+                    class_count_dict[class_count[0]] = class_count[1]
+
+            d1, d2, d3, d4 = values.shape
+            values = values.reshape((d1, d2 * d3 * d4))
+            (values, labels) = make_imbalance(X=values,
+                                              y=labels,
+                                              sampling_strategy=class_count_dict,
+                                              random_state=self.random_seed)
+            d1, _ = values.shape
+            values = values.reshape((d1, d2, d3, d4))
+            return tf.data.Dataset.from_tensor_slices((values, labels))
+
+        elif distribution == "N":
+
+            class_count_dict_path = os.path.join(
+                self.ds_info_path, f"{self.dataset_name}_class_count_dict.json")
+            # check if we can load a previous class_count_dict, and then load it
+            class_count_dict = load_dict_from_json(class_count_dict_path)
+            if class_count_dict is None:
+                # create new class_count_dict if we could not load it
+                random_array = np.random.normal(
+                    loc=1 - imbalance_ratio, scale=imbalance_ratio, size=len(class_count))
+
+                # clip array to prevent values greater 1 or too small values
+                random_array = np.clip(random_array, 0.05, 1.0)
+                class_count = (class_count * random_array).astype(int)
+                class_count_dict = dict(zip(classes, class_count))
+
+            # convert dict keys to int
+            class_count_dict = {int(k): v for k, v in class_count_dict.items()}
+
+            d1, d2, d3, d4 = values.shape
+            values = values.reshape((d1, d2 * d3 * d4))
+            (values, labels) = make_imbalance(X=values,
+                                              y=labels,
+                                              sampling_strategy=class_count_dict,
+                                              random_state=self.random_seed)
+
+            d1, _ = values.shape
+            values = values.reshape((d1, d2, d3, d4))
+
+            # save the class_count dict to reproduce this dataset
+            save_dict_as_json(class_count_dict, class_count_dict_path)
+            return tf.data.Dataset.from_tensor_slices((values, labels))
+
+        else:
+            print(f"distribution {distribution} is not implemented! Cannot imbalance dataset.")
+            return None
+
     def _load_dataset(self):
-        # if we dont use tfds here, the data has to be loaded before calling this function
-        if self.is_tfds_ds:
-            self._load_from_tfds()
         print(
             f"Creating {self.dataset_name} dataset with imbalance of {self.imbalance_ratio} in {self.imbalance_mode} mode")
-
         self.ds_train = self.make_unbalanced_dataset(
             self.ds_train, self.imbalance_ratio, distribution=self.imbalance_mode)
 
-        self.ds_train = self.ds_train.shuffle(
-            buffer_size=self.ds_train.cardinality().numpy(), seed=self.random_seed)
+
+@ dataclass
+class AbstractDatasetGray(AbstractDataset):
+    def convertds_to_grayscale(self, ds: tf.data.Dataset) -> tf.data.Dataset:
+        to_grayscale = tf.keras.Sequential([
+            RgbToGrayscale()
+        ])
+        ds = ds.map(
+            lambda x, y: (to_grayscale(x, training=True), y))
+        return ds
+
+    def _load_dataset(self):
+        print(
+            f"Creating {self.dataset_name} dataset with only grayscale images")
+
+        if self.ds_test is not None:
+            self.ds_test = self.convertds_to_grayscale(self.ds_test)
+        if self.ds_val is not None:
+            self.ds_val = self.convertds_to_grayscale(self.ds_val)
+        self.ds_train = self.convertds_to_grayscale(self.ds_train)

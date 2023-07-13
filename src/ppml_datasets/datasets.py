@@ -5,7 +5,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from typing import Callable, Tuple, List, Dict, Optional
 
-from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale, AbstractDatasetClassSize, AbstractDatasetClassImbalance
+from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale, AbstractDatasetClassSize, AbstractDatasetGray, AbstractDatasetClassImbalance
 from ppml_datasets.utils import get_img
 
 
@@ -38,19 +38,21 @@ class MnistDatasetClassSize(AbstractDatasetClassSize):
                  ds: MnistDataset,
                  class_size: int):
         self.class_size = class_size
-        self.ds = ds
-        super().__init__(tfds_name=self.ds.tfds_name,
-                         num_classes=self.ds.num_classes,
-                         dataset_img_shape=self.ds.dataset_img_shape,
-                         dataset_name=f"{self.ds.dataset_name}_c{class_size}",
-                         dataset_path=self.ds.dataset_path,
-                         model_img_shape=self.ds.model_img_shape,
-                         batch_size=self.ds.batch_size,
-                         convert_to_rgb=self.ds.convert_to_rgb,
-                         augment_train=self.ds.augment_train,
-                         shuffle=self.ds.shuffle,
-                         is_tfds_ds=self.ds.is_tfds_ds,
-                         builds_ds_info=self.ds.builds_ds_info)
+        self.ds_train = ds.ds_train
+        self.ds_val = ds.ds_val
+        self.ds_train = ds.ds_train
+        super().__init__(tfds_name=ds.tfds_name,
+                         num_classes=ds.num_classes,
+                         dataset_img_shape=ds.dataset_img_shape,
+                         dataset_name=f"{ds.dataset_name}_c{class_size}",
+                         dataset_path=ds.dataset_path,
+                         model_img_shape=ds.model_img_shape,
+                         batch_size=ds.batch_size,
+                         convert_to_rgb=ds.convert_to_rgb,
+                         augment_train=ds.augment_train,
+                         shuffle=ds.shuffle,
+                         is_tfds_ds=ds.is_tfds_ds,
+                         builds_ds_info=ds.builds_ds_info)
 
 
 class MnistDatasetClassImbalance(AbstractDatasetClassImbalance):
@@ -60,19 +62,21 @@ class MnistDatasetClassImbalance(AbstractDatasetClassImbalance):
                  imbalance_ratio: float):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
-        self.ds = ds
-        super().__init__(tfds_name=self.ds.tfds_name,
-                         num_classes=self.ds.num_classes,
-                         dataset_name=f"{self.ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
-                         dataset_path=self.ds.dataset_path,
-                         dataset_img_shape=self.ds.dataset_img_shape,
-                         model_img_shape=self.ds.model_img_shape,
-                         batch_size=self.ds.batch_size,
-                         convert_to_rgb=self.ds.convert_to_rgb,
-                         augment_train=self.ds.augment_train,
-                         shuffle=self.ds.shuffle,
-                         is_tfds_ds=self.ds.is_tfds_ds,
-                         builds_ds_info=self.ds.builds_ds_info)
+        self.ds_train = ds.ds_train
+        self.ds_val = ds.ds_val
+        self.ds_train = ds.ds_train
+        super().__init__(tfds_name=ds.tfds_name,
+                         num_classes=ds.num_classes,
+                         dataset_name=f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+                         dataset_path=ds.dataset_path,
+                         dataset_img_shape=ds.dataset_img_shape,
+                         model_img_shape=ds.model_img_shape,
+                         batch_size=ds.batch_size,
+                         convert_to_rgb=ds.convert_to_rgb,
+                         augment_train=ds.augment_train,
+                         shuffle=ds.shuffle,
+                         is_tfds_ds=ds.is_tfds_ds,
+                         builds_ds_info=ds.builds_ds_info)
 
 
 class FashionMnistDataset(AbstractDataset):
@@ -104,19 +108,21 @@ class FashionMnistDatasetClassSize(AbstractDatasetClassSize):
                  ds: FashionMnistDataset,
                  class_size: int):
         self.class_size = class_size
-        self.ds = ds
-        super().__init__(tfds_name=self.ds.tfds_name,
-                         num_classes=self.ds.num_classes,
-                         dataset_name=f"{self.ds.dataset_name}_c{class_size}",
-                         dataset_path=self.ds.dataset_path,
-                         dataset_img_shape=self.ds.dataset_img_shape,
-                         model_img_shape=self.ds.model_img_shape,
-                         batch_size=self.ds.batch_size,
-                         convert_to_rgb=self.ds.convert_to_rgb,
-                         augment_train=self.ds.augment_train,
-                         shuffle=self.ds.shuffle,
-                         is_tfds_ds=self.ds.is_tfds_ds,
-                         builds_ds_info=self.ds.builds_ds_info)
+        self.ds_train = ds.ds_train
+        self.ds_val = ds.ds_val
+        self.ds_train = ds.ds_train
+        super().__init__(tfds_name=ds.tfds_name,
+                         num_classes=ds.num_classes,
+                         dataset_name=f"{ds.dataset_name}_c{class_size}",
+                         dataset_path=ds.dataset_path,
+                         dataset_img_shape=ds.dataset_img_shape,
+                         model_img_shape=ds.model_img_shape,
+                         batch_size=ds.batch_size,
+                         convert_to_rgb=ds.convert_to_rgb,
+                         augment_train=ds.augment_train,
+                         shuffle=ds.shuffle,
+                         is_tfds_ds=ds.is_tfds_ds,
+                         builds_ds_info=ds.builds_ds_info)
 
 
 class FashionMnistDatasetClassImbalance(AbstractDatasetClassImbalance):
@@ -126,19 +132,21 @@ class FashionMnistDatasetClassImbalance(AbstractDatasetClassImbalance):
                  imbalance_ratio: float):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
-        self.ds = ds
-        super().__init__(tfds_name=self.ds.tfds_name,
-                         num_classes=self.ds.num_classes,
-                         dataset_name=f"{self.ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
-                         dataset_path=self.ds.dataset_path,
-                         model_img_shape=self.ds.model_img_shape,
-                         dataset_img_shape=self.ds.dataset_img_shape,
-                         batch_size=self.ds.batch_size,
-                         convert_to_rgb=self.ds.convert_to_rgb,
-                         augment_train=self.ds.augment_train,
-                         shuffle=self.ds.shuffle,
-                         is_tfds_ds=self.ds.is_tfds_ds,
-                         builds_ds_info=self.ds.builds_ds_info)
+        self.ds_train = ds.ds_train
+        self.ds_val = ds.ds_val
+        self.ds_train = ds.ds_train
+        super().__init__(tfds_name=ds.tfds_name,
+                         num_classes=ds.num_classes,
+                         dataset_name=f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+                         dataset_path=ds.dataset_path,
+                         model_img_shape=ds.model_img_shape,
+                         dataset_img_shape=ds.dataset_img_shape,
+                         batch_size=ds.batch_size,
+                         convert_to_rgb=ds.convert_to_rgb,
+                         augment_train=ds.augment_train,
+                         shuffle=ds.shuffle,
+                         is_tfds_ds=ds.is_tfds_ds,
+                         builds_ds_info=ds.builds_ds_info)
 
 
 class Cifar10Dataset(AbstractDataset):
@@ -170,19 +178,21 @@ class Cifar10DatasetClassSize(AbstractDatasetClassSize):
                  ds: Cifar10Dataset,
                  class_size: int):
         self.class_size = class_size
-        self.ds = ds
-        super().__init__(tfds_name=self.ds.tfds_name,
-                         num_classes=self.ds.num_classes,
-                         dataset_name=f"{self.ds.dataset_name}_c{class_size}",
-                         dataset_path=self.ds.dataset_path,
-                         dataset_img_shape=self.ds.dataset_img_shape,
-                         model_img_shape=self.ds.model_img_shape,
-                         batch_size=self.ds.batch_size,
-                         convert_to_rgb=self.ds.convert_to_rgb,
-                         augment_train=self.ds.augment_train,
-                         shuffle=self.ds.shuffle,
-                         is_tfds_ds=self.ds.is_tfds_ds,
-                         builds_ds_info=self.ds.builds_ds_info)
+        self.ds_train = ds.ds_train
+        self.ds_val = ds.ds_val
+        self.ds_train = ds.ds_train
+        super().__init__(tfds_name=ds.tfds_name,
+                         num_classes=ds.num_classes,
+                         dataset_name=f"{ds.dataset_name}_c{class_size}",
+                         dataset_path=ds.dataset_path,
+                         dataset_img_shape=ds.dataset_img_shape,
+                         model_img_shape=ds.model_img_shape,
+                         batch_size=ds.batch_size,
+                         convert_to_rgb=ds.convert_to_rgb,
+                         augment_train=ds.augment_train,
+                         shuffle=ds.shuffle,
+                         is_tfds_ds=ds.is_tfds_ds,
+                         builds_ds_info=ds.builds_ds_info)
 
 
 class Cifar10DatsetClassImbalance(AbstractDatasetClassImbalance):
@@ -192,85 +202,41 @@ class Cifar10DatsetClassImbalance(AbstractDatasetClassImbalance):
                  imbalance_ratio: float):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
-        self.ds = ds
-        super().__init__(tfds_name=self.ds.tfds_name,
-                         num_classes=self.ds.num_classes,
-                         dataset_name=f"{self.ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
-                         dataset_path=self.ds.dataset_path,
-                         model_img_shape=self.ds.model_img_shape,
-                         dataset_img_shape=self.ds.dataset_img_shape,
-                         batch_size=self.ds.batch_size,
-                         convert_to_rgb=self.ds.convert_to_rgb,
-                         augment_train=self.ds.augment_train,
-                         shuffle=self.ds.shuffle,
-                         is_tfds_ds=self.ds.is_tfds_ds,
-                         builds_ds_info=self.ds.builds_ds_info)
+        self.ds_train = ds.ds_train
+        self.ds_val = ds.ds_val
+        self.ds_train = ds.ds_train
+        super().__init__(tfds_name=ds.tfds_name,
+                         num_classes=ds.num_classes,
+                         dataset_name=f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+                         dataset_path=ds.dataset_path,
+                         model_img_shape=ds.model_img_shape,
+                         dataset_img_shape=ds.dataset_img_shape,
+                         batch_size=ds.batch_size,
+                         convert_to_rgb=ds.convert_to_rgb,
+                         augment_train=ds.augment_train,
+                         shuffle=ds.shuffle,
+                         is_tfds_ds=ds.is_tfds_ds,
+                         builds_ds_info=ds.builds_ds_info)
 
 
-class Cifar10GrayDataset(AbstractDataset):
-    def __init__(self, model_img_shape: Tuple[int, int, int],
-                 builds_ds_info: bool = False,
-                 batch_size: int = 32,
-                 preprocessing_func: Optional[Callable[[float], tf.Tensor]] = None,
-                 augment_train: bool = True,
-                 dataset_path: str = "data"):
-        """Initialize the CIFAR10 dataset from AbstractDataset class."""
-        super().__init__(dataset_name="cifar10_gray",
-                         tfds_name="cifar10",
-                         dataset_path=dataset_path,
-                         dataset_img_shape=(32, 32, 1),
-                         num_classes=10,
-                         random_seed=42,
-                         model_img_shape=model_img_shape,
-                         batch_size=batch_size,
-                         convert_to_rgb=True,
-                         augment_train=augment_train,
-                         preprocessing_function=preprocessing_func,
-                         shuffle=True,
-                         is_tfds_ds=True,
-                         builds_ds_info=builds_ds_info)
-
-    def convertds_to_grayscale(self, ds: tf.data.Dataset) -> tf.data.Dataset:
-        to_grayscale = tf.keras.Sequential([
-            RgbToGrayscale()
-        ])
-        ds = ds.map(
-            lambda x, y: (to_grayscale(x, training=True), y))
-        return ds
-
-    def _load_dataset(self):
-        # load default cifar10 from tfds
-        self._load_from_tfds()
-
-        self.ds_test = self.convertds_to_grayscale(self.ds_test)
-        self.ds_train = self.convertds_to_grayscale(self.ds_train)
-
-
-class Cifar10GrayDatasetClassSize(AbstractDatasetClassSize):
+class Cifar10DatsetGray(AbstractDatasetGray):
     def __init__(self,
-                 ds: Cifar10GrayDataset,
-                 class_size: int):
-        self.class_size = class_size
-        self.ds = ds
-        super().__init__(tfds_name=self.ds.tfds_name,
-                         num_classes=self.ds.num_classes,
-                         dataset_name=f"{self.ds.dataset_name}_c{class_size}",
-                         dataset_path=self.ds.dataset_path,
-                         dataset_img_shape=(32, 32, 1),
-                         model_img_shape=self.ds.model_img_shape,
-                         batch_size=self.ds.batch_size,
+                 ds: Cifar10Dataset):
+        self.ds_train = ds.ds_train
+        self.ds_val = ds.ds_val
+        self.ds_train = ds.ds_train
+        super().__init__(tfds_name=ds.tfds_name,
+                         num_classes=ds.num_classes,
+                         dataset_name=f"{ds.dataset_name}_gray",
+                         dataset_path=ds.dataset_path,
+                         model_img_shape=ds.model_img_shape,
+                         dataset_img_shape=ds.dataset_img_shape,
+                         batch_size=ds.batch_size,
                          convert_to_rgb=True,
-                         augment_train=self.ds.augment_train,
-                         shuffle=self.ds.shuffle,
-                         is_tfds_ds=self.ds.is_tfds_ds,
-                         builds_ds_info=self.ds.builds_ds_info)
-
-    def _load_dataset(self):
-        # load default cifar10 from tfds
-        super()._load_dataset()
-
-        self.ds_test = self.ds.convertds_to_grayscale(self.ds_test)
-        self.ds_train = self.ds.convertds_to_grayscale(self.ds_train)
+                         augment_train=ds.augment_train,
+                         shuffle=ds.shuffle,
+                         is_tfds_ds=ds.is_tfds_ds,
+                         builds_ds_info=ds.builds_ds_info)
 
 
 class Cifar100Dataset(AbstractDataset):

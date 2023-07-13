@@ -6,14 +6,13 @@ from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
 from util import save_dataframe, plot_histogram
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10GrayDataset, Cifar10GrayDatasetClassSize, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance, Cifar10DatsetClassImbalance
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10DatsetGray, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance, Cifar10DatsetClassImbalance
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
 
 import gc
 import json
-
 
 from model import SmallCNNModel, Model, PrivateSmallCNNModel
 
@@ -373,9 +372,9 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
     return model
 
 
-def _parse_dataset_name_parameter(ds_mods: List[str]) -> Dict[str, List[Any]]:
+def parse_dataset_name_parameter(ds_mods: List[str]) -> Dict[str, List[Any]]:
     # check if there are really modifications
-    if len(ds_mods) <= 1:
+    if len(ds_mods) == 0:
         return {}
 
     mod_dict = {}
@@ -404,76 +403,80 @@ def get_dataset(ds_name: str) -> AbstractDataset:
     ds = None
 
     parameterized_name = ds_name.split("_")
-    mod_params = _parse_dataset_name_parameter(parameterized_name)
-
-    print(mod_params)
+    # exluce dataset name from parameter parsing
+    mod_params = parse_dataset_name_parameter(parameterized_name[1:])
 
     if parameterized_name[0] == "mnist":
         ds = MnistDataset(model_img_shape=model_input_shape,
                           builds_ds_info=False,
                           batch_size=batch,
                           augment_train=False)
+        ds.load_dataset()
 
         if "c" in mod_params:
             class_size = mod_params["c"][0]
             ds = MnistDatasetClassSize(ds=ds,
                                        class_size=class_size)
+            ds.load_dataset()
+
         if "i" in mod_params:
             (imbalance_mode, imbalance_ratio) = mod_params["i"]
             ds = MnistDatasetClassImbalance(ds=ds,
                                             imbalance_mode=imbalance_mode,
                                             imbalance_ratio=imbalance_ratio)
+            ds.load_dataset()
 
     elif parameterized_name[0] == "fmnist":
         ds = FashionMnistDataset(model_img_shape=model_input_shape,
                                  builds_ds_info=False,
                                  batch_size=batch,
                                  augment_train=False)
+        ds.load_dataset()
 
-        if ds_name.startswith("fmnist_c"):
-            class_size = int(ds_name.removeprefix("fmnist_c"))
+        if "c" in mod_params:
+            class_size = mod_params["c"][0]
             ds = FashionMnistDatasetClassSize(ds=ds,
                                               class_size=class_size)
+            ds.load_dataset()
 
-        elif ds_name.startswith("fmnist_i"):
-            imbalance_mode, imbalance_ratio = parse_imbalance_name(ds_name, "fmnist_i")
+        if "i" in mod_params:
+            (imbalance_mode, imbalance_ratio) = mod_params["i"]
             ds = FashionMnistDatasetClassImbalance(ds=ds,
                                                    imbalance_mode=imbalance_mode,
                                                    imbalance_ratio=imbalance_ratio)
+            ds.load_dataset()
 
     elif parameterized_name[0] == "cifar10":
         ds = Cifar10Dataset(model_img_shape=model_input_shape,
                             builds_ds_info=False,
                             batch_size=batch,
                             augment_train=False)
+        ds.load_dataset()
 
-        if ds_name.startswith("cifar10_c"):
-            class_size = int(ds_name.removeprefix("cifar10_c"))
+        if "c" in mod_params:
+            class_size = mod_params["c"][0]
             ds = Cifar10DatasetClassSize(ds=ds,
                                          class_size=class_size)
-        elif ds_name.startswith("cifar10_i"):
-            imbalance_mode, imbalance_ratio = parse_imbalance_name(ds_name, "cifar10_i")
+            ds.load_dataset()
+
+        if "i" in mod_params:
+            (imbalance_mode, imbalance_ratio) = mod_params["i"]
             ds = Cifar10DatsetClassImbalance(ds=ds,
                                              imbalance_mode=imbalance_mode,
                                              imbalance_ratio=imbalance_ratio)
+            ds.load_dataset()
 
-        elif ds_name.startswith("cifar10gray"):
-            ds = Cifar10GrayDataset(model_img_shape=model_input_shape,
-                                    builds_ds_info=False,
-                                    batch_size=batch,
-                                    augment_train=False)
-
-            if ds_name.startswith("cifar10gray_c"):
-                class_size = int(ds_name.removeprefix("cifar10gray_c"))
-                ds = Cifar10GrayDatasetClassSize(ds=ds,
-                                                 class_size=class_size)
+        if "gray" in mod_params:
+            ds = Cifar10DatsetGray(ds=ds)
+            ds.load_dataset()
 
     else:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
         sys.exit(1)
 
-    ds.ds_info_path = os.path.join(ds_info_path, ds.dataset_name)
-    ds.load_dataset()
+    _, classes, _ = ds.get_class_distribution()
+    classes.sort()
+    print(classes)
 
     return ds
 
