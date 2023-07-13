@@ -997,7 +997,7 @@ class AbstractDatasetClassImbalance(AbstractDataset):
             # create the imbalanced class counts
             # the smallest class size is multiplied with the imbalance_ratio factor, therefore decreasing its size
             new_class_counts = np.linspace(
-                classes_class_count[0][1], int(classes_class_count[-1][1] * imbalance_ratio), num=len(classes_class_count))
+                classes_class_count[0][1], int(classes_class_count[-1][1] * (1-imbalance_ratio)), num=len(classes_class_count))
 
             class_count_dict = {}
             for i, (class_count) in enumerate(classes_class_count):
