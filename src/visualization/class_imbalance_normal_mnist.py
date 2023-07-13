@@ -44,8 +44,8 @@ axs[1].set_xlabel('Class Label')
 axs[2].set_ylabel('Number of samples per class')
 axs[2].set_xlabel('Class Label')
 
-axs[0].set_title('MNIST Imbalanced Linear Mode (i=0)')
-axs[1].set_title('MNIST Imbalanced Linear Mode (i=0.3)')
-axs[2].set_title('MNIST Imbalanced Linear Mode (i=0.6)')
+axs[0].set_title('MNIST Imbalanced Normal Mode (i=0)')
+axs[1].set_title('MNIST Imbalanced Normal Mode (i=0.3)')
+axs[2].set_title('MNIST Imbalanced Normal Mode (i=0.6)')
 
 plt.show()
