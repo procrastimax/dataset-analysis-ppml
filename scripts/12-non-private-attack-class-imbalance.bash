@@ -17,25 +17,25 @@ batch=200
 
 case $SLURM_ARRAY_TASK_ID in
         0)
-            ds='mnist cifar10'
+            ds='mnist_c5000 cifar10_c5000'
                 ;;
         1)
-            ds='mnist_iN0.75 cifar10_iN0.75'
+            ds='mnist_c5000_iN0.75 cifar10_c5000_iN0.75'
                 ;;
         2)
-            ds='mnist_iN0.5 cifar10_iN0.5'
+            ds='mnist_c5000_iN0.5 cifar10_c5000_iN0.5'
                 ;;
         3)
-            ds='mnist_iN0.25 cifar10_iN0.25'
+            ds='mnist_c5000_iN0.25 cifar10_c5000_iN0.25'
                 ;;
         4)
-            ds='mnist_iL0.75 cifar10_iL0.75'
+            ds='mnist_c5000_iL0.75 cifar10_c5000_iL0.75'
                 ;;
         5)
-            ds='mnist_iL0.5 cifar10_iL0.5'
+            ds='mnist_c5000_iL0.5 cifar10_c5000_iL0.5'
                 ;;
         6)
-            ds='mnist_iL0.25 cifar10_iL0.25'
+            ds='mnist_c5000_iL0.25 cifar10_c5000_iL0.25'
                 ;;
 esac
 
