@@ -17,59 +17,59 @@ batch=200
 
 case $SLURM_ARRAY_TASK_ID in
         0)
-            ds='mnist cifar10'
+            ds='mnist_c5000_c5000 cifar10'
             eps=0.1
                 ;;
         1)
-            ds='mnist cifar10'
+            ds='mnist_c5000 cifar10_c5000'
             eps=30
                 ;;
         2)
-            ds='mnist_iN0.75 cifar10_iN0.75'
+            ds='mnist_c5000_iN0.75 cifar10_c5000_iN0.75'
             eps=0.1
                 ;;
         3)
-            ds='mnist_iN0.5 cifar10_iN0.5'
+            ds='mnist_c5000_iN0.5 cifar10_c5000_iN0.5'
             eps=0.1
                 ;;
         4)
-            ds='mnist_iN0.25 cifar10_iN0.25'
+            ds='mnist_c5000_iN0.25 cifar10_c5000_iN0.25'
             eps=0.1
                 ;;
         5)
-            ds='mnist_iL0.75 cifar10_iL0.75'
+            ds='mnist_c5000_iL0.75 cifar10_c5000_iL0.75'
             eps=0.1
                 ;;
         6)
-            ds='mnist_iL0.5 cifar10_iL0.5'
+            ds='mnist_c5000_iL0.5 cifar10_c5000_iL0.5'
             eps=0.1
                 ;;
         7)
-            ds='mnist_iL0.25 cifar10_iL0.25'
+            ds='mnist_c5000_iL0.25 cifar10_c5000_iL0.25'
             eps=0.1
                 ;;
         8)
-            ds='mnist_iN0.75 cifar10_iN0.75'
+            ds='mnist_c5000_iN0.75 cifar10_c5000_iN0.75'
             eps=30
                 ;;
         9)
-            ds='mnist_iN0.5 cifar10_iN0.5'
+            ds='mnist_c5000_iN0.5 cifar10_c5000_iN0.5'
             eps=30
                 ;;
         10)
-            ds='mnist_iN0.25 cifar10_iN0.25'
+            ds='mnist_c5000_iN0.25 cifar10_c5000_iN0.25'
             eps=30
                 ;;
         11)
-            ds='mnist_iL0.75 cifar10_iL0.75'
+            ds='mnist_c5000_iL0.75 cifar10_c5000_iL0.75'
             eps=30
                 ;;
         12)
-            ds='mnist_iL0.5 cifar10_iL0.5'
+            ds='mnist_c5000_iL0.5 cifar10_c5000_iL0.5'
             eps=30
                 ;;
         13)
-            ds='mnist_iL0.25 cifar10_iL0.25'
+            ds='mnist_c5000_iL0.25 cifar10_c5000_iL0.25'
             eps=30
                 ;;
 esac
