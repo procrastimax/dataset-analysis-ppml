@@ -533,11 +533,6 @@ class AbstractDataset():
         """Calculate the fractal dimension of all images."""
         print("Calculating fractal dimension of all images")
 
-        def grayConversion(image):
-            grayValue = 0.07 * image[:, :, 2] + 0.72 * image[:, :, 1] + 0.21 * image[:, :, 0]
-            gray_img = grayValue.astype(np.uint8)
-            return gray_img
-
         counter = 0
         class_dict: Dict[int, List[float]] = defaultdict(list)
         for (img, label) in self.ds_train:
@@ -547,7 +542,8 @@ class AbstractDataset():
             if img.shape[2] == 1:
                 img = img.numpy().astype("uint8")[:, :, 0]
             else:
-                img = grayConversion(img.numpy().astype("uint8"))
+                img = tf.image.rgb_to_grayscale(img)
+                img = img.numpy().astype("uint8")[:, :, 0]
 
             fractal_dim = self._fractal_dimension(img)
             class_dict[label].append(fractal_dim)
@@ -661,6 +657,7 @@ class AbstractDataset():
         but before calling preprocessing on it!
 
         """
+
         # before building new ds_info try to load an existing one
         if not force_regeneration:
             self.load_ds_info_from_json()
