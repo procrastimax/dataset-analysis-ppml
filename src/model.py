@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow_privacy import VectorizedDPKerasAdamOptimizer
 from tensorflow import keras
 from keras.callbacks import EarlyStopping
-from util import compute_delta, compute_noise, compute_dp_sgd_privacy
+from util import compute_delta, compute_noise, compute_privacy
 import numpy as np
 import os
 from abc import ABC, abstractmethod
@@ -63,8 +63,11 @@ class Model(ABC):
         self.num_microbatches = num_microbatches
 
         # calculate epsilon to verify calculated noise values
-        calc_epsilon = compute_dp_sgd_privacy(num_train_samples, self.batch_size,
-                                              self.noise_multiplier, self.epochs, delta)
+        calc_epsilon = compute_privacy(num_train_samples,
+                                       self.batch_size,
+                                       self.noise_multiplier,
+                                       self.epochs,
+                                       delta)
         print(f"Calculated epsilon is {calc_epsilon}")
 
     def build_compile(self):
