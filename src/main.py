@@ -5,8 +5,12 @@ import os
 from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
-from util import save_dataframe, plot_histogram, visualize_data
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10DatsetGray, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance, Cifar10DatsetClassImbalance, MnistDatasetCustomClasses, Cifar10DatasetCustomClasses
+from util import save_dataframe, plot_histogram
+
+from ppml_datasets.datasets.mnist import MnistDataset, MnistDatasetClassSize, MnistDatasetCustomClasses, MnistDatasetClassImbalance
+from ppml_datasets.datasets.fmnist import FashionMnistDataset, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
+from ppml_datasets.datasets.cifar10 import Cifar10Dataset, Cifar10DatsetGray, Cifar10DatasetClassSize, Cifar10DatasetCustomClasses, Cifar10DatsetClassImbalance
+
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
