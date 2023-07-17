@@ -474,10 +474,6 @@ def get_dataset(ds_name: str) -> AbstractDataset:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
         sys.exit(1)
 
-    _, classes, _ = ds.get_class_distribution()
-    classes.sort()
-    print(classes)
-
     return ds
 
 
