@@ -200,6 +200,8 @@ class AmiaAttack():
         slicing_spec = SlicingSpec(entire_dataset=True,
                                    by_class=True)
 
+        (train_samples, train_labels) = self.ds.get_train_ds_as_numpy()
+
         # we currently use the shadow and training models
         for idx in range(self.num_shadow_models + 1):
             print(f"Target model is #{idx}")
@@ -228,7 +230,9 @@ class AmiaAttack():
 
             attack_input = AttackInputData(
                 loss_train=scores[in_indices_target],
-                loss_test=scores[~in_indices_target])
+                loss_test=scores[~in_indices_target],
+                labels_train=train_labels[in_indices_target],
+                labels_test=train_labels[~in_indices_target])
 
             result_lira = mia.run_attacks(attack_input=attack_input,
                                           slicing_spec=slicing_spec
@@ -241,11 +245,6 @@ class AmiaAttack():
                   f"auc = {result_lira_single.get_auc():.4f}",
                   f"adv = {result_lira_single.get_attacker_advantage():.4f}")
 
-            print("Advanced MIA attack with Gaussian - class wise:",
-                  f"auc = {result_lira_class.get_auc():.4f}",
-                  f"adv = {result_lira_class.get_attacker_advantage():.4f}")
-
-            print(result_lira.summary(slicing_spec))
             print(result_lira.calculate_pd_dataframe())
 
             if self.include_mia:
@@ -253,7 +252,9 @@ class AmiaAttack():
                 loss_target = self.losses[idx][:, 0]
                 attack_input = AttackInputData(
                     loss_train=loss_target[in_indices_target],
-                    loss_test=loss_target[~in_indices_target])
+                    loss_test=loss_target[~in_indices_target],
+                    labels_train=train_labels[in_indices_target],
+                    labels_test=train_labels[~in_indices_target])
 
                 result_baseline = mia.run_attacks(attack_input=attack_input,
                                                   slicing_spec=slicing_spec)
