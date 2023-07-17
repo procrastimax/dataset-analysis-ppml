@@ -5,8 +5,8 @@ import os
 from typing import Optional, Any, Dict, Tuple, List
 from analyser import Analyser
 from attacks import AmiaAttack
-from util import save_dataframe, plot_histogram
-from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10DatsetGray, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance, Cifar10DatsetClassImbalance
+from util import save_dataframe, plot_histogram, visualize_data
+from ppml_datasets import MnistDataset, FashionMnistDataset, Cifar10Dataset, Cifar10DatasetClassSize, Cifar10DatsetGray, MnistDatasetClassSize, MnistDatasetClassImbalance, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance, Cifar10DatsetClassImbalance, MnistDatasetCustomClasses, Cifar10DatasetCustomClasses
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
@@ -396,6 +396,10 @@ def parse_dataset_name_parameter(ds_mods: List[str]) -> Dict[str, List[Any]]:
                 continue
             mod_dict["i"] = [imbalance_mode, imbalance_ratio]
 
+        if mod.startswith("n"):
+            num_new_classes = int(mod.removeprefix("n"))
+            mod_dict["n"] = [num_new_classes]
+
     return mod_dict
 
 
@@ -412,6 +416,11 @@ def get_dataset(ds_name: str) -> AbstractDataset:
                           batch_size=batch,
                           augment_train=False)
         ds.load_dataset()
+
+        if "n" in mod_params:
+            num_new_classes = mod_params["n"][0]
+            ds = MnistDatasetCustomClasses(ds, num_new_classes)
+            ds.load_dataset()
 
         if "c" in mod_params:
             class_size = mod_params["c"][0]
@@ -452,6 +461,11 @@ def get_dataset(ds_name: str) -> AbstractDataset:
                             batch_size=batch,
                             augment_train=False)
         ds.load_dataset()
+
+        if "n" in mod_params:
+            num_new_classes = mod_params["n"][0]
+            ds = Cifar10DatasetCustomClasses(ds, num_new_classes)
+            ds.load_dataset()
 
         if "c" in mod_params:
             class_size = mod_params["c"][0]

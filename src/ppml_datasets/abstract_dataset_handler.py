@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from collections import defaultdict
 from typing import Tuple, Dict, Any, Optional, List, Union, Callable
 import os
+import sys
 import math
 from io import BytesIO
 
@@ -948,6 +949,9 @@ class AbstractDatasetClassSize(AbstractDataset):
                 tf.TensorSpec(shape=label.shape, dtype=label.dtype)
             )
         )
+        print(sample.shape)
+        print(sample.dtype)
+
         self.ds_train = reduced_dataset
         ds_len = sum(1 for _ in self.ds_train)
         self.ds_train = self.ds_train.apply(tf.data.experimental.assert_cardinality(ds_len))
@@ -1077,3 +1081,48 @@ class AbstractDatasetGray(AbstractDataset):
         if self.ds_val is not None:
             self.ds_val = self.convertds_to_grayscale(self.ds_val)
         self.ds_train = self.convertds_to_grayscale(self.ds_train)
+
+
+@ dataclass
+class AbstractDatasetCustomClasses(AbstractDataset):
+    kept_classes: List[int] = field(init=False, repr=True)
+    new_num_classes: int = field(init=False, repr=True)
+
+    def reduce_classes(self, classes_to_keep: List[int], ds: tf.data.Dataset):
+        new_samples = []
+
+        for sample, label in ds:
+            if label in classes_to_keep:
+                new_samples.append((sample, label))
+
+        new_ds = tf.data.Dataset.from_generator(
+            lambda: (sample_label for sample_label in new_samples),
+            output_signature=(
+                tf.TensorSpec(shape=sample.shape, dtype=sample.dtype),
+                tf.TensorSpec(shape=label.shape, dtype=label.dtype)
+            )
+        )
+        ds_len = sum(1 for _ in new_ds)
+        new_ds = new_ds.apply(tf.data.experimental.assert_cardinality(ds_len))
+        return new_ds
+
+    def _load_dataset(self):
+
+        # chose which classes and labels to keep
+        classes, _, _ = self.get_class_distribution()
+
+        if self.new_num_classes > len(classes):
+            print(
+                "ERROR: Cannot set a higher number of classes to set than already existant in dataset! Current class count: {len(classes)} <-> desired class count: {self.new_num_classes}")
+            sys.exit(1)
+
+        self.kept_classes = classes[:self.new_num_classes]
+
+        print(
+            f"Creating {self.dataset_name} dataset with changed number of classes ({self.new_num_classes} classes, which are classes with labels: {self.kept_classes}.)")
+
+        if self.ds_test is not None:
+            self.ds_test = self.reduce_classes(self.kept_classes, self.ds_test)
+        if self.ds_val is not None:
+            self.ds_val = self.reduce_classes(self.kept_classes, self.ds_val)
+        self.ds_train = self.reduce_classes(self.kept_classes, self.ds_train)
