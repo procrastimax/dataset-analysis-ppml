@@ -40,6 +40,7 @@ class MnistDatasetClassSize(AbstractDatasetClassSize):
         self.class_size = class_size
         self.ds_train = ds.ds_train
         self.ds_val = ds.ds_val
+        self.ds_test = ds.ds_test
         self.ds_train = ds.ds_train
         super().__init__(tfds_name=ds.tfds_name,
                          num_classes=ds.num_classes,
@@ -63,6 +64,7 @@ class MnistDatasetClassImbalance(AbstractDatasetClassImbalance):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
         self.ds_train = ds.ds_train
+        self.ds_test = ds.ds_test
         self.ds_val = ds.ds_val
         self.ds_train = ds.ds_train
         super().__init__(tfds_name=ds.tfds_name,
@@ -109,6 +111,7 @@ class FashionMnistDatasetClassSize(AbstractDatasetClassSize):
                  class_size: int):
         self.class_size = class_size
         self.ds_train = ds.ds_train
+        self.ds_test = ds.ds_test
         self.ds_val = ds.ds_val
         self.ds_train = ds.ds_train
         super().__init__(tfds_name=ds.tfds_name,
@@ -133,6 +136,7 @@ class FashionMnistDatasetClassImbalance(AbstractDatasetClassImbalance):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
         self.ds_train = ds.ds_train
+        self.ds_test = ds.ds_test
         self.ds_val = ds.ds_val
         self.ds_train = ds.ds_train
         super().__init__(tfds_name=ds.tfds_name,
@@ -179,6 +183,7 @@ class Cifar10DatasetClassSize(AbstractDatasetClassSize):
                  class_size: int):
         self.class_size = class_size
         self.ds_train = ds.ds_train
+        self.ds_test = ds.ds_test
         self.ds_val = ds.ds_val
         self.ds_train = ds.ds_train
         super().__init__(tfds_name=ds.tfds_name,
@@ -203,6 +208,7 @@ class Cifar10DatsetClassImbalance(AbstractDatasetClassImbalance):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
         self.ds_train = ds.ds_train
+        self.ds_test = ds.ds_test
         self.ds_val = ds.ds_val
         self.ds_train = ds.ds_train
         super().__init__(tfds_name=ds.tfds_name,
@@ -223,6 +229,7 @@ class Cifar10DatsetGray(AbstractDatasetGray):
     def __init__(self,
                  ds: Cifar10Dataset):
         self.ds_train = ds.ds_train
+        self.ds_test = ds.ds_test
         self.ds_val = ds.ds_val
         self.ds_train = ds.ds_train
         super().__init__(tfds_name=ds.tfds_name,
