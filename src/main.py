@@ -197,9 +197,9 @@ def main():
                 model_path, model_name, run_name, str(run_number), ds.dataset_name)
             check_create_folder(model_save_path)
             model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
-            model = load_model(model_save_file,
+            model = load_model(model_path=model_save_file,
                                model_name=model_name,
-                               num_of_classes=ds.num_classes)
+                               num_classes=ds.num_classes)
 
             # set values for private training
             if model.is_private_model:
@@ -337,14 +337,14 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
     return ds_info_df
 
 
-def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
+def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
     model = None
     if model_name == "small_cnn":
         model = SmallCNNModel(img_height=32,
                               img_width=32,
                               color_channels=3,
                               random_seed=random_seed,
-                              num_classes=num_of_classes,
+                              num_classes=num_classes,
                               batch_size=batch,
                               model_name="small_cnn",
                               model_path=model_path,
@@ -359,7 +359,7 @@ def load_model(model_path: str, model_name: str, num_of_classes: int) -> Model:
                                      img_width=32,
                                      color_channels=3,
                                      random_seed=random_seed,
-                                     num_classes=num_of_classes,
+                                     num_classes=num_classes,
                                      batch_size=batch,
                                      model_name="private_small_cnn",
                                      model_path=model_path,

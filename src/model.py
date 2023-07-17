@@ -189,7 +189,7 @@ class SmallCNNModel(Model):
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(128, activation='relu'))
         model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.Dense(10))
+        model.add(tf.keras.layers.Dense(self.num_classes))
 
         self.model = None  # reset previous model
         self.model = model
@@ -234,7 +234,7 @@ class PrivateSmallCNNModel(Model):
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.Dense(128, activation='relu'))
         model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.Dense(10))
+        model.add(tf.keras.layers.Dense(self.num_classes))
 
         self.model = None  # reset previous model
         self.model = model
