@@ -7,7 +7,7 @@ import numpy as np
 
 from util import pickle_object, unpickle_object
 
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackInputData, SlicingSpec
 from tensorflow_privacy.privacy.privacy_tests import utils
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import membership_inference_attack as mia
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import advanced_mia as amia
@@ -197,6 +197,9 @@ class AmiaAttack():
         if self.attack_baseline_result_list is None:
             self.attack_baseline_result_list = []
 
+        slicing_spec = SlicingSpec(entire_dataset=True,
+                                   by_class=True)
+
         # we currently use the shadow and training models
         for idx in range(self.num_shadow_models + 1):
             print(f"Target model is #{idx}")
@@ -227,13 +230,23 @@ class AmiaAttack():
                 loss_train=scores[in_indices_target],
                 loss_test=scores[~in_indices_target])
 
-            result_lira = mia.run_attacks(attack_input)
+            result_lira = mia.run_attacks(attack_input=attack_input,
+                                          slicing_spec=slicing_spec
+                                          )
             self.attack_result_list.append(result_lira)
             result_lira_single = result_lira.single_attack_results[0]
+            result_lira_class = result_lira.single_attack_results[1]
 
             print("Advanced MIA attack with Gaussian:",
                   f"auc = {result_lira_single.get_auc():.4f}",
                   f"adv = {result_lira_single.get_attacker_advantage():.4f}")
+
+            print("Advanced MIA attack with Gaussian - class wise:",
+                  f"auc = {result_lira_class.get_auc():.4f}",
+                  f"adv = {result_lira_class.get_attacker_advantage():.4f}")
+
+            print(result_lira.summary(slicing_spec))
+            print(result_lira.calculate_pd_dataframe())
 
             if self.include_mia:
                 # Compare with the baseline MIA using the loss of the target model
@@ -242,7 +255,9 @@ class AmiaAttack():
                     loss_train=loss_target[in_indices_target],
                     loss_test=loss_target[~in_indices_target])
 
-                result_baseline = mia.run_attacks(attack_input)
+                result_baseline = mia.run_attacks(attack_input=attack_input,
+                                                  slicing_spec=slicing_spec)
+
                 self.attack_baseline_result_list.append(result_baseline)
                 result_baseline_single = result_baseline.single_attack_results[0]
                 print('Baseline MIA attack:',
