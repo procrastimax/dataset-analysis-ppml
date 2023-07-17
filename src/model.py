@@ -57,17 +57,25 @@ class Model(ABC):
 
     def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float, num_microbatches: int):
         delta = compute_delta(num_train_samples)
+        used_microbatching = True
+        if num_microbatches == 1:
+            used_microbatching = False
         self.noise_multiplier = compute_noise(
-            num_train_samples, self.batch_size, epsilon, self.epochs, delta)
+            num_train_samples=num_train_samples,
+            batch_size=self.batch_size,
+            target_epsilon=epsilon,
+            epochs=self.epochs,
+            delta=delta)
         self.l2_norm_clip = l2_norm_clip
         self.num_microbatches = num_microbatches
 
         # calculate epsilon to verify calculated noise values
-        calc_epsilon = compute_privacy(num_train_samples,
-                                       self.batch_size,
-                                       self.noise_multiplier,
-                                       self.epochs,
-                                       delta)
+        calc_epsilon = compute_privacy(n=num_train_samples,
+                                       batch_size=self.batch_size,
+                                       noise_multiplier=self.noise_multiplier,
+                                       epochs=self.epochs,
+                                       delta=delta,
+                                       used_microbatching=used_microbatching)
         print(f"Calculated epsilon is {calc_epsilon}")
 
     def build_compile(self):

@@ -130,14 +130,14 @@ def plot_histogram(counts: np.array, bins: np.array, filename: str, title: str, 
     plt.close()
 
 
-def compute_privacy(n: int, batch_size: int, noise_multiplier: float, epochs: int, delta: float) -> str:
+def compute_privacy(n: int, batch_size: int, noise_multiplier: float, epochs: int, delta: float, used_microbatching: bool) -> str:
     """Calculate value of epsilon for given DP-SGD parameters."""
     return compute_dp_sgd_privacy_statement(number_of_examples=n,
                                             batch_size=batch_size,
                                             num_epochs=epochs,
                                             noise_multiplier=noise_multiplier,
                                             delta=delta,
-                                            used_microbatching=True)
+                                            used_microbatching=used_microbatching)
 
 
 def compute_noise(num_train_samples: int, batch_size: int, target_epsilon: float, epochs: int, delta: float, min_noise: float = 1e-5) -> float:
