@@ -45,7 +45,8 @@ class Analyser():
         self.dataset_data: Dict[str, DatasetStore] = {}
 
         for ds in ds_list:
-            model_save_path: str = os.path.join(model_path, model_name, run_name, str(run_number), ds.dataset_name)
+            model_save_path: str = os.path.join(
+                model_path, model_name, run_name, str(run_number), ds.dataset_name)
             shadow_model_save_path: str = os.path.join(
                 model_path, model_name, run_name, str(run_number), "shadow_models", ds.dataset_name)
             numpy_path: str = os.path.join(shadow_model_save_path, "data")

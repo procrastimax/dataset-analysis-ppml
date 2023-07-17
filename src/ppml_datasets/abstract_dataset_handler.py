@@ -949,9 +949,6 @@ class AbstractDatasetClassSize(AbstractDataset):
                 tf.TensorSpec(shape=label.shape, dtype=label.dtype)
             )
         )
-        print(sample.shape)
-        print(sample.dtype)
-
         self.ds_train = reduced_dataset
         ds_len = sum(1 for _ in self.ds_train)
         self.ds_train = self.ds_train.apply(tf.data.experimental.assert_cardinality(ds_len))
