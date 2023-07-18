@@ -11,6 +11,7 @@ from ppml_datasets.datasets.mnist import MnistDataset, MnistDatasetClassSize, Mn
 from ppml_datasets.datasets.fmnist import FashionMnistDataset, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
 from ppml_datasets.datasets.cifar10 import Cifar10Dataset, Cifar10DatsetGray, Cifar10DatasetClassSize, Cifar10DatasetCustomClasses, Cifar10DatsetClassImbalance
 from ppml_datasets.datasets.svhn import SVHNDataset, SVHNDatasetClassSize, SVHNDatasetClassImbalance
+from ppml_datasets.datasets.emnist import EMNISTLargeUnbalancedDataset, EMNISTMediumBalancedDataset, EMNISTLettersBalancedDataset, EMNISTMediumUnbalancedDataset, EMNISTDigitsManyBalancedDataset, EMNISTDigitsNormalBalancedDataset
 
 from ppml_datasets.utils import check_create_folder
 from util import compute_delta, compute_privacy, compute_noise
@@ -47,7 +48,7 @@ def parse_arguments() -> Dict[str, Any]:
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
     parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str,
-                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, fmnist, cifar10, svhn. With modifications _cX (class size), _i[L/N]Y (imbalance), _nX (number of classes).")
+                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, fmnist, cifar10, svhn, emnist-(large|medium|letters|digits|mnist)-(unbalanced|balanced). With modifications _cX (class size), _i[L/N]Y (imbalance), _nX (number of classes).")
     parser.add_argument("-m", "--model", required=False, type=str, choices=["small_cnn", "private_small_cnn"],
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
     parser.add_argument("-r", "--run-number", required=False, type=int,
@@ -539,6 +540,44 @@ def get_dataset(ds_name: str) -> AbstractDataset:
                                            imbalance_mode=imbalance_mode,
                                            imbalance_ratio=imbalance_ratio)
             ds.load_dataset()
+
+    # the EMNIST datasets and their variations
+    elif parameterized_name[0] == "emnist-large-unbalanced":
+        ds = EMNISTLargeUnbalancedDataset(model_img_shape=model_input_shape,
+                                          builds_ds_info=False,
+                                          batch_size=batch,
+                                          augment_train=False)
+        ds.load_dataset()
+    elif parameterized_name[0] == "emnist-medium-unbalanced":
+        ds = EMNISTMediumUnbalancedDataset(model_img_shape=model_input_shape,
+                                           builds_ds_info=False,
+                                           batch_size=batch,
+                                           augment_train=False)
+        ds.load_dataset()
+    elif parameterized_name[0] == "emnist-medium-balanced":
+        ds = EMNISTMediumBalancedDataset(model_img_shape=model_input_shape,
+                                         builds_ds_info=False,
+                                         batch_size=batch,
+                                         augment_train=False)
+        ds.load_dataset()
+    elif parameterized_name[0] == "emnist-letters-balanced":
+        ds = EMNISTLettersBalancedDataset(model_img_shape=model_input_shape,
+                                          builds_ds_info=False,
+                                          batch_size=batch,
+                                          augment_train=False)
+        ds.load_dataset()
+    elif parameterized_name[0] == "emnist-digits-balanced":
+        ds = EMNISTDigitsManyBalancedDataset(model_img_shape=model_input_shape,
+                                             builds_ds_info=False,
+                                             batch_size=batch,
+                                             augment_train=False)
+        ds.load_dataset()
+    elif parameterized_name[0] == "emnist-mnist-balanced":
+        ds = EMNISTDigitsNormalBalancedDataset(model_img_shape=model_input_shape,
+                                               builds_ds_info=False,
+                                               batch_size=batch,
+                                               augment_train=False)
+        ds.load_dataset()
 
     else:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
