@@ -3,6 +3,7 @@ data/
 models/
 src/__pycache__/
 src/ppml_datasets/__pycache__/
+src/ppml_datasets/datasets/__pycache__/
 *.png
 *.pckl
 *.log
