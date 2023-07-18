@@ -1,7 +1,8 @@
-from ppml_datasets.utils import check_create_folder, visualize_training
+from ppml_datasets.utils import check_create_folder, visualize_training, get_ds_as_numpy
 import tensorflow as tf
 from tensorflow_privacy import VectorizedDPKerasAdamOptimizer
 from tensorflow import keras
+from keras.utils import to_categorical
 from keras.callbacks import EarlyStopping
 from util import compute_delta, compute_noise, compute_privacy
 import numpy as np
@@ -102,10 +103,17 @@ class Model(ABC):
         steps_per_epoch = ds_len // self.batch_size
         train_ds = train_ds.repeat()
         train_ds = train_ds.take(self.batch_size * steps_per_epoch)
-        train_ds = train_ds.batch(self.batch_size)
 
-        self.history = self.model.fit(x=train_ds,
-                                      validation_data=val_ds,
+        # convert labels from index label to one-hot labels
+        (train_values, train_labels) = get_ds_as_numpy(train_ds, unbatch=False)
+        train_labels = to_categorical(train_labels, num_classes=self.num_classes)
+
+        (val_values, val_labels) = get_ds_as_numpy(val_ds, unbatch=True)
+        val_labels = to_categorical(val_labels, num_classes=self.num_classes)
+
+        self.history = self.model.fit(x=train_values,
+                                      y=train_labels,
+                                      validation_data=(val_values, val_labels),
                                       epochs=self.epochs,
                                       steps_per_epoch=steps_per_epoch,
                                       callbacks=callback_list)
@@ -123,6 +131,7 @@ class Model(ABC):
                                patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
+        val_y = to_categorical(val_y, num_classes=self.num_classes)
         validation_data = (val_x, val_y)
 
         steps_per_epoch = len(x) // self.batch_size
@@ -130,8 +139,11 @@ class Model(ABC):
         # create new numpy array and cut off the samples that did not fit into a batch
         x = x[:self.batch_size * steps_per_epoch]
         y = y[:self.batch_size * steps_per_epoch]
+        y = to_categorical(y, num_classes=self.num_classes)
 
-        self.history = self.model.fit(x=x, y=y, validation_data=validation_data,
+        self.history = self.model.fit(x=x,
+                                      y=y,
+                                      validation_data=validation_data,
                                       epochs=self.epochs,
                                       batch_size=self.batch_size,
                                       steps_per_epoch=steps_per_epoch,
@@ -205,11 +217,14 @@ class SmallCNNModel(Model):
     def compile_model(self):
         print("Compiling model")
         optimizer = self.get_optimizer()
+        print(f"num classes: {self.num_classes}")
         self.model.compile(
             optimizer=optimizer,
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(
+            loss=tf.keras.losses.CategoricalCrossentropy(
                 from_logits=True),
-            metrics=["accuracy"])
+            metrics=[
+                "accuracy",
+                tf.keras.metrics.F1Score(average=None, threshold=0.5)])
 
     def get_optimizer(self):
         return tf.keras.optimizers.Adam(
@@ -251,14 +266,16 @@ class PrivateSmallCNNModel(Model):
         print("Compiling model")
         optimizer: tf.keras.optimizers.Optimizer = self.get_optimizer()
 
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(
+        loss = tf.keras.losses.CategoricalCrossentropy(
             from_logits=True,
             reduction=tf.losses.Reduction.NONE)
 
         self.model.compile(
             optimizer=optimizer,
             loss=loss,
-            metrics=["accuracy"])
+            metrics=[
+                tf.keras.metrics.Accuracy(),
+                tf.keras.metrics.F1Score(average=None, threshold=0.5)])
 
     def get_optimizer(self):
         optimizer = VectorizedDPKerasAdamOptimizer(

@@ -26,6 +26,7 @@ googleapis-common-protos==1.59.1
 grpcio==1.54.2
 h5py==3.9.0
 idna==3.4
+imbalanced-learn==0.10.1
 immutabledict==2.2.4
 importlib-metadata==6.7.0
 importlib-resources==5.12.0
@@ -69,6 +70,7 @@ statsmodels==0.14.0
 tensorboard==2.12.3
 tensorboard-data-server==0.7.1
 tensorflow==2.12.0
+tensorflow-addons==0.21.0
 tensorflow-datasets==4.9.2
 tensorflow-estimator==2.12.0
 tensorflow-io-gcs-filesystem==0.32.0
@@ -79,9 +81,9 @@ termcolor==2.3.0
 threadpoolctl==3.1.0
 toml==0.10.2
 tqdm==4.65.0
+typeguard==2.13.3
 typing_extensions==4.6.3
 urllib3==1.26.16
 Werkzeug==2.3.6
 wrapt==1.14.1
 zipp==3.15.0
-imbalanced-learn==0.10.1
