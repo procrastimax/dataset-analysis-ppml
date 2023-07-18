@@ -180,6 +180,10 @@ def main():
 
     ds_info_df = pd.DataFrame()
 
+    if model_name is None:
+        print("No model was specified! Please provide a valid model name!")
+        sys.exit(1)
+
     amia_result_path = os.path.join(result_path, model_name, run_name, str(run_number))
     ds_info_path = "ds-info"
 
