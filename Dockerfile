@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:2.12.0-gpu
+FROM tensorflow/tensorflow:2.13.0-gpu
 
 RUN apt-get update && \
     apt-get install -y software-properties-common && \
