@@ -10,6 +10,7 @@ from util import save_dataframe, plot_histogram
 from ppml_datasets.datasets.mnist import MnistDataset, MnistDatasetClassSize, MnistDatasetCustomClasses, MnistDatasetClassImbalance
 from ppml_datasets.datasets.fmnist import FashionMnistDataset, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
 from ppml_datasets.datasets.cifar10 import Cifar10Dataset, Cifar10DatsetGray, Cifar10DatasetClassSize, Cifar10DatasetCustomClasses, Cifar10DatsetClassImbalance
+from ppml_datasets.datasets.svhn import SVHNDataset, SVHNDatasetClassSize, SVHNDatasetClassImbalance
 
 from ppml_datasets.utils import check_create_folder
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
@@ -45,7 +46,7 @@ def parse_arguments() -> Dict[str, Any]:
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
     parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str,
-                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, mnist_cX, mnist_iY, fmnist, fmnist_cX, fmnist_iY, cifar10, cifar10_cX, cifar10gray, cifar10gray_cX. X stands for an arbitrary integer value and Y for an arbitrary float value between 0 and 1.")
+                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, fmnist, cifar10, svhn. With modifications _cX (class size), _i[L/N]Y (imbalance), _nX (number of classes).")
     parser.add_argument("-m", "--model", required=False, type=str, choices=["small_cnn", "private_small_cnn"],
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
     parser.add_argument("-r", "--run-number", required=False, type=int,
@@ -486,6 +487,26 @@ def get_dataset(ds_name: str) -> AbstractDataset:
 
         if "gray" in mod_params:
             ds = Cifar10DatsetGray(ds=ds)
+            ds.load_dataset()
+
+    elif parameterized_name[0] == "svhn":
+        ds = SVHNDataset(model_img_shape=model_input_shape,
+                         builds_ds_info=False,
+                         batch_size=batch,
+                         augment_train=False)
+        ds.load_dataset()
+
+        if "c" in mod_params:
+            class_size = mod_params["c"][0]
+            ds = SVHNDatasetClassSize(ds=ds,
+                                      class_size=class_size)
+            ds.load_dataset()
+
+        if "i" in mod_params:
+            (imbalance_mode, imbalance_ratio) = mod_params["i"]
+            ds = SVHNDatasetClassImbalance(ds=ds,
+                                           imbalance_mode=imbalance_mode,
+                                           imbalance_ratio=imbalance_ratio)
             ds.load_dataset()
 
     else:
