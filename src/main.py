@@ -13,6 +13,7 @@ from ppml_datasets.datasets.cifar10 import Cifar10Dataset, Cifar10DatsetGray, Ci
 from ppml_datasets.datasets.svhn import SVHNDataset, SVHNDatasetClassSize, SVHNDatasetClassImbalance
 
 from ppml_datasets.utils import check_create_folder
+from util import compute_delta, compute_privacy, compute_noise
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 import tensorflow as tf
 
@@ -87,6 +88,9 @@ def parse_arguments() -> Dict[str, Any]:
                         help="If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.")
     parser.add_argument("-e", "--epsilon", type=float, default=1.0,
                         help="The desired epsilon value for DP-SGD learning. Can be any value: 0.1, 1, 10, ...")
+    parser.add_argument("-p", "--generate-privacy-report",
+                        help="Dont train/load anything, just generate a privacy report for the given values.",
+                        action="store_true")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -111,6 +115,7 @@ def main():
     is_generating_ds_info: bool = args["generate_ds_info"]
     is_including_mia: bool = args["include_mia"]
     is_forcing_ds_info_regeneration: bool = args["force_ds_info_regeneration"]
+    is_generating_privacy_report: bool = args["generate_privacy_report"]
     privacy_epsilon: float = args["epsilon"]
     arg_momentum: float = args["momentum"]
     arg_learning_rate: float = args["learning_rate"]
@@ -143,6 +148,32 @@ def main():
 
     if arg_microbatches is not None:
         num_microbatches = arg_microbatches
+
+    if is_generating_privacy_report:
+        print("Calculating privacy statement for given parameter...")
+
+        used_microbatching = True
+        if num_microbatches <= 1:
+            used_microbatching = False
+
+        num_train_samples = 50000
+        delta = compute_delta(num_train_samples)
+        # assuming MNIST case here
+        noise = compute_noise(num_train_samples=num_train_samples,
+                              batch_size=batch,
+                              target_epsilon=privacy_epsilon,
+                              epochs=epochs,
+                              delta=delta)
+
+        priv_report = compute_privacy(num_train_samples,
+                                      batch,
+                                      noise,
+                                      epochs,
+                                      delta,
+                                      used_microbatching=used_microbatching)
+        print(priv_report)
+
+        sys.exit(0)
 
     loaded_ds_list: List[AbstractDataset] = []
 
