@@ -12,7 +12,7 @@
 ds='mnist_c5000 fmnist_c5000 cifar10_c5000 cifar10gray_c5000'
 shadow_models=32
 epochs=50
-model="small_cnn"
+model="cnn"
 batch=200
 
 echo "non-private attacking" "$ds" - "$model"

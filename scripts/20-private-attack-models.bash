@@ -12,8 +12,9 @@
 ds='mnist_c5000 fmnist_c5000 cifar10_c5000 cifar10gray_c5000'
 shadow_models=32
 epochs=10
-model="private_small_cnn"
+model="private_cnn"
 batch=200
+run_name="private-attack-c5000"
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in
@@ -26,4 +27,4 @@ case $SLURM_ARRAY_TASK_ID in
 esac
 
 echo "private-attacking" "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
-srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -e $eps -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID --epochs $epochs -b $batch --batch-size $batch --run-amia-attack --generate-results --force-model-retrain -n "private-attack-c5000"
+srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -e $eps -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID --epochs $epochs -b $batch --batch-size $batch --run-amia-attack --generate-results --force-model-retrain -n $run_name

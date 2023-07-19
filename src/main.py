@@ -50,7 +50,7 @@ def parse_arguments() -> Dict[str, Any]:
 
     parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str,
                         help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, fmnist, cifar10, svhn, emnist-(large|medium|letters|digits|mnist)-(unbalanced|balanced). With modifications _cX (class size), _i[L/N]Y (imbalance), _nX (number of classes).")
-    parser.add_argument("-m", "--model", required=False, type=str, choices=["small_cnn", "private_small_cnn"],
+    parser.add_argument("-m", "--model", required=False, type=str, choices=["cnn", "private_cnn"],
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
     parser.add_argument("-r", "--run-number", required=False, type=int,
                         help="The run number to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results.", metavar="R")
@@ -381,14 +381,14 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
 
 def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
     model = None
-    if model_name == "small_cnn":
+    if model_name == "cnn":
         model = SmallCNNModel(img_height=32,
                               img_width=32,
                               color_channels=3,
                               random_seed=random_seed,
                               num_classes=num_classes,
                               batch_size=batch,
-                              model_name="small_cnn",
+                              model_name="cnn",
                               model_path=model_path,
                               epochs=epochs,
                               learning_rate=learning_rate,
@@ -396,14 +396,14 @@ def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
                               patience=15,
                               use_early_stopping=True,
                               is_private_model=False)
-    elif model_name == "private_small_cnn":
+    elif model_name == "private_cnn":
         model = PrivateSmallCNNModel(img_height=32,
                                      img_width=32,
                                      color_channels=3,
                                      random_seed=random_seed,
                                      num_classes=num_classes,
                                      batch_size=batch,
-                                     model_name="private_small_cnn",
+                                     model_name="private_cnn",
                                      model_path=model_path,
                                      epochs=epochs,
                                      learning_rate=learning_rate,

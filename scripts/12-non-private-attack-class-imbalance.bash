@@ -12,7 +12,7 @@
 run_name="non-private-attack-class-imbalance"
 shadow_models=32
 epochs=50
-model="small_cnn"
+model="cnn"
 batch=200
 
 case $SLURM_ARRAY_TASK_ID in

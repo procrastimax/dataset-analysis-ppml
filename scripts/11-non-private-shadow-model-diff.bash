@@ -11,7 +11,7 @@
 
 ds='mnist cifar10'
 epochs=25
-model="small_cnn"
+model="cnn"
 batch=200
 
 # get correct run for array id
