@@ -30,6 +30,7 @@ momentum: Optional[float] = None
 weight_decay: Optional[float] = None
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 random_seed: int = 42
+tf.random.set_seed(random_seed)
 
 # Private Training Related Parameter
 l2_norm_clip: float = 1.0
@@ -237,7 +238,7 @@ def main():
             model_save_path: str = os.path.join(
                 model_path, model_name, run_name, str(run_number), ds.dataset_name)
             check_create_folder(model_save_path)
-            model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.h5")
+            model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.keras")
             model = load_model(model_path=model_save_file,
                                model_name=model_name,
                                num_classes=ds.num_classes)
@@ -610,12 +611,19 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
     model.compile_model()
     model.print_summary()
 
-    train_loss, train_acc = model.test_model(ds.ds_train)
-    test_loss, test_acc = model.test_model(ds.ds_test)
-    data = [[ds.dataset_name, "train", train_acc, train_loss]]
-    data.append([ds.dataset_name, "test", test_acc, test_loss])
-    test_df = pd.DataFrame(data=data, columns=["dataset", "type", "accuracy", "loss"])
-    return test_df
+    train_eval_dict = model.test_model(ds.ds_train)
+    test_eval_dict = model.test_model(ds.ds_test)
+
+    train_eval_dict["type"] = "train"
+    test_eval_dict["type"] = "test"
+
+    merged_dicts = {}
+    for k, v in train_eval_dict.items():
+        merged_dicts[k] = [v, test_eval_dict[k]]
+
+    df = pd.DataFrame.from_dict(merged_dicts)
+    df = df[['type', 'accuracy', 'f1-score', 'precision', 'recall', 'loss']]
+    return df
 
 
 def run_amia_attack(ds: AbstractDataset,

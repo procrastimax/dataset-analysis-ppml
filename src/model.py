@@ -1,15 +1,15 @@
-from ppml_datasets.utils import check_create_folder, visualize_training, get_ds_as_numpy
+from ppml_datasets.utils import check_create_folder, visualize_training
 import tensorflow as tf
 from tensorflow_privacy import VectorizedDPKerasAdamOptimizer
 from tensorflow import keras
-from keras.utils import to_categorical
 from keras.callbacks import EarlyStopping
 from util import compute_delta, compute_noise, compute_privacy
 import numpy as np
 import os
 from abc import ABC, abstractmethod
+from sklearn.metrics import classification_report
 
-from typing import Optional, Tuple
+from typing import Optional,  Dict
 from dataclasses import dataclass, field
 
 
@@ -96,24 +96,16 @@ class Model(ABC):
             es = EarlyStopping(monitor='val_loss', mode='min', verbose=1,
                                patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
-
         # create new DS and cut off the samples that did not fit into a batch
         train_ds = train_ds.unbatch()
         ds_len = len(list(train_ds.as_numpy_iterator()))
         steps_per_epoch = ds_len // self.batch_size
         train_ds = train_ds.repeat()
         train_ds = train_ds.take(self.batch_size * steps_per_epoch)
+        train_ds = train_ds.batch(self.batch_size)
 
-        # convert labels from index label to one-hot labels
-        (train_values, train_labels) = get_ds_as_numpy(train_ds, unbatch=False)
-        train_labels = to_categorical(train_labels, num_classes=self.num_classes)
-
-        (val_values, val_labels) = get_ds_as_numpy(val_ds, unbatch=True)
-        val_labels = to_categorical(val_labels, num_classes=self.num_classes)
-
-        self.history = self.model.fit(x=train_values,
-                                      y=train_labels,
-                                      validation_data=(val_values, val_labels),
+        self.history = self.model.fit(x=train_ds,
+                                      validation_data=val_ds,
                                       epochs=self.epochs,
                                       steps_per_epoch=steps_per_epoch,
                                       callbacks=callback_list)
@@ -131,7 +123,7 @@ class Model(ABC):
                                patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
-        val_y = to_categorical(val_y, num_classes=self.num_classes)
+        val_y = tf.one_hot(indices=val_y, depth=self.num_classes)
         validation_data = (val_x, val_y)
 
         steps_per_epoch = len(x) // self.batch_size
@@ -139,7 +131,7 @@ class Model(ABC):
         # create new numpy array and cut off the samples that did not fit into a batch
         x = x[:self.batch_size * steps_per_epoch]
         y = y[:self.batch_size * steps_per_epoch]
-        y = to_categorical(y, num_classes=self.num_classes)
+        y = tf.one_hot(indices=y, depth=self.num_classes)
 
         self.history = self.model.fit(x=x,
                                       y=y,
@@ -160,7 +152,7 @@ class Model(ABC):
         visualize_training(history=self.history, img_name=os.path.join(
             folder_name, image_name))
 
-    def test_model(self, test_ds: tf.data.Dataset) -> Tuple[float, float]:
+    def test_model(self, ds: tf.data.Dataset) -> Dict[str, float]:
         """Run the model's prediction function on the given tf.data.Dataset.
 
         Return:
@@ -168,13 +160,33 @@ class Model(ABC):
         Tuple[float, float] -> (loss, accuracy)
 
         """
-        test_loss, test_acc = self.model.evaluate(x=test_ds)
-        print(f"\nAccuracy: {test_acc}, Loss: {test_loss}")
-        return (test_loss, test_acc)
+
+        loss, acc = self.model.evaluate(x=ds, verbose=2)
+
+        labels = []
+        for sample, label in ds.unbatch().as_numpy_iterator():
+            labels.append(label)
+
+        performance_results = {"loss": loss,
+                               "accuracy": acc}
+
+        pred = self.model.predict(ds, verbose=2)
+        pred = tf.argmax(pred, axis=1)
+
+        report_dict = classification_report(y_true=labels, y_pred=pred, output_dict=True)
+        print(classification_report(y_true=labels, y_pred=pred, output_dict=False, digits=3))
+
+        performance_results.update({
+            'precision': report_dict['macro avg']['precision'],
+            'recall': report_dict['macro avg']['recall'],
+            'f1-score': report_dict['macro avg']['f1-score'],
+        })
+
+        return performance_results
 
     def save_model(self):
         print(f"Saving {self.model_name} model to {self.model_path}")
-        self.model.save(filepath=self.model_path, save_format="h5", overwrite=True)
+        self.model.save(filepath=self.model_path, save_format="keras", overwrite=True)
 
     def load_model(self):
         """Load from model filepath.
@@ -196,6 +208,7 @@ class SmallCNNModel(Model):
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
             3, 3), strides=1, padding="same", activation='relu'))
+
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
@@ -220,11 +233,9 @@ class SmallCNNModel(Model):
         print(f"num classes: {self.num_classes}")
         self.model.compile(
             optimizer=optimizer,
-            loss=tf.keras.losses.CategoricalCrossentropy(
+            loss=tf.keras.losses.SparseCategoricalCrossentropy(
                 from_logits=True),
-            metrics=[
-                "accuracy",
-                tf.keras.metrics.F1Score(average=None, threshold=0.5)])
+            metrics=["accuracy"])
 
     def get_optimizer(self):
         return tf.keras.optimizers.Adam(
@@ -266,16 +277,14 @@ class PrivateSmallCNNModel(Model):
         print("Compiling model")
         optimizer: tf.keras.optimizers.Optimizer = self.get_optimizer()
 
-        loss = tf.keras.losses.CategoricalCrossentropy(
+        loss = tf.keras.losses.SparseCategoricalCrossentropy(
             from_logits=True,
             reduction=tf.losses.Reduction.NONE)
 
         self.model.compile(
             optimizer=optimizer,
             loss=loss,
-            metrics=[
-                tf.keras.metrics.Accuracy(),
-                tf.keras.metrics.F1Score(average=None, threshold=0.5)])
+            metrics=["accuracy"])
 
     def get_optimizer(self):
         optimizer = VectorizedDPKerasAdamOptimizer(

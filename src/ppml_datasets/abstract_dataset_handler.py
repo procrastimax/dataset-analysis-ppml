@@ -234,11 +234,15 @@ class AbstractDataset():
                                                   preprocessing_func=self.preprocessing_function,
                                                   shuffle=False, augment=False)
 
-        self.ds_train = self.prepare_ds(self.ds_train, cache=True, resize_rescale=True,
+        self.ds_train = self.prepare_ds(self.ds_train,
+                                        cache=True,
+                                        resize_rescale=True,
                                         img_shape=self.model_img_shape,
-                                        batch_size=self.batch_size, convert_to_rgb=self.convert_to_rgb,
+                                        batch_size=self.batch_size,
+                                        convert_to_rgb=self.convert_to_rgb,
                                         preprocessing_func=self.preprocessing_function,
-                                        shuffle=self.shuffle, augment=self.augment_train)
+                                        shuffle=self.shuffle,
+                                        augment=self.augment_train)
 
         if self.ds_val is not None:
             self.ds_val = self.prepare_ds(self.ds_val, cache=True, resize_rescale=True,
@@ -246,14 +250,19 @@ class AbstractDataset():
                                           batch_size=self.batch_size,
                                           convert_to_rgb=self.convert_to_rgb,
                                           preprocessing_func=self.preprocessing_function,
-                                          shuffle=False, augment=False)
+                                          shuffle=False,
+                                          augment=False)
 
         if self.ds_test is not None:
-            self.ds_test = self.prepare_ds(self.ds_test, cache=True, resize_rescale=True,
-                                           img_shape=self.model_img_shape, batch_size=self.batch_size,
+            self.ds_test = self.prepare_ds(self.ds_test,
+                                           cache=True,
+                                           resize_rescale=True,
+                                           img_shape=self.model_img_shape,
+                                           batch_size=self.batch_size,
                                            convert_to_rgb=self.convert_to_rgb,
                                            preprocessing_func=self.preprocessing_function,
-                                           shuffle=False, augment=False)
+                                           shuffle=False,
+                                           augment=False)
 
     def prepare_ds(self, ds: tf.data.Dataset,
                    resize_rescale: bool,
@@ -304,7 +313,8 @@ class AbstractDataset():
                 ds = ds.cache()
 
         if shuffle:
-            ds = ds.shuffle(buffer_size=ds.cardinality().numpy(), seed=self.random_seed)
+            ds = ds.shuffle(buffer_size=ds.cardinality().numpy(),
+                            seed=self.random_seed, reshuffle_each_iteration=False)  # the each_iteration flag is really important to have a usable f1-score
 
         if batch_size is not None:
             ds = ds.batch(batch_size, num_parallel_calls=AUTOTUNE)
