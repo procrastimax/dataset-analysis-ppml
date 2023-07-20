@@ -1,7 +1,7 @@
 import tensorflow as tf
 from typing import Callable, Tuple, Optional, List, Any, Dict
 
-from ppml_datasets.abstract_dataset_handler import AbstractDataset, AbstractDatasetClassSize, AbstractDatasetClassImbalance
+from ppml_datasets.abstract_dataset_handler import AbstractDataset, AbstractDatasetClassSize, AbstractDatasetClassImbalance, AbstractDatasetGray
 
 
 class SVHNDataset(AbstractDataset):
@@ -74,6 +74,26 @@ class SVHNDatasetClassImbalance(AbstractDatasetClassImbalance):
                          builds_ds_info=ds.builds_ds_info)
 
 
+class SVHNDatsetGray(AbstractDatasetGray):
+    def __init__(self,
+                 ds: SVHNDataset):
+        self.ds_train = ds.ds_train
+        self.ds_test = ds.ds_test
+        self.ds_val = ds.ds_val
+        super().__init__(tfds_name=ds.tfds_name,
+                         num_classes=ds.num_classes,
+                         dataset_name=f"{ds.dataset_name}_gray",
+                         dataset_path=ds.dataset_path,
+                         model_img_shape=ds.model_img_shape,
+                         dataset_img_shape=ds.dataset_img_shape,
+                         batch_size=ds.batch_size,
+                         convert_to_rgb=True,
+                         augment_train=ds.augment_train,
+                         shuffle=ds.shuffle,
+                         is_tfds_ds=ds.is_tfds_ds,
+                         builds_ds_info=ds.builds_ds_info)
+
+
 def build_svhn(model_input_shape: Tuple[int, int, int], batch_size: int, mods: Dict[str, List[Any]], augment_train: bool = False, builds_ds_info: bool = False) -> AbstractDataset:
     ds = SVHNDataset(model_img_shape=model_input_shape,
                      builds_ds_info=False,
@@ -92,5 +112,9 @@ def build_svhn(model_input_shape: Tuple[int, int, int], batch_size: int, mods: D
         ds = SVHNDatasetClassImbalance(ds=ds,
                                        imbalance_mode=imbalance_mode,
                                        imbalance_ratio=imbalance_ratio)
+        ds.load_dataset()
+
+    if "gray" in mods:
+        ds = SVHNDatsetGray(ds=ds)
         ds.load_dataset()
     return ds
