@@ -1,5 +1,5 @@
 import tensorflow as tf
-from typing import Callable, Tuple, Optional
+from typing import Callable, Tuple, Optional, List, Any, Dict
 
 from ppml_datasets.abstract_dataset_handler import AbstractDataset, AbstractDatasetClassSize, AbstractDatasetClassImbalance, AbstractDatasetCustomClasses
 
@@ -95,3 +95,31 @@ class MnistDatasetCustomClasses(AbstractDatasetCustomClasses):
                          shuffle=ds.shuffle,
                          is_tfds_ds=ds.is_tfds_ds,
                          builds_ds_info=ds.builds_ds_info)
+
+
+def build_mnist(model_input_shape: Tuple[int, int, int], batch_size: int, mods: Dict[str, List[Any]], augment_train: bool = False, builds_ds_info: bool = False) -> AbstractDataset:
+    ds = MnistDataset(model_img_shape=model_input_shape,
+                      builds_ds_info=False,
+                      batch_size=batch_size,
+                      augment_train=False)
+    ds.load_dataset()
+
+    if "n" in mods:
+        num_new_classes = mods["n"][0]
+        ds = MnistDatasetCustomClasses(ds, num_new_classes)
+        ds.load_dataset()
+
+    if "c" in mods:
+        class_size = mods["c"][0]
+        ds = MnistDatasetClassSize(ds=ds,
+                                   class_size=class_size)
+        ds.load_dataset()
+
+    if "i" in mods:
+        (imbalance_mode, imbalance_ratio) = mods["i"]
+        ds = MnistDatasetClassImbalance(ds=ds,
+                                        imbalance_mode=imbalance_mode,
+                                        imbalance_ratio=imbalance_ratio)
+        ds.load_dataset()
+
+    return ds

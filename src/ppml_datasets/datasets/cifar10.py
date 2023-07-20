@@ -1,5 +1,5 @@
 import tensorflow as tf
-from typing import Callable, Tuple, Optional
+from typing import Callable, Tuple, Optional, List, Any, Dict
 
 from ppml_datasets.abstract_dataset_handler import AbstractDataset, RgbToGrayscale, AbstractDatasetClassSize, AbstractDatasetGray, AbstractDatasetClassImbalance, AbstractDatasetCustomClasses
 
@@ -115,3 +115,35 @@ class Cifar10DatsetGray(AbstractDatasetGray):
                          shuffle=ds.shuffle,
                          is_tfds_ds=ds.is_tfds_ds,
                          builds_ds_info=ds.builds_ds_info)
+
+
+def build_cifar10(model_input_shape: Tuple[int, int, int], batch_size: int, mods: Dict[str, List[Any]], augment_train: bool = False, builds_ds_info: bool = False) -> AbstractDataset:
+    ds = Cifar10Dataset(model_img_shape=model_input_shape,
+                        builds_ds_info=False,
+                        batch_size=batch_size,
+                        augment_train=False)
+    ds.load_dataset()
+
+    if "n" in mods:
+        num_new_classes = mods["n"][0]
+        ds = Cifar10DatasetCustomClasses(ds, num_new_classes)
+        ds.load_dataset()
+
+    if "c" in mods:
+        class_size = mods["c"][0]
+        ds = Cifar10DatasetClassSize(ds=ds,
+                                     class_size=class_size)
+        ds.load_dataset()
+
+    if "i" in mods:
+        (imbalance_mode, imbalance_ratio) = mods["i"]
+        ds = Cifar10DatsetClassImbalance(ds=ds,
+                                         imbalance_mode=imbalance_mode,
+                                         imbalance_ratio=imbalance_ratio)
+        ds.load_dataset()
+
+    if "gray" in mods:
+        ds = Cifar10DatsetGray(ds=ds)
+        ds.load_dataset()
+
+    return ds

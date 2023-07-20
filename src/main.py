@@ -7,16 +7,11 @@ from analyser import Analyser
 from attacks import AmiaAttack
 from util import save_dataframe, plot_histogram
 
-from ppml_datasets.datasets.mnist import MnistDataset, MnistDatasetClassSize, MnistDatasetCustomClasses, MnistDatasetClassImbalance
-from ppml_datasets.datasets.fmnist import FashionMnistDataset, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
-from ppml_datasets.datasets.cifar10 import Cifar10Dataset, Cifar10DatsetGray, Cifar10DatasetClassSize, Cifar10DatasetCustomClasses, Cifar10DatsetClassImbalance
-from ppml_datasets.datasets.cifar100 import Cifar100Dataset, Cifar100DatasetCustomClasses
-from ppml_datasets.datasets.svhn import SVHNDataset, SVHNDatasetClassSize, SVHNDatasetClassImbalance
-from ppml_datasets.datasets.emnist import EMNISTLargeUnbalancedDataset, EMNISTMediumBalancedDataset, EMNISTLettersBalancedDataset, EMNISTMediumUnbalancedDataset, EMNISTDigitsManyBalancedDataset, EMNISTDigitsNormalBalancedDataset
 
 from ppml_datasets.utils import check_create_folder
 from util import compute_delta, compute_privacy, compute_noise
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
+from ppml_datasets.builder import build_dataset
 import tensorflow as tf
 
 import gc
@@ -220,7 +215,7 @@ def main():
         ds_info_path_specific = os.path.join("ds-info", ds_name)
         check_create_folder(ds_info_path_specific)
 
-        ds = get_dataset(ds_name)
+        ds = build_dataset(ds_name, batch_size=batch, model_input_shape=model_input_shape)
 
         # generate ds_info before preprocessing dataset
         if is_generating_ds_info:
@@ -413,195 +408,6 @@ def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
                                      use_early_stopping=False,
                                      is_private_model=True)
     return model
-
-
-def parse_dataset_name_parameter(ds_mods: List[str]) -> Dict[str, List[Any]]:
-    # check if there are really modifications
-    if len(ds_mods) == 0:
-        return {}
-
-    mod_dict = {}
-    for mod in ds_mods:
-        if mod.startswith("c"):
-            class_size = int(mod.removeprefix("c"))
-            mod_dict["c"] = [class_size]
-
-        if mod.startswith("gray"):
-            mod_dict["gray"] = [True]
-
-        if mod.startswith("i"):
-            mod = mod.removeprefix("i")
-            imbalance_ratio = float(mod[1:])
-            imbalance_mode = mod[0]
-
-            if imbalance_mode not in ("L", "N"):
-                print(f"Unknown imbalance mode: {imbalance_mode}")
-                continue
-            mod_dict["i"] = [imbalance_mode, imbalance_ratio]
-
-        if mod.startswith("n"):
-            num_new_classes = int(mod.removeprefix("n"))
-            mod_dict["n"] = [num_new_classes]
-
-    return mod_dict
-
-
-def get_dataset(ds_name: str) -> AbstractDataset:
-    ds = None
-
-    parameterized_name = ds_name.split("_")
-    # exluce dataset name from parameter parsing
-    mod_params = parse_dataset_name_parameter(parameterized_name[1:])
-
-    if parameterized_name[0] == "mnist":
-        ds = MnistDataset(model_img_shape=model_input_shape,
-                          builds_ds_info=False,
-                          batch_size=batch,
-                          augment_train=False)
-        ds.load_dataset()
-
-        if "n" in mod_params:
-            num_new_classes = mod_params["n"][0]
-            ds = MnistDatasetCustomClasses(ds, num_new_classes)
-            ds.load_dataset()
-
-        if "c" in mod_params:
-            class_size = mod_params["c"][0]
-            ds = MnistDatasetClassSize(ds=ds,
-                                       class_size=class_size)
-            ds.load_dataset()
-
-        if "i" in mod_params:
-            (imbalance_mode, imbalance_ratio) = mod_params["i"]
-            ds = MnistDatasetClassImbalance(ds=ds,
-                                            imbalance_mode=imbalance_mode,
-                                            imbalance_ratio=imbalance_ratio)
-            ds.load_dataset()
-
-    elif parameterized_name[0] == "fmnist":
-        ds = FashionMnistDataset(model_img_shape=model_input_shape,
-                                 builds_ds_info=False,
-                                 batch_size=batch,
-                                 augment_train=False)
-        ds.load_dataset()
-
-        if "c" in mod_params:
-            class_size = mod_params["c"][0]
-            ds = FashionMnistDatasetClassSize(ds=ds,
-                                              class_size=class_size)
-            ds.load_dataset()
-
-        if "i" in mod_params:
-            (imbalance_mode, imbalance_ratio) = mod_params["i"]
-            ds = FashionMnistDatasetClassImbalance(ds=ds,
-                                                   imbalance_mode=imbalance_mode,
-                                                   imbalance_ratio=imbalance_ratio)
-            ds.load_dataset()
-
-    elif parameterized_name[0] == "cifar10":
-        ds = Cifar10Dataset(model_img_shape=model_input_shape,
-                            builds_ds_info=False,
-                            batch_size=batch,
-                            augment_train=False)
-        ds.load_dataset()
-
-        if "n" in mod_params:
-            num_new_classes = mod_params["n"][0]
-            ds = Cifar10DatasetCustomClasses(ds, num_new_classes)
-            ds.load_dataset()
-
-        if "c" in mod_params:
-            class_size = mod_params["c"][0]
-            ds = Cifar10DatasetClassSize(ds=ds,
-                                         class_size=class_size)
-            ds.load_dataset()
-
-        if "i" in mod_params:
-            (imbalance_mode, imbalance_ratio) = mod_params["i"]
-            ds = Cifar10DatsetClassImbalance(ds=ds,
-                                             imbalance_mode=imbalance_mode,
-                                             imbalance_ratio=imbalance_ratio)
-            ds.load_dataset()
-
-        if "gray" in mod_params:
-            ds = Cifar10DatsetGray(ds=ds)
-            ds.load_dataset()
-
-    elif parameterized_name[0] == "svhn":
-        ds = SVHNDataset(model_img_shape=model_input_shape,
-                         builds_ds_info=False,
-                         batch_size=batch,
-                         augment_train=False)
-        ds.load_dataset()
-
-        if "c" in mod_params:
-            class_size = mod_params["c"][0]
-            ds = SVHNDatasetClassSize(ds=ds,
-                                      class_size=class_size)
-            ds.load_dataset()
-
-        if "i" in mod_params:
-            (imbalance_mode, imbalance_ratio) = mod_params["i"]
-            ds = SVHNDatasetClassImbalance(ds=ds,
-                                           imbalance_mode=imbalance_mode,
-                                           imbalance_ratio=imbalance_ratio)
-            ds.load_dataset()
-
-    # the EMNIST datasets and their variations
-    elif parameterized_name[0] == "emnist-large-unbalanced":
-        ds = EMNISTLargeUnbalancedDataset(model_img_shape=model_input_shape,
-                                          builds_ds_info=False,
-                                          batch_size=batch,
-                                          augment_train=False)
-        ds.load_dataset()
-    elif parameterized_name[0] == "emnist-medium-unbalanced":
-        ds = EMNISTMediumUnbalancedDataset(model_img_shape=model_input_shape,
-                                           builds_ds_info=False,
-                                           batch_size=batch,
-                                           augment_train=False)
-        ds.load_dataset()
-    elif parameterized_name[0] == "emnist-medium-balanced":
-        ds = EMNISTMediumBalancedDataset(model_img_shape=model_input_shape,
-                                         builds_ds_info=False,
-                                         batch_size=batch,
-                                         augment_train=False)
-        ds.load_dataset()
-    elif parameterized_name[0] == "emnist-letters-balanced":
-        ds = EMNISTLettersBalancedDataset(model_img_shape=model_input_shape,
-                                          builds_ds_info=False,
-                                          batch_size=batch,
-                                          augment_train=False)
-        ds.load_dataset()
-    elif parameterized_name[0] == "emnist-digits-balanced":
-        ds = EMNISTDigitsManyBalancedDataset(model_img_shape=model_input_shape,
-                                             builds_ds_info=False,
-                                             batch_size=batch,
-                                             augment_train=False)
-        ds.load_dataset()
-    elif parameterized_name[0] == "emnist-mnist-balanced":
-        ds = EMNISTDigitsNormalBalancedDataset(model_img_shape=model_input_shape,
-                                               builds_ds_info=False,
-                                               batch_size=batch,
-                                               augment_train=False)
-        ds.load_dataset()
-
-    elif parameterized_name[0] == "cifar100":
-        ds = Cifar100Dataset(model_img_shape=model_input_shape,
-                             builds_ds_info=False,
-                             batch_size=batch,
-                             augment_train=False)
-        ds.load_dataset()
-
-        if "n" in mod_params:
-            num_new_classes = mod_params["n"][0]
-            ds = Cifar100DatasetCustomClasses(ds=ds, new_num_classes=num_new_classes)
-            ds.load_dataset()
-
-    else:
-        print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
-        sys.exit(1)
-
-    return ds
 
 
 def train_model(ds: AbstractDataset, model: Model, run_name: str, run_number: int):

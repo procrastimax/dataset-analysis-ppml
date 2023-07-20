@@ -1,6 +1,7 @@
 import tensorflow as tf
+from typing import Tuple, Callable, Optional, List, Any, Dict
+
 from ppml_datasets.abstract_dataset_handler import AbstractDataset, AbstractDatasetCustomClasses
-from typing import Tuple, Callable, Optional
 
 
 class Cifar100Dataset(AbstractDataset):
@@ -47,3 +48,18 @@ class Cifar100DatasetCustomClasses(AbstractDatasetCustomClasses):
                          shuffle=ds.shuffle,
                          is_tfds_ds=ds.is_tfds_ds,
                          builds_ds_info=ds.builds_ds_info)
+
+
+def build_cifar100(model_input_shape: Tuple[int, int, int], batch_size: int, mods: Dict[str, List[Any]], augment_train: bool = False, builds_ds_info: bool = False) -> AbstractDataset:
+    ds = Cifar100Dataset(model_img_shape=model_input_shape,
+                         builds_ds_info=False,
+                         batch_size=batch_size,
+                         augment_train=False)
+    ds.load_dataset()
+
+    if "n" in mods:
+        num_new_classes = mods["n"][0]
+        ds = Cifar100DatasetCustomClasses(ds=ds, new_num_classes=num_new_classes)
+        ds.load_dataset()
+
+    return ds

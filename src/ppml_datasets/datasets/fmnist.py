@@ -1,7 +1,7 @@
 import tensorflow as tf
-from typing import Callable, Tuple, Optional
+from typing import Callable, Tuple, Optional, List, Any, Dict
 
-from ppml_datasets.abstract_dataset_handler import AbstractDataset, AbstractDatasetClassSize, AbstractDatasetClassImbalance, AbstractDatasetCustomClasses
+from ppml_datasets.abstract_dataset_handler import AbstractDataset, AbstractDatasetClassSize, AbstractDatasetClassImbalance
 
 
 class FashionMnistDataset(AbstractDataset):
@@ -72,3 +72,26 @@ class FashionMnistDatasetClassImbalance(AbstractDatasetClassImbalance):
                          shuffle=ds.shuffle,
                          is_tfds_ds=ds.is_tfds_ds,
                          builds_ds_info=ds.builds_ds_info)
+
+
+def build_fmnist(model_input_shape: Tuple[int, int, int], batch_size: int, mods: Dict[str, List[Any]], augment_train: bool = False, builds_ds_info: bool = False) -> AbstractDataset:
+    ds = FashionMnistDataset(model_img_shape=model_input_shape,
+                             builds_ds_info=False,
+                             batch_size=batch_size,
+                             augment_train=False)
+    ds.load_dataset()
+
+    if "c" in mods:
+        class_size = mods["c"][0]
+        ds = FashionMnistDatasetClassSize(ds=ds,
+                                          class_size=class_size)
+        ds.load_dataset()
+
+    if "i" in mods:
+        (imbalance_mode, imbalance_ratio) = mods["i"]
+        ds = FashionMnistDatasetClassImbalance(ds=ds,
+                                               imbalance_mode=imbalance_mode,
+                                               imbalance_ratio=imbalance_ratio)
+        ds.load_dataset()
+
+    return ds
