@@ -62,6 +62,9 @@ def build_dataset(full_ds_name: str, batch_size: int, model_input_shape: Tuple[i
     elif parameterized_name[0] == "svhn":
         ds = build_svhn(model_input_shape, batch_size, mod_params)
 
+    elif parameterized_name[0] == "cifar100":
+        ds = build_cifar100(model_input_shape, batch_size, mod_params)
+
     # the EMNIST datasets and their variations
     elif parameterized_name[0] == "emnist-large-unbalanced":
         ds = EMNISTLargeUnbalancedDataset(model_img_shape=model_input_shape,
@@ -99,9 +102,6 @@ def build_dataset(full_ds_name: str, batch_size: int, model_input_shape: Tuple[i
                                                batch_size=batch_size,
                                                augment_train=False)
         ds.load_dataset()
-
-    elif parameterized_name[0] == "cifar100":
-        ds = build_cifar100(model_input_shape, batch_size, mod_params)
 
     else:
         print(f"The requested: {full_ds_name} dataset does not exist or is not implemented!")
