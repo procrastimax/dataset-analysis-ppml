@@ -10,6 +10,7 @@ from util import save_dataframe, plot_histogram
 from ppml_datasets.datasets.mnist import MnistDataset, MnistDatasetClassSize, MnistDatasetCustomClasses, MnistDatasetClassImbalance
 from ppml_datasets.datasets.fmnist import FashionMnistDataset, FashionMnistDatasetClassSize, FashionMnistDatasetClassImbalance
 from ppml_datasets.datasets.cifar10 import Cifar10Dataset, Cifar10DatsetGray, Cifar10DatasetClassSize, Cifar10DatasetCustomClasses, Cifar10DatsetClassImbalance
+from ppml_datasets.datasets.cifar100 import Cifar100Dataset, Cifar100DatasetCustomClasses
 from ppml_datasets.datasets.svhn import SVHNDataset, SVHNDatasetClassSize, SVHNDatasetClassImbalance
 from ppml_datasets.datasets.emnist import EMNISTLargeUnbalancedDataset, EMNISTMediumBalancedDataset, EMNISTLettersBalancedDataset, EMNISTMediumUnbalancedDataset, EMNISTDigitsManyBalancedDataset, EMNISTDigitsNormalBalancedDataset
 
@@ -49,7 +50,7 @@ def parse_arguments() -> Dict[str, Any]:
         description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.")
 
     parser.add_argument("-d", "--datasets", nargs="+", required=False, type=str,
-                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, fmnist, cifar10, svhn, emnist-(large|medium|letters|digits|mnist)-(unbalanced|balanced). With modifications _cX (class size), _i[L/N]Y (imbalance), _nX (number of classes).")
+                        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, fmnist, cifar10, cifar100, svhn, emnist-(large|medium|letters|digits|mnist)-(unbalanced|balanced). With modifications _cX (class size), _i[L/N]Y (imbalance), _nX (number of classes), _gray.")
     parser.add_argument("-m", "--model", required=False, type=str, choices=["cnn", "private_cnn"],
                         help="Specify which model should be used for training/ attacking. Only one can be selected!")
     parser.add_argument("-r", "--run-number", required=False, type=int,
@@ -583,6 +584,18 @@ def get_dataset(ds_name: str) -> AbstractDataset:
                                                batch_size=batch,
                                                augment_train=False)
         ds.load_dataset()
+
+    elif parameterized_name[0] == "cifar100":
+        ds = Cifar100Dataset(model_img_shape=model_input_shape,
+                             builds_ds_info=False,
+                             batch_size=batch,
+                             augment_train=False)
+        ds.load_dataset()
+
+        if "n" in mod_params:
+            num_new_classes = mod_params["n"][0]
+            ds = Cifar100DatasetCustomClasses(ds=ds, new_num_classes=num_new_classes)
+            ds.load_dataset()
 
     else:
         print(f"The requested: {ds_name} dataset does not exist or is not implemented!")
