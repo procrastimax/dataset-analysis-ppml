@@ -50,8 +50,6 @@ def build_dataset(full_ds_name: str, batch_size: int, model_input_shape: Tuple[i
     # exluce dataset name from parameter parsing
     mod_params = parse_dataset_name_parameter(parameterized_name[1:])
 
-    print(model_input_shape)
-
     if parameterized_name[0] == "mnist":
         ds = build_mnist(model_input_shape, batch_size, mod_params)
 

@@ -54,7 +54,7 @@ def parse_arguments() -> Dict[str, Any]:
                         help="The run name to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results. The naming hierarchy here is: model_name/run_name/run_number.", metavar="N")
     parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int,
                         help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
-    parser.add_argument("--train-single-model", action="store_true",
+    parser.add_argument("--train-model", action="store_true",
                         help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
     parser.add_argument("--epochs", type=int,
                         help="The number of epochs the model should be trained on.")
@@ -68,8 +68,8 @@ def parse_arguments() -> Dict[str, Any]:
                         help="Number of microbatches used for private training.")
     parser.add_argument("--batch-size", type=int,
                         help="Size of batch used for training.")
-    parser.add_argument("--load-test-single-model", action="store_true",
-                        help="If this flag is set, a single model is loaded based on run number and dataset name. Then predictions are run on the test and train dataset.")
+    parser.add_argument("--evaluate-model", action="store_true",
+                        help="If this flag is set, a single model is loaded based on run number, run name, model name and dataset name. Then predictions are run on the test and train dataset to evaluate the model.")
     parser.add_argument("--run-amia-attack", action="store_true",
                         help="If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved.")
     parser.add_argument("--generate-results", action="store_true",
@@ -104,8 +104,8 @@ def main():
     run_name: str = args["run_name"]
     model_name: str = args["model"]
     num_shadow_models: int = args["shadow_model_number"]
-    is_training_single_model: bool = args["train_single_model"]
-    is_load_test_single_model: bool = args["load_test_single_model"]
+    is_training_single_model: bool = args["train_model"]
+    is_load_test_single_model: bool = args["evaluate_model"]
     is_running_amia_attack: bool = args["run_amia_attack"]
     is_generating_results: bool = args["generate_results"]
     force_model_retraining: bool = args["force_model_retrain"]
