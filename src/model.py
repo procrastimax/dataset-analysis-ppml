@@ -9,7 +9,7 @@ import os
 from abc import ABC, abstractmethod
 from sklearn.metrics import classification_report
 
-from typing import Optional,  Dict
+from typing import Optional, Dict
 from dataclasses import dataclass, field
 
 

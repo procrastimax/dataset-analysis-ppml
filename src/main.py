@@ -54,7 +54,7 @@ def parse_arguments() -> Dict[str, Any]:
                         help="The run name to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results. The naming hierarchy here is: model_name/run_name/run_number.", metavar="N")
     parser.add_argument("-s", "--shadow-model-number", required=False, default=16, type=int,
                         help="The number of shadow models to be trained if '--train-shadow-models' is set.", metavar="N")
-    parser.add_argument("--train-model", action="store_true",
+    parser.add_argument("-tm", "--train-model", action="store_true",
                         help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.")
     parser.add_argument("--epochs", type=int,
                         help="The number of epochs the model should be trained on.")
@@ -68,7 +68,7 @@ def parse_arguments() -> Dict[str, Any]:
                         help="Number of microbatches used for private training.")
     parser.add_argument("--batch-size", type=int,
                         help="Size of batch used for training.")
-    parser.add_argument("--evaluate-model", action="store_true",
+    parser.add_argument("-em", "--evaluate-model", action="store_true",
                         help="If this flag is set, a single model is loaded based on run number, run name, model name and dataset name. Then predictions are run on the test and train dataset to evaluate the model.")
     parser.add_argument("--run-amia-attack", action="store_true",
                         help="If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved.")
@@ -104,8 +104,8 @@ def main():
     run_name: str = args["run_name"]
     model_name: str = args["model"]
     num_shadow_models: int = args["shadow_model_number"]
-    is_training_single_model: bool = args["train_model"]
-    is_load_test_single_model: bool = args["evaluate_model"]
+    is_training_model: bool = args["train_model"]
+    is_evaluate_model: bool = args["evaluate_model"]
     is_running_amia_attack: bool = args["run_amia_attack"]
     is_generating_results: bool = args["generate_results"]
     force_model_retraining: bool = args["force_model_retrain"]
@@ -184,7 +184,7 @@ def main():
     amia_result_path = os.path.join(result_path, model_name, run_name, str(run_number))
     ds_info_path = "ds-info"
 
-    if is_training_single_model or is_load_test_single_model or is_running_amia_attack:
+    if is_training_model or is_evaluate_model or is_running_amia_attack:
         if run_number is None:
             print("No run number specified! A run number is required when training/ attacking/ testing models!")
             sys.exit(1)
@@ -230,7 +230,7 @@ def main():
         loaded_ds_list.append(ds)
 
         model = None
-        if is_training_single_model or is_load_test_single_model or is_running_amia_attack:
+        if is_training_model or is_evaluate_model or is_running_amia_attack:
             model_save_path: str = os.path.join(
                 model_path, model_name, run_name, str(run_number), ds.dataset_name)
             check_create_folder(model_save_path)
@@ -249,15 +249,15 @@ def main():
                                             l2_norm_clip=l2_norm_clip,
                                             num_microbatches=num_microbatches)
 
-        if is_training_single_model:
+        if is_training_model:
             print("---------------------")
             print("Training single model")
             print("---------------------")
             train_model(ds=ds, model=model, run_name=run_name, run_number=run_number)
 
-        if is_load_test_single_model:
+        if is_evaluate_model:
             print("---------------------")
-            print("Loading and testing single model")
+            print("Loading and evaluate model")
             print("---------------------")
             result_df = load_and_test_model(ds, model)
             if single_model_test_df is None:
@@ -310,7 +310,7 @@ def main():
             ds_info_path, f'dataframe_{"-".join(list_of_ds)}_ds_info.csv')
         save_dataframe(ds_info_df, ds_info_df_file)
 
-    if is_load_test_single_model:
+    if is_evaluate_model:
         # save result_df with model's accuracy, loss, etc. gathered as csv
         result_df_filename = os.path.join(result_path, model.model_name, run_name, str(
             run_number), "single-model-train", f'{"-".join(list_of_ds)}_model_predict_results.csv')
@@ -389,7 +389,7 @@ def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
                               epochs=epochs,
                               learning_rate=learning_rate,
                               momentum=momentum,
-                              patience=15,
+                              patience=7,
                               use_early_stopping=True,
                               is_private_model=False)
     elif model_name == "private_cnn":
@@ -404,7 +404,7 @@ def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
                                      epochs=epochs,
                                      learning_rate=learning_rate,
                                      momentum=momentum,
-                                     patience=15,
+                                     patience=None,
                                      use_early_stopping=False,
                                      is_private_model=True)
     return model
@@ -436,12 +436,15 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
     train_eval_dict["type"] = "train"
     test_eval_dict["type"] = "test"
 
+    train_eval_dict["name"] = ds.dataset_name
+    test_eval_dict["name"] = ds.dataset_name
+
     merged_dicts = {}
     for k, v in train_eval_dict.items():
         merged_dicts[k] = [v, test_eval_dict[k]]
 
     df = pd.DataFrame.from_dict(merged_dicts)
-    df = df[['type', 'accuracy', 'f1-score', 'precision', 'recall', 'loss']]
+    df = df[['name', 'type', 'accuracy', 'f1-score', 'precision', 'recall', 'loss']]
     return df
 
 
