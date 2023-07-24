@@ -1,5 +1,6 @@
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import AttackResults, SingleAttackResult
 import matplotlib.pyplot as plt
+import matplotlib
 import pandas as pd
 import numpy as np
 from sklearn import metrics
@@ -13,7 +14,7 @@ from util import save_dataframe, find_nearest
 from datasetstore import DatasetStore
 
 
-class Analyser():
+class AttackAnalyser():
     def __init__(self,
                  ds_list: List[AbstractDataset],
                  model_name: str,
@@ -294,3 +295,117 @@ class Analyser():
         plt.savefig(plt_name)
         print(f"Saved combined best attackrun AUC ROC curve {plt_name}")
         plt.close()
+
+
+class UtilityAnalyser():
+    def __init__(self, result_path: str, run_name: str, model_name: str):
+        self.run_name = run_name
+        self.model_name = model_name
+        self.result_path = result_path
+        self.run_result_folder = os.path.join(self.result_path, self.model_name, self.run_name)
+        self.run_numbers = self.get_run_numbers()
+
+    def get_run_numbers(self) -> List[int]:
+        """Scan run result folder for available run numbers."""
+        run_numbers: List[int] = []
+        folders = os.scandir(self.run_result_folder)
+        for entry in folders:
+            if entry.is_dir():
+                run_numbers.append(int(entry.name))
+
+        run_numbers.sort()
+        return run_numbers
+
+    def load_run_utility_df(self, run_number: int) -> pd.DataFrame:
+        df_folder = os.path.join(self.run_result_folder, str(run_number), "single-model-train")
+
+        file_names: List[str] = []
+        csv_files = os.scandir(df_folder)
+        for entry in csv_files:
+            if entry.is_file() and entry.name.endswith(".csv"):
+                file_names.append(entry.name)
+
+        # find csv file with longest name -> this is probably our wanted csv file since it includes the most datasets
+        df_filename = max(file_names, key=len)
+        df_filename = os.path.join(df_folder, df_filename)
+        df = pd.read_csv(df_filename, index_col=False)
+        return df
+
+    def analyse_utility(self):
+        utility_df = self.build_combined_model_utility_df()
+
+        acc_df = utility_df["accuracy"]
+        f1_df = utility_df["f1-score"]
+        loss_df = utility_df["loss"]
+
+        plt.legend(loc=(1.04, 0))
+        plt.subplots_adjust(right=0.7)
+
+        ###
+        # Accuracy
+        ###
+        acc_vis_filename: str = os.path.join(self.run_result_folder, "run_accuracy_comparison.png")
+        acc_df_filename = os.path.join(self.run_result_folder, "accuracy_model_comparison.csv")
+        acc_fig = self._visualize_df(acc_df, xLabel="accuracy", yLabel="run number",
+                                     title="Model accuracy comparison between mutliple runs")
+        print(f"Saving accuracy comparison figure to {acc_vis_filename}")
+        acc_fig.savefig(acc_vis_filename)
+        save_dataframe(acc_df, acc_df_filename)
+
+        ###
+        # F1-Score
+        ###
+        f1score_df_filename = os.path.join(self.run_result_folder, "f1score_model_comparison.csv")
+        f1score_vis_filename: str = os.path.join(
+            self.run_result_folder, "run_f1score_comparison.png")
+        f1_fig = self._visualize_df(f1_df, xLabel="f1-score", yLabel="run number",
+                                    title="Model f1-score comparison between mutliple runs")
+        print(f"Saving f1-score comparison figure to {f1score_vis_filename}")
+        f1_fig.savefig(f1score_vis_filename)
+        save_dataframe(f1_df, f1score_df_filename)
+
+        ###
+        # Loss
+        ###
+        loss_df_filename = os.path.join(self.run_result_folder, "loss_model_comparison.csv")
+        loss_vis_filename: str = os.path.join(
+            self.run_result_folder, "run_loss_comparison.png")
+        loss_fig = self._visualize_df(loss_df, xLabel="loss", yLabel="run number",
+                                      title="Model loss comparison between mutliple runs")
+        print(f"Saving loss comparison figure to {f1score_vis_filename}")
+        loss_fig.savefig(loss_vis_filename)
+        save_dataframe(loss_df, loss_df_filename)
+
+    def build_combined_model_utility_df(self) -> pd.DataFrame:
+        dfs: List[pd.DataFrame] = []
+        for run in self.run_numbers:
+            run_df: pd.DataFrame = self.load_run_utility_df(run)
+            run_df["run"] = run
+            col = run_df["run"]
+            run_df.drop(labels=['run'], axis=1, inplace=True)
+            run_df.insert(0, "run", col)
+            dfs.append(run_df)
+
+        combined_df = pd.concat(dfs, axis=0, ignore_index=True)
+        combined_df = combined_df.pivot(index=["name", "type"],
+                                        columns="run",
+                                        values=["accuracy", "f1-score", "loss"])
+        averaged = combined_df.groupby("type").mean()
+        averaged.rename(index={'test': 'average test',
+                               'train': 'average train'}, inplace=True)
+        combined_df = pd.concat([combined_df, averaged])
+        return combined_df
+
+    def _visualize_df(self, df: pd.DataFrame, xLabel: str, yLabel: str, title: str, use_grid: bool = True, use_legend: bool = True) -> matplotlib.figure.Figure:
+        fig, ax = plt.subplots()
+        for index, row in df.iterrows():
+            if type(index) == "tuple":
+                index = " ".join(index)
+            ax.plot(range(len(row)), row, label=index)
+
+        ax.set(xlabel=xLabel,
+               ylabel=yLabel,
+               title=title)
+        ax.legend()
+        ax.grid()
+        return fig

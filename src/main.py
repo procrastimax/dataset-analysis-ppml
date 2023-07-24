@@ -3,7 +3,7 @@ import sys
 import pandas as pd
 import os
 from typing import Optional, Any, Dict, Tuple, List
-from analyser import Analyser
+from analyser import AttackAnalyser, UtilityAnalyser
 from attacks import AmiaAttack
 from util import save_dataframe, plot_histogram
 
@@ -89,6 +89,9 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument("-p", "--generate-privacy-report",
                         help="Dont train/load anything, just generate a privacy report for the given values.",
                         action="store_true")
+    parser.add_argument("-ce", "--compile-evaluation",
+                        help="If this flag is set, the program compiles all single model evaluations from different run numbers to a single file.",
+                        action="store_true")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -114,6 +117,7 @@ def main():
     is_including_mia: bool = args["include_mia"]
     is_forcing_ds_info_regeneration: bool = args["force_ds_info_regeneration"]
     is_generating_privacy_report: bool = args["generate_privacy_report"]
+    is_compiling_model_evaluation: bool = args["compile_evaluation"]
     privacy_epsilon: float = args["epsilon"]
     arg_momentum: float = args["momentum"]
     arg_learning_rate: float = args["learning_rate"]
@@ -201,104 +205,106 @@ def main():
         print("No datasets specified! A datasets is required when training/ attacking/ testing models!")
         sys.exit(1)
 
-    list_of_ds.sort()  # sort ds name list to create deterministic filenames
+    if list_of_ds is not None:
+        list_of_ds.sort()  # sort ds name list to create deterministic filenames
 
     single_model_test_df = None
+    model = None
 
     print("=========================================")
     print("=========================================")
     print("=========================================")
 
-    for ds_name in list_of_ds:
-        # create folder for ds-info
-        # we need this since we save some more information on datasets
-        ds_info_path_specific = os.path.join("ds-info", ds_name)
-        check_create_folder(ds_info_path_specific)
+    if list_of_ds is not None:
+        for ds_name in list_of_ds:
+            # create folder for ds-info
+            # we need this since we save some more information on datasets
+            ds_info_path_specific = os.path.join("ds-info", ds_name)
+            check_create_folder(ds_info_path_specific)
 
-        ds = build_dataset(ds_name, batch_size=batch, model_input_shape=model_input_shape)
+            ds = build_dataset(ds_name, batch_size=batch, model_input_shape=model_input_shape)
 
-        # generate ds_info before preprocessing dataset
-        if is_generating_ds_info:
-            print("---------------------")
-            print("Generating Dataset Info")
-            print("---------------------")
-            ds_info_df = generate_ds_info(ds_info_path=ds_info_path_specific,
-                                          ds=ds,
-                                          ds_info_df=ds_info_df,
-                                          force_ds_info_regen=is_forcing_ds_info_regeneration)
-        ds.prepare_datasets()
-        loaded_ds_list.append(ds)
+            # generate ds_info before preprocessing dataset
+            if is_generating_ds_info:
+                print("---------------------")
+                print("Generating Dataset Info")
+                print("---------------------")
+                ds_info_df = generate_ds_info(ds_info_path=ds_info_path_specific,
+                                              ds=ds,
+                                              ds_info_df=ds_info_df,
+                                              force_ds_info_regen=is_forcing_ds_info_regeneration)
+            ds.prepare_datasets()
+            loaded_ds_list.append(ds)
 
-        model = None
-        if is_training_model or is_evaluate_model or is_running_amia_attack:
-            model_save_path: str = os.path.join(
-                model_path, model_name, run_name, str(run_number), ds.dataset_name)
-            check_create_folder(model_save_path)
-            model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.keras")
-            model = load_model(model_path=model_save_file,
-                               model_name=model_name,
-                               num_classes=ds.num_classes)
+            if is_training_model or is_evaluate_model or is_running_amia_attack:
+                model_save_path: str = os.path.join(
+                    model_path, model_name, run_name, str(run_number), ds.dataset_name)
+                check_create_folder(model_save_path)
+                model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.keras")
+                model = load_model(model_path=model_save_file,
+                                   model_name=model_name,
+                                   num_classes=ds.num_classes)
 
-            # set values for private training
-            if model.is_private_model:
-                print(
-                    f"Setting private training parameter epsilon: {privacy_epsilon}, l2_norm_clip: {l2_norm_clip}, num_microbatches: {num_microbatches}")
-                num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))
-                model.set_privacy_parameter(epsilon=privacy_epsilon,
-                                            num_train_samples=num_train_samples,
-                                            l2_norm_clip=l2_norm_clip,
-                                            num_microbatches=num_microbatches)
+                # set values for private training
+                if model.is_private_model:
+                    print(
+                        f"Setting private training parameter epsilon: {privacy_epsilon}, l2_norm_clip: {l2_norm_clip}, num_microbatches: {num_microbatches}")
+                    num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))
+                    model.set_privacy_parameter(epsilon=privacy_epsilon,
+                                                num_train_samples=num_train_samples,
+                                                l2_norm_clip=l2_norm_clip,
+                                                num_microbatches=num_microbatches)
 
-        if is_training_model:
-            print("---------------------")
-            print("Training single model")
-            print("---------------------")
-            train_model(ds=ds, model=model, run_name=run_name, run_number=run_number)
+            if is_training_model:
+                print("---------------------")
+                print("Training single model")
+                print("---------------------")
+                train_model(ds=ds, model=model, run_name=run_name, run_number=run_number)
 
-        if is_evaluate_model:
-            print("---------------------")
-            print("Loading and evaluate model")
-            print("---------------------")
-            result_df = load_and_test_model(ds, model)
-            if single_model_test_df is None:
-                single_model_test_df = result_df
-            else:
-                single_model_test_df = pd.concat([single_model_test_df, result_df])
+            if is_evaluate_model:
+                print("---------------------")
+                print("Loading and evaluate model")
+                print("---------------------")
+                result_df = load_and_test_model(ds, model)
+                if single_model_test_df is None:
+                    single_model_test_df = result_df
+                else:
+                    single_model_test_df = pd.concat([single_model_test_df, result_df])
 
-        if is_running_amia_attack:
-            print("---------------------")
-            print("Running AMIA attack (train shadow models, calc statistics, run attack)")
-            print("---------------------")
-            shadow_model_save_path: str = os.path.join(
-                model_path, model_name, run_name, str(run_number), "shadow_models", ds.dataset_name)
-            check_create_folder(shadow_model_save_path)
+            if is_running_amia_attack:
+                print("---------------------")
+                print("Running AMIA attack (train shadow models, calc statistics, run attack)")
+                print("---------------------")
+                shadow_model_save_path: str = os.path.join(
+                    model_path, model_name, run_name, str(run_number), "shadow_models", ds.dataset_name)
+                check_create_folder(shadow_model_save_path)
 
-            # make sure that the num_microbatches var is not set when training non-private models
-            if not model.is_private_model:
-                num_microbatches = None
+                # make sure that the num_microbatches var is not set when training non-private models
+                if not model.is_private_model:
+                    num_microbatches = None
 
-            run_amia_attack(ds=ds,
-                            model=model,
-                            num_shadow_models=num_shadow_models,
-                            shadow_model_save_path=shadow_model_save_path,
-                            amia_result_path=amia_result_path,
-                            force_retrain=force_model_retraining,
-                            force_stat_recalculation=force_stat_recalculation,
-                            include_mia=is_including_mia,
-                            num_microbatches=num_microbatches)
+                run_amia_attack(ds=ds,
+                                model=model,
+                                num_shadow_models=num_shadow_models,
+                                shadow_model_save_path=shadow_model_save_path,
+                                amia_result_path=amia_result_path,
+                                force_retrain=force_model_retraining,
+                                force_stat_recalculation=force_stat_recalculation,
+                                include_mia=is_including_mia,
+                                num_microbatches=num_microbatches)
 
     if is_generating_results:
         print("---------------------")
         print("Compiling attack results")
         print("---------------------")
-        analyser = Analyser(ds_list=loaded_ds_list,
-                            model_name=model.model_name,
-                            run_name=run_name,
-                            run_number=run_number,
-                            result_path=result_path,
-                            model_path=model_path,
-                            num_shadow_models=num_shadow_models,
-                            include_mia=is_including_mia)
+        analyser = AttackAnalyser(ds_list=loaded_ds_list,
+                                  model_name=model.model_name,
+                                  run_name=run_name,
+                                  run_number=run_number,
+                                  result_path=result_path,
+                                  model_path=model_path,
+                                  num_shadow_models=num_shadow_models,
+                                  include_mia=is_including_mia)
         analyser.generate_results()
 
     if is_generating_ds_info:
@@ -337,6 +343,17 @@ def main():
         print(f"Saving program parameter to: {param_filepath}")
         with open(param_filepath, "w") as f:
             json.dump(run_params, f)
+
+    if is_compiling_model_evaluation:
+        print("---------------------")
+        print("Compiling model evaluation")
+        print("---------------------")
+        cwd = os.getcwd()
+        res_path = os.path.join(cwd, result_path)
+        analyser = UtilityAnalyser(result_path=res_path,
+                                   run_name=run_name,
+                                   model_name=model_name)
+        analyser.analyse_utility()
 
 
 def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.DataFrame, force_ds_info_regen: bool) -> pd.DataFrame:
