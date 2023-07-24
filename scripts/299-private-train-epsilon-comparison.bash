@@ -10,7 +10,7 @@
 #SBATCH --mail-type=FAIL
 
 ds='mnist fmnist cifar10 svhn'
-epochs=10
+epochs=20
 model="private_cnn"
 batch=200
 run_name="private-train-eps-comparison"
@@ -18,25 +18,31 @@ run_name="private-train-eps-comparison"
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in
         0)
-                eps=1
+                eps=0.1
                 ;;
         1)
-                eps=10
+                eps=1
                 ;;
         2)
-                eps=20
+                eps=10
                 ;;
         3)
-                eps=30
+                eps=20
                 ;;
         4)
-                eps=40
+                eps=30
                 ;;
         5)
-                eps=50
+                eps=40
                 ;;
         6)
+                eps=50
+                ;;
+        7)
                 eps=60
+                ;;
+        8)
+                eps=100
                 ;;
 esac
 
