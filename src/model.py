@@ -197,7 +197,7 @@ class Model(ABC):
 
 
 @ dataclass
-class SmallCNNModel(Model):
+class CNNModel(Model):
     def build_model(self):
         print("Building model")
         model = tf.keras.models.Sequential()
@@ -244,7 +244,7 @@ class SmallCNNModel(Model):
 
 
 @ dataclass
-class PrivateSmallCNNModel(Model):
+class PrivateCNNModel(Model):
     def build_model(self):
         print("Building model")
         model = tf.keras.models.Sequential()

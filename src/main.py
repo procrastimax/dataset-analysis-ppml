@@ -17,7 +17,7 @@ import tensorflow as tf
 import gc
 import json
 
-from model import SmallCNNModel, Model, PrivateSmallCNNModel
+from model import CNNModel, Model, PrivateCNNModel
 
 epochs: int = 20
 batch: int = 200
@@ -378,35 +378,35 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
 def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
     model = None
     if model_name == "cnn":
-        model = SmallCNNModel(img_height=32,
-                              img_width=32,
-                              color_channels=3,
-                              random_seed=random_seed,
-                              num_classes=num_classes,
-                              batch_size=batch,
-                              model_name="cnn",
-                              model_path=model_path,
-                              epochs=epochs,
-                              learning_rate=learning_rate,
-                              momentum=momentum,
-                              patience=7,
-                              use_early_stopping=True,
-                              is_private_model=False)
+        model = CNNModel(img_height=32,
+                         img_width=32,
+                         color_channels=3,
+                         random_seed=random_seed,
+                         num_classes=num_classes,
+                         batch_size=batch,
+                         model_name="cnn",
+                         model_path=model_path,
+                         epochs=epochs,
+                         learning_rate=learning_rate,
+                         momentum=momentum,
+                         patience=7,
+                         use_early_stopping=True,
+                         is_private_model=False)
     elif model_name == "private_cnn":
-        model = PrivateSmallCNNModel(img_height=32,
-                                     img_width=32,
-                                     color_channels=3,
-                                     random_seed=random_seed,
-                                     num_classes=num_classes,
-                                     batch_size=batch,
-                                     model_name="private_cnn",
-                                     model_path=model_path,
-                                     epochs=epochs,
-                                     learning_rate=learning_rate,
-                                     momentum=momentum,
-                                     patience=None,
-                                     use_early_stopping=False,
-                                     is_private_model=True)
+        model = PrivateCNNModel(img_height=32,
+                                img_width=32,
+                                color_channels=3,
+                                random_seed=random_seed,
+                                num_classes=num_classes,
+                                batch_size=batch,
+                                model_name="private_cnn",
+                                model_path=model_path,
+                                epochs=epochs,
+                                learning_rate=learning_rate,
+                                momentum=momentum,
+                                patience=None,
+                                use_early_stopping=False,
+                                is_private_model=True)
     return model
 
 
