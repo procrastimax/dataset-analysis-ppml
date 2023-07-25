@@ -181,7 +181,7 @@ class Model(ABC):
         performance_results = {"loss": loss,
                                "accuracy": acc}
 
-        pred = self.model.predict(x, batch_size=self.batch_size,  verbose=2)
+        pred = self.model.predict(x, batch_size=self.batch_size, verbose=2)
         # find likeliest class
         pred = tf.argmax(pred, axis=1)
         # convert to one-hot encoding
@@ -200,14 +200,15 @@ class Model(ABC):
 
     def save_model(self):
         print(f"Saving {self.model_name} model to {self.model_path}")
-        self.model.save(filepath=self.model_path, save_format="keras", overwrite=True)
+        self.model.save(filepath=self.model_path, save_format="tf", overwrite=True)
 
     def load_model(self):
         """Load from model filepath.
 
         The model is loaded uncompiled, so the model has to be compiled after loading it.
         """
-        self.model = tf.keras.models.load_model(filepath=self.model_path, compile=False)
+        print(f"Loading model from {self.model_path}")
+        self.model = tf.keras.models.load_model(filepath=self.model_path, compile=True)
 
     def get_layer(self) -> List[tf.keras.layers.Layer]:
         return [

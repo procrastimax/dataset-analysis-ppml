@@ -264,7 +264,7 @@ def main():
                 model_save_path: str = os.path.join(
                     model_path, model_name, run_name, str(run_number), ds.dataset_name)
                 check_create_folder(model_save_path)
-                model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.keras")
+                model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.tf")
                 model = load_model(model_path=model_save_file,
                                    model_name=model_name,
                                    num_classes=ds.num_classes)
