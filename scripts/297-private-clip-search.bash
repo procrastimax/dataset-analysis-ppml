@@ -35,6 +35,9 @@ case $SLURM_ARRAY_TASK_ID in
         5)
             clip_norm=10.0
                 ;;
+        6)
+            clip_norm=100.0
+                ;;
 esac
 
 echo $run_name "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
