@@ -338,15 +338,12 @@ class UtilityAnalyser():
         f1_df = utility_df["f1-score"]
         loss_df = utility_df["loss"]
 
-        plt.legend(loc=(1.04, 0))
-        plt.subplots_adjust(right=0.7)
-
         ###
         # Accuracy
         ###
         acc_vis_filename: str = os.path.join(self.run_result_folder, "run_accuracy_comparison.png")
         acc_df_filename = os.path.join(self.run_result_folder, "accuracy_model_comparison.csv")
-        acc_fig = self._visualize_df(acc_df, xLabel="accuracy", yLabel="run number",
+        acc_fig = self._visualize_df(acc_df, yLabel="accuracy", xLabel="run number",
                                      title="Model accuracy comparison between mutliple runs")
         print(f"Saving accuracy comparison figure to {acc_vis_filename}")
         acc_fig.savefig(acc_vis_filename)
@@ -358,7 +355,7 @@ class UtilityAnalyser():
         f1score_df_filename = os.path.join(self.run_result_folder, "f1score_model_comparison.csv")
         f1score_vis_filename: str = os.path.join(
             self.run_result_folder, "run_f1score_comparison.png")
-        f1_fig = self._visualize_df(f1_df, xLabel="f1-score", yLabel="run number",
+        f1_fig = self._visualize_df(f1_df, yLabel="f1-score", xLabel="run number",
                                     title="Model f1-score comparison between mutliple runs")
         print(f"Saving f1-score comparison figure to {f1score_vis_filename}")
         f1_fig.savefig(f1score_vis_filename)
@@ -370,7 +367,7 @@ class UtilityAnalyser():
         loss_df_filename = os.path.join(self.run_result_folder, "loss_model_comparison.csv")
         loss_vis_filename: str = os.path.join(
             self.run_result_folder, "run_loss_comparison.png")
-        loss_fig = self._visualize_df(loss_df, xLabel="loss", yLabel="run number",
+        loss_fig = self._visualize_df(loss_df, yLabel="loss", xLabel="run number",
                                       title="Model loss comparison between mutliple runs")
         print(f"Saving loss comparison figure to {f1score_vis_filename}")
         loss_fig.savefig(loss_vis_filename)
@@ -407,5 +404,7 @@ class UtilityAnalyser():
                ylabel=yLabel,
                title=title)
         ax.legend()
+        plt.legend(loc=(1.04, 0))
+        plt.subplots_adjust(right=0.72)
         ax.grid()
         return fig
