@@ -15,6 +15,8 @@ import sys
 import math
 from io import BytesIO
 
+from tensorflow.keras.utils import to_categorical
+
 import PIL
 
 from ppml_datasets.utils import get_ds_as_numpy, save_dict_as_json, load_dict_from_json
@@ -112,12 +114,20 @@ class AbstractDataset():
         if "val" in ds_dict.keys():
             self.ds_val = ds_dict["val"]
             print("Loaded validation DS")
+
         if "test" in ds_dict.keys():
             self.ds_test = ds_dict["test"]
             print("Loaded test DS")
+
         if "train" in ds_dict.keys():
             self.ds_train = ds_dict["train"]
             print("Loaded train DS")
+
+    def convert_ds_to_one_hot_encoding(self, ds: tf.data.Dataset, unbatch: bool) -> (np.array, np.array):
+        (samples, labels) = get_ds_as_numpy(ds, unbatch=unbatch)
+        labels = tf.one_hot(labels, self.num_classes)
+        labels = np.array(labels, dtype=np.int32)
+        return (samples, labels)
 
     def resplit_datasets(self, train_val_test_split: Tuple[float, float, float], percentage_loaded_data: int = 100):
         """Resplits all datasets (train, val, test) into new split values.

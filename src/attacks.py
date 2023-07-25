@@ -94,6 +94,7 @@ class AmiaAttack():
 
         """
         (train_samples, train_labels) = self.ds.get_train_ds_as_numpy()
+
         self.num_training_samples = len(train_samples)
 
         self.stat = unpickle_object(self.stat_filename)
@@ -147,6 +148,8 @@ class AmiaAttack():
             else:
                 print("Model does not exist, training a new one")
                 self.cnn_model.build_compile()
+                # convert to one-hot encoding
+                train_labels = tf.one_hot(train_labels, depth=self.ds.num_classes)
                 self.cnn_model.train_model_from_numpy(x=train_samples[keep],
                                                       y=train_labels[keep],
                                                       val_x=train_samples[~keep],

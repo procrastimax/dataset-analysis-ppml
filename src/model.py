@@ -9,7 +9,10 @@ import os
 from abc import ABC, abstractmethod
 from sklearn.metrics import classification_report
 
-from typing import Optional, Dict
+from tensorflow_privacy import DPSequential
+from tensorflow_privacy.privacy.fast_gradient_clipping.layer_registry import LayerRegistry, dense_layer_computation
+
+from typing import Optional, Dict, List
 from dataclasses import dataclass, field
 
 
@@ -26,13 +29,12 @@ class Model(ABC):
     model_path: str
     model_name: str
 
-    momentum: float
     learning_rate: float
     epochs: int
-    use_early_stopping: bool
-    patience: int
-
-    is_private_model: bool
+    ema_momentum: Optional[float] = None
+    weight_decay: Optional[float] = None
+    use_early_stopping: Optional[bool] = None
+    patience: Optional[int] = None
 
     l2_norm_clip: float = field(init=False, default=None)
     noise_multiplier: float = field(init=False, default=None)
@@ -50,6 +52,12 @@ class Model(ABC):
 
     @abstractmethod
     def get_optimizer(self):
+        # Has to be implemented by child class
+        # Remember to implement horizontal flipping augmentation
+        pass
+
+    @abstractmethod
+    def build_model(self):
         # Has to be implemented by child class
         # Remember to implement horizontal flipping augmentation
         pass
@@ -121,15 +129,12 @@ class Model(ABC):
                                patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
-        val_y = tf.one_hot(indices=val_y, depth=self.num_classes)
         validation_data = (val_x, val_y)
-
         steps_per_epoch = len(x) // self.batch_size
 
         # create new numpy array and cut off the samples that did not fit into a batch
         x = x[:self.batch_size * steps_per_epoch]
         y = y[:self.batch_size * steps_per_epoch]
-        y = tf.one_hot(indices=y, depth=self.num_classes)
 
         self.history = self.model.fit(x=x,
                                       y=y,
@@ -193,37 +198,29 @@ class Model(ABC):
         """
         self.model = tf.keras.models.load_model(filepath=self.model_path, compile=False)
 
-    def build_model(self):
-        print("Building model")
-        model = tf.keras.models.Sequential()
-        # Add a layer to do random horizontal augmentation.
-        model.add(tf.keras.layers.RandomFlip('horizontal',
-                                             seed=self.random_seed,
-                                             input_shape=(self.img_height, self.img_width, 3)))
+    def get_layer(self) -> List[tf.keras.layers.Layer]:
+        return [
+            tf.keras.layers.RandomFlip('horizontal',
+                                       seed=self.random_seed,
+                                       input_shape=(self.img_height, self.img_width, 3)),
+            tf.keras.layers.Conv2D(filters=32, kernel_size=(
+                3, 3), strides=1, padding="same", activation='relu'),
+            tf.keras.layers.GroupNormalization(),
+            tf.keras.layers.MaxPooling2D(2, 2),
+            tf.keras.layers.Conv2D(filters=32, kernel_size=(
+                3, 3), strides=1, padding="same", activation='relu'),
+            tf.keras.layers.GroupNormalization(),
+            tf.keras.layers.MaxPooling2D(2, 2),
 
-        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
-            3, 3), strides=1, padding="same", activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.MaxPooling2D(2, 2))
-
-        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
-            3, 3), strides=1, padding="same", activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.MaxPooling2D(2, 2))
-
-        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(
-            3, 3), strides=1, padding="same", activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.MaxPooling2D(2, 2))
-
-        model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(512, activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
-
-        model.add(tf.keras.layers.Dense(self.num_classes))
-
-        self.model = None  # reset previous model
-        self.model = model
+            tf.keras.layers.Conv2D(filters=64, kernel_size=(
+                3, 3), strides=1, padding="same", activation='relu'),
+            tf.keras.layers.GroupNormalization(),
+            tf.keras.layers.MaxPooling2D(2, 2),
+            tf.keras.layers.Flatten(),
+            tf.keras.layers.Dense(512, activation='relu'),
+            tf.keras.layers.GroupNormalization(),
+            tf.keras.layers.Dense(self.num_classes)
+        ]
 
 
 @ dataclass
@@ -231,38 +228,55 @@ class CNNModel(Model):
     def compile_model(self):
         print("Compiling model")
         optimizer = self.get_optimizer()
-        print(f"num classes: {self.num_classes}")
         self.model.compile(
             optimizer=optimizer,
-            loss=tf.keras.losses.SparseCategoricalCrossentropy(
+            loss=tf.keras.losses.CategoricalCrossentropy(
                 from_logits=True),
             metrics=["accuracy"])
 
     def get_optimizer(self):
         return tf.keras.optimizers.Adam(
             learning_rate=self.learning_rate,
+            weight_decay=self.weight_decay,
+            use_ema=self.ema_momentum is not None,
+            ema_momentum=self.ema_momentum,
+            jit_compile=True
         )
+
+    def build_model(self):
+        print("Building non-private model")
+        self.model = tf.keras.Sequential(super().get_layer())
 
 
 @ dataclass
 class PrivateCNNModel(Model):
     def compile_model(self):
         print("Compiling model")
-        optimizer: tf.keras.optimizers.Optimizer = self.get_optimizer()
-
-        loss = tf.keras.losses.SparseCategoricalCrossentropy(
-            from_logits=True,
-            reduction=tf.losses.Reduction.NONE)
-
-        self.model.compile(
-            optimizer=optimizer,
-            loss=loss,
-            metrics=["accuracy"])
+        optimizer = self.get_optimizer()
+        self.model.compile(optimizer=optimizer,
+                           loss=tf.keras.losses.CategoricalCrossentropy(
+                               from_logits=True),
+                           metrics=["accuracy"])
 
     def get_optimizer(self):
-        return VectorizedDPKerasAdamOptimizer(
+        return tf.keras.optimizers.Adam(
+            learning_rate=self.learning_rate,
+            weight_decay=self.weight_decay,
+            use_ema=self.ema_momentum is not None,
+            ema_momentum=self.ema_momentum,
+            jit_compile=True
+        )
+
+    def build_model(self):
+        print("Building private model")
+
+        layer_registry = LayerRegistry()
+        layer_registry.insert(tf.keras.layers.Dense, dense_layer_computation)
+
+        self.model = DPSequential(
             l2_norm_clip=self.l2_norm_clip,
             noise_multiplier=self.noise_multiplier,
             num_microbatches=self.num_microbatches,
-            learning_rate=self.learning_rate,
+            layers=super().get_layer(),
+            layer_registry=layer_registry
         )

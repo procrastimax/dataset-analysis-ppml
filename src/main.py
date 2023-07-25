@@ -22,8 +22,10 @@ from model import CNNModel, Model, PrivateCNNModel
 epochs: int = 20
 batch: int = 200
 learning_rate: float = 0.001
-momentum: Optional[float] = None
-weight_decay: Optional[float] = None
+use_ema: bool = False
+ema_momentum: Optional[float] = None  # default value could be 0.99
+weight_decay: Optional[float] = None  # default value could be: 0.001
+
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 random_seed: int = 42
 tf.random.set_seed(random_seed)
@@ -60,8 +62,10 @@ def parse_arguments() -> Dict[str, Any]:
                         help="The number of epochs the model should be trained on.")
     parser.add_argument("-l", "--learning-rate", type=float,
                         help="The learning rate used for training models.")
-    parser.add_argument("--momentum", type=float,
-                        help="Momentum value used for training the models.")
+    parser.add_argument("-wd", "--weight-decay", type=float,
+                        help="The weight decay used in the Adam optimizer.")
+    parser.add_argument("-ema", "--momentum", type=float,
+                        help="Momentum value used for Adam's EMA when training the models. If set, EMA in Adam is activated.")
     parser.add_argument("-c", "--l2-norm-clip", type=float,
                         help="The L2 norm clip value set for private training models.")
     parser.add_argument("-b", "--microbatches", type=int,
@@ -119,16 +123,26 @@ def main():
     is_generating_privacy_report: bool = args["generate_privacy_report"]
     is_compiling_model_evaluation: bool = args["compile_evaluation"]
     privacy_epsilon: float = args["epsilon"]
+
     arg_momentum: float = args["momentum"]
     arg_learning_rate: float = args["learning_rate"]
+    arg_weight_decay: float = args["weight_decay"]
+
     arg_l2_clip_norm: float = args["l2_norm_clip"]
     arg_microbatches: int = args["microbatches"]
     arg_epochs: int = args["epochs"]
     arg_batch: int = args["batch_size"]
 
     if arg_momentum is not None:
-        global momentum
-        momentum = arg_momentum
+        global ema_momentum
+        ema_momentum = arg_momentum
+
+        global use_ema
+        use_ema = True
+
+    if arg_weight_decay is not None:
+        global weight_decay
+        weight_decay = arg_weight_decay
 
     if arg_learning_rate is not None:
         global learning_rate
@@ -246,7 +260,7 @@ def main():
                                    num_classes=ds.num_classes)
 
                 # set values for private training
-                if model.is_private_model:
+                if type(model) is PrivateCNNModel:
                     print(
                         f"Setting private training parameter epsilon: {privacy_epsilon}, l2_norm_clip: {l2_norm_clip}, num_microbatches: {num_microbatches}")
                     num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))
@@ -280,7 +294,7 @@ def main():
                 check_create_folder(shadow_model_save_path)
 
                 # make sure that the num_microbatches var is not set when training non-private models
-                if not model.is_private_model:
+                if type(model) is not PrivateCNNModel:
                     num_microbatches = None
 
                 run_amia_attack(ds=ds,
@@ -329,7 +343,7 @@ def main():
             "epochs": epochs,
             "batch": batch,
             "learning_rate": learning_rate,
-            "momentum": momentum,
+            "ema_momentum": ema_momentum,
             "weight_decay": weight_decay,
             "shadow_models": num_shadow_models,
             "privacy_epsilon": privacy_epsilon,
@@ -394,43 +408,48 @@ def generate_ds_info(ds_info_path: str, ds: AbstractDataset, ds_info_df: pd.Data
 
 def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
     model = None
+
+    model_height = model_input_shape[0]
+    model_width = model_input_shape[1]
+    model_color_space = model_input_shape[2]
+
     if model_name == "cnn":
-        model = CNNModel(img_height=32,
-                         img_width=32,
-                         color_channels=3,
+        model = CNNModel(model_name="cnn",
+                         img_height=model_height,
+                         img_width=model_width,
+                         color_channels=model_color_space,
                          random_seed=random_seed,
                          num_classes=num_classes,
                          batch_size=batch,
-                         model_name="cnn",
                          model_path=model_path,
                          epochs=epochs,
                          learning_rate=learning_rate,
-                         momentum=momentum,
-                         patience=15,
-                         use_early_stopping=False,
-                         is_private_model=False)
+                         ema_momentum=ema_momentum,
+                         weight_decay=weight_decay)
     elif model_name == "private_cnn":
-        model = PrivateCNNModel(img_height=32,
-                                img_width=32,
-                                color_channels=3,
+        model = PrivateCNNModel(model_name="private_cnn",
+                                img_height=model_height,
+                                img_width=model_width,
+                                color_channels=model_color_space,
                                 random_seed=random_seed,
                                 num_classes=num_classes,
                                 batch_size=batch,
-                                model_name="private_cnn",
                                 model_path=model_path,
                                 epochs=epochs,
                                 learning_rate=learning_rate,
-                                momentum=momentum,
-                                patience=None,
-                                use_early_stopping=False,
-                                is_private_model=True)
+                                ema_momentum=ema_momentum,
+                                weight_decay=weight_decay)
     return model
 
 
 def train_model(ds: AbstractDataset, model: Model, run_name: str, run_number: int):
     model.build_compile()
     model.print_summary()
-    model.train_model_from_ds(train_ds=ds.ds_train, val_ds=ds.ds_test)
+
+    x, y = ds.convert_ds_to_one_hot_encoding(ds.ds_train, unbatch=True)
+    val_x, val_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test, unbatch=True)
+
+    model.train_model_from_numpy(x=x, y=y, val_x=val_x, val_y=val_y)
     model.save_model()
 
     train_history_folder = os.path.join(
