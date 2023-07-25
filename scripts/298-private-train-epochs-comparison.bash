@@ -11,42 +11,42 @@
 
 ds='mnist fmnist cifar10 svhn'
 model="private_cnn"
-batch=200
+batch=600
 run_name="private-train-epochs-comparison"
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in
         0)
                 eps=1
-                epochs=5
+                epochs=10
                 ;;
         1)
                 eps=1
-                epochs=10
+                epochs=20
                 ;;
         2)
                 eps=1
-                epochs=20
+                epochs=30
                 ;;
         3)
                 eps=1
-                epochs=30
+                epochs=40
                 ;;
         4)
                 eps=30
-                epochs=5
+                epochs=10
                 ;;
         5)
                 eps=30
-                epochs=10
+                epochs=20
                 ;;
         6)
                 eps=30
-                epochs=20
+                epochs=30
                 ;;
         7)
                 eps=30
-                epochs=30
+                epochs=40
                 ;;
 esac
 

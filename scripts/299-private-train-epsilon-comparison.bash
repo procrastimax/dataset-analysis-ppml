@@ -10,9 +10,9 @@
 #SBATCH --mail-type=FAIL
 
 ds='mnist fmnist cifar10 svhn'
-epochs=20
+epochs=30
 model="private_cnn"
-batch=200
+batch=600
 run_name="private-train-eps-comparison"
 
 # get correct run for array id

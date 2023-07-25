@@ -10,9 +10,9 @@
 #SBATCH --mail-type=FAIL
 
 ds='mnist fmnist svhn cifar10'
-epochs=20
+epochs=30
 model="cnn"
-batch=200
+batch=600
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in
