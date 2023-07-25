@@ -1,6 +1,5 @@
-from ppml_datasets.utils import check_create_folder, visualize_training
+from ppml_datasets.utils import check_create_folder, visualize_training, get_ds_as_numpy
 import tensorflow as tf
-from tensorflow_privacy import VectorizedDPKerasAdamOptimizer
 from tensorflow import keras
 from keras.callbacks import EarlyStopping
 from util import compute_delta, compute_noise, compute_privacy
@@ -155,7 +154,7 @@ class Model(ABC):
         visualize_training(history=self.history, img_name=os.path.join(
             folder_name, image_name))
 
-    def test_model(self, ds: tf.data.Dataset) -> Dict[str, float]:
+    def test_model(self, x: np.array, y: np.array) -> Dict[str, float]:
         """Run the model's prediction function on the given tf.data.Dataset.
 
         Return:
@@ -163,21 +162,19 @@ class Model(ABC):
         Tuple[float, float] -> (loss, accuracy)
 
         """
-
-        loss, acc = self.model.evaluate(x=ds, verbose=2)
-
-        labels = []
-        for sample, label in ds.unbatch().as_numpy_iterator():
-            labels.append(label)
+        loss, acc = self.model.evaluate(x, y, batch_size=self.batch_size, verbose=2)
 
         performance_results = {"loss": loss,
                                "accuracy": acc}
 
-        pred = self.model.predict(ds, verbose=2)
+        pred = self.model.predict(x, batch_size=self.batch_size,  verbose=2)
+        # find likeliest class
         pred = tf.argmax(pred, axis=1)
+        # convert to one-hot encoding
+        pred = tf.one_hot(pred, depth=self.num_classes)
 
-        report_dict = classification_report(y_true=labels, y_pred=pred, output_dict=True)
-        print(classification_report(y_true=labels, y_pred=pred, output_dict=False, digits=3))
+        report_dict = classification_report(y_true=y, y_pred=pred, output_dict=True)
+        print(classification_report(y_true=y, y_pred=pred, output_dict=False, digits=3))
 
         performance_results.update({
             'precision': report_dict['macro avg']['precision'],

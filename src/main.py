@@ -447,9 +447,9 @@ def train_model(ds: AbstractDataset, model: Model, run_name: str, run_number: in
     model.print_summary()
 
     x, y = ds.convert_ds_to_one_hot_encoding(ds.ds_train, unbatch=True)
-    val_x, val_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test, unbatch=True)
+    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test, unbatch=True)
 
-    model.train_model_from_numpy(x=x, y=y, val_x=val_x, val_y=val_y)
+    model.train_model_from_numpy(x=x, y=y, val_x=test_x, val_y=test_y)
     model.save_model()
 
     train_history_folder = os.path.join(
@@ -466,8 +466,11 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
     model.compile_model()
     model.print_summary()
 
-    train_eval_dict = model.test_model(ds.ds_train)
-    test_eval_dict = model.test_model(ds.ds_test)
+    x, y = ds.convert_ds_to_one_hot_encoding(ds.ds_train, unbatch=True)
+    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test, unbatch=True)
+
+    train_eval_dict = model.test_model(x, y)
+    test_eval_dict = model.test_model(test_x, test_y)
 
     train_eval_dict["type"] = "train"
     test_eval_dict["type"] = "test"
