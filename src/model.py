@@ -43,17 +43,15 @@ class Model(ABC):
     history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
 
     @abstractmethod
-    def build_model(self):
+    def compile_model(self):
         # Has to be implemented by child class
         # Remember to implement horizontal flipping augmentation
         pass
 
     @abstractmethod
-    def compile_model(self):
-        pass
-
-    @abstractmethod
     def get_optimizer(self):
+        # Has to be implemented by child class
+        # Remember to implement horizontal flipping augmentation
         pass
 
     def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float, num_microbatches: int):
@@ -262,10 +260,9 @@ class PrivateCNNModel(Model):
             metrics=["accuracy"])
 
     def get_optimizer(self):
-        optimizer = VectorizedDPKerasAdamOptimizer(
+        return VectorizedDPKerasAdamOptimizer(
             l2_norm_clip=self.l2_norm_clip,
             noise_multiplier=self.noise_multiplier,
             num_microbatches=self.num_microbatches,
             learning_rate=self.learning_rate,
         )
-        return optimizer
