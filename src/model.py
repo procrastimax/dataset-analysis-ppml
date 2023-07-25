@@ -1,6 +1,5 @@
-from ppml_datasets.utils import check_create_folder, visualize_training, get_ds_as_numpy
+from ppml_datasets.utils import check_create_folder, visualize_training
 import tensorflow as tf
-from tensorflow import keras
 from keras.callbacks import EarlyStopping
 from util import compute_delta, compute_noise, compute_privacy, compute_numerical_epsilon
 import numpy as np
@@ -40,7 +39,7 @@ class Model(ABC):
     num_microbatches: float = field(init=False, default=None)
     epsilon: float = field(init=False, default=None)
 
-    model: Optional[keras.Sequential] = field(init=False, default=None)
+    model: Optional[tf.keras.Sequential] = field(init=False, default=None)
     history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
 
     @abstractmethod
@@ -200,7 +199,7 @@ class Model(ABC):
 
     def save_model(self):
         print(f"Saving {self.model_name} model to {self.model_path}")
-        self.model.save(filepath=self.model_path, save_format="tf", overwrite=True)
+        self.model.save_weights(filepath=self.model_path, overwrite=True, save_format="tf")
 
     def load_model(self):
         """Load from model filepath.
@@ -208,7 +207,8 @@ class Model(ABC):
         The model is loaded uncompiled, so the model has to be compiled after loading it.
         """
         print(f"Loading model from {self.model_path}")
-        self.model = tf.keras.models.load_model(filepath=self.model_path, compile=True)
+        self.build_compile()
+        self.model.load_weights(filepath=self.model_path)
 
     def get_layer(self) -> List[tf.keras.layers.Layer]:
         return [
