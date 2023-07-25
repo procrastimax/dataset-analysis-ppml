@@ -4,13 +4,13 @@
 #SBATCH --mem=40G
 #SBATCH --partition=clara
 #SBATCH --gres=gpu:v100:1
-#SBATCH --time=0-10:00:00
+#SBATCH --time=0-20:00:00
 #SBATCH -o logs/%A-%x-%a.out
 #SBATCH -e logs/%A-%x-%a.error
 #SBATCH --mail-type=FAIL
 
 ds='mnist fmnist cifar10 svhn'
-epochs=20
+epochs=10
 model="private_cnn"
 batch=200
 run_name="private-train-eps-comparison"
