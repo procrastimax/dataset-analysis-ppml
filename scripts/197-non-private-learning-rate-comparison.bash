@@ -24,12 +24,18 @@ case $SLURM_ARRAY_TASK_ID in
                 lr=0.001
                 ;;
         2)
-                lr=0.01
+                lr=0.005
                 ;;
         3)
-                lr=0.1
+                lr=0.01
                 ;;
         4)
+                lr=0.05
+                ;;
+        5)
+                lr=0.1
+                ;;
+        6)
                 lr=1.0
                 ;;
 esac
