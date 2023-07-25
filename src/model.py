@@ -118,7 +118,7 @@ class Model(ABC):
         # create new DS and cut off the samples that did not fit into a batch
         train_ds = train_ds.unbatch()
         ds_len = len(list(train_ds.as_numpy_iterator()))
-        steps_per_epoch = (self.epochs * ds_len) // self.batch_size
+        steps_per_epoch = ds_len // self.batch_size
         train_ds = train_ds.repeat()
         train_ds = train_ds.take(self.batch_size * steps_per_epoch)
         train_ds = train_ds.batch(self.batch_size)
@@ -143,7 +143,7 @@ class Model(ABC):
             callback_list.append(es)
 
         validation_data = (val_x, val_y)
-        steps_per_epoch = (self.epochs * len(x)) // self.batch_size
+        steps_per_epoch = len(x) // self.batch_size
 
         # create new numpy array and cut off the samples that did not fit into a batch
         x = x[:self.batch_size * steps_per_epoch]
