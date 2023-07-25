@@ -2,7 +2,7 @@ from ppml_datasets.utils import check_create_folder, visualize_training, get_ds_
 import tensorflow as tf
 from tensorflow import keras
 from keras.callbacks import EarlyStopping
-from util import compute_delta, compute_noise, compute_privacy
+from util import compute_delta, compute_noise, compute_privacy, compute_numerical_epsilon
 import numpy as np
 import os
 from abc import ABC, abstractmethod
@@ -61,17 +61,23 @@ class Model(ABC):
         # Remember to implement horizontal flipping augmentation
         pass
 
-    def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float, num_microbatches: int):
+    def set_privacy_parameter(self, epsilon: float, num_train_samples: int, l2_norm_clip: float, num_microbatches: int, noise_multiplier: Optional[float] = None):
         delta = compute_delta(num_train_samples)
         used_microbatching = True
         if num_microbatches == 1:
             used_microbatching = False
-        self.noise_multiplier = compute_noise(
-            num_train_samples=num_train_samples,
-            batch_size=self.batch_size,
-            target_epsilon=epsilon,
-            epochs=self.epochs,
-            delta=delta)
+
+        # calc noise_multiplier if not already set
+        if noise_multiplier is None:
+            self.noise_multiplier = compute_noise(
+                num_train_samples=num_train_samples,
+                batch_size=self.batch_size,
+                target_epsilon=epsilon,
+                epochs=self.epochs,
+                delta=delta)
+        else:
+            self.noise_multiplier = noise_multiplier
+
         self.l2_norm_clip = l2_norm_clip
         self.num_microbatches = num_microbatches
 
@@ -83,6 +89,14 @@ class Model(ABC):
                                        delta=delta,
                                        used_microbatching=used_microbatching)
         print(f"Calculated epsilon is {calc_epsilon}")
+
+        steps = self.epochs * num_train_samples // self.batch_size
+        numerical_epsilon = compute_numerical_epsilon(
+            steps=steps,
+            noise_multiplier=noise_multiplier,
+            batch_size=self.batch_size,
+            num_samples=num_train_samples)
+        print(f"Another calculated epsilon is: {numerical_epsilon}")
 
     def build_compile(self):
         """Build and compile CNN model."""
@@ -104,7 +118,7 @@ class Model(ABC):
         # create new DS and cut off the samples that did not fit into a batch
         train_ds = train_ds.unbatch()
         ds_len = len(list(train_ds.as_numpy_iterator()))
-        steps_per_epoch = ds_len // self.batch_size
+        steps_per_epoch = (self.epochs * ds_len) // self.batch_size
         train_ds = train_ds.repeat()
         train_ds = train_ds.take(self.batch_size * steps_per_epoch)
         train_ds = train_ds.batch(self.batch_size)
@@ -129,7 +143,7 @@ class Model(ABC):
             callback_list.append(es)
 
         validation_data = (val_x, val_y)
-        steps_per_epoch = len(x) // self.batch_size
+        steps_per_epoch = (self.epochs * len(x)) // self.batch_size
 
         # create new numpy array and cut off the samples that did not fit into a batch
         x = x[:self.batch_size * steps_per_epoch]

@@ -25,6 +25,7 @@ learning_rate: float = 0.001
 use_ema: bool = False
 ema_momentum: Optional[float] = None  # default value could be 0.99
 weight_decay: Optional[float] = None  # default value could be: 0.001
+noise_multiplier: Optional[float] = None
 
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 random_seed: int = 42
@@ -70,6 +71,8 @@ def parse_arguments() -> Dict[str, Any]:
                         help="The L2 norm clip value set for private training models.")
     parser.add_argument("-b", "--microbatches", type=int,
                         help="Number of microbatches used for private training.")
+    parser.add_argument("-np", "--noise-multiplier", type=float,
+                        help="A fix set noise multiplier for DP-SGD.")
     parser.add_argument("--batch-size", type=int,
                         help="Size of batch used for training.")
     parser.add_argument("-em", "--evaluate-model", action="store_true",
@@ -129,9 +132,14 @@ def main():
     arg_weight_decay: float = args["weight_decay"]
 
     arg_l2_clip_norm: float = args["l2_norm_clip"]
+    arg_noise_multiplier: float = args["noise_multiplier"]
     arg_microbatches: int = args["microbatches"]
     arg_epochs: int = args["epochs"]
     arg_batch: int = args["batch_size"]
+
+    if arg_noise_multiplier is not None:
+        global noise_multiplier
+        noise_multiplier = arg_noise_multiplier
 
     if arg_momentum is not None:
         global ema_momentum
@@ -166,24 +174,26 @@ def main():
         num_microbatches = arg_microbatches
 
     if is_generating_privacy_report:
-        print("Calculating privacy statement for given parameter...")
+        print("Calculating privacy statement for given parameter (assuming 60.000 train samples)...")
 
         used_microbatching = True
         if num_microbatches <= 1:
             used_microbatching = False
 
-        num_train_samples = 50000
+        num_train_samples = 60000
         delta = compute_delta(num_train_samples)
-        # assuming MNIST case here
-        noise = compute_noise(num_train_samples=num_train_samples,
-                              batch_size=batch,
-                              target_epsilon=privacy_epsilon,
-                              epochs=epochs,
-                              delta=delta)
+
+        if noise_multiplier is None:
+            # assuming MNIST case here
+            noise_multiplier = compute_noise(num_train_samples=num_train_samples,
+                                             batch_size=batch,
+                                             target_epsilon=privacy_epsilon,
+                                             epochs=epochs,
+                                             delta=delta)
 
         priv_report = compute_privacy(num_train_samples,
                                       batch,
-                                      noise,
+                                      noise_multiplier,
                                       epochs,
                                       delta,
                                       used_microbatching=used_microbatching)
@@ -262,12 +272,13 @@ def main():
                 # set values for private training
                 if type(model) is PrivateCNNModel:
                     print(
-                        f"Setting private training parameter epsilon: {privacy_epsilon}, l2_norm_clip: {l2_norm_clip}, num_microbatches: {num_microbatches}")
+                        f"Setting private training parameter epsilon: {privacy_epsilon}, l2_norm_clip: {l2_norm_clip}, num_microbatches: {num_microbatches} and noise_multiplier: {noise_multiplier}.")
                     num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))
                     model.set_privacy_parameter(epsilon=privacy_epsilon,
                                                 num_train_samples=num_train_samples,
                                                 l2_norm_clip=l2_norm_clip,
-                                                num_microbatches=num_microbatches)
+                                                num_microbatches=num_microbatches,
+                                                noise_multiplier=noise_multiplier)
 
             if is_training_model:
                 print("---------------------")

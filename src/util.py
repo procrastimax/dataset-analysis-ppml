@@ -8,6 +8,7 @@ import pandas as pd
 from ppml_datasets.utils import check_create_folder
 from tensorflow_privacy.privacy.analysis.compute_noise_from_budget_lib import compute_noise as tfp_compute_noise
 from tensorflow_privacy.privacy.analysis.compute_dp_sgd_privacy_lib import compute_dp_sgd_privacy_statement
+import dp_accounting
 
 
 def visualize_training(history: tf.keras.callbacks.History,
@@ -138,6 +139,29 @@ def compute_privacy(n: int, batch_size: int, noise_multiplier: float, epochs: in
                                             noise_multiplier=noise_multiplier,
                                             delta=delta,
                                             used_microbatching=used_microbatching)
+
+
+def compute_numerical_epsilon(steps: int, noise_multiplier: float, batch_size: int, num_samples: int = 50000) -> float:
+    """Computes epsilon value for given hyperparameters.
+
+        Code copied from: https://github.com/tensorflow/privacy/blob/v0.8.10/tutorials/mnist_dpsgd_tutorial_keras_model.py
+    """
+    if noise_multiplier == 0.0:
+        return float('inf')
+
+    orders = [1 + x / 10. for x in range(1, 100)] + list(range(12, 64))
+    accountant = dp_accounting.rdp.RdpAccountant(orders)
+
+    sampling_probability = batch_size / num_samples
+    event = dp_accounting.SelfComposedDpEvent(
+        dp_accounting.PoissonSampledDpEvent(
+            sampling_probability,
+            dp_accounting.GaussianDpEvent(noise_multiplier)), steps)
+
+    accountant.compose(event)
+
+    delta = compute_delta(num_samples)
+    return accountant.get_epsilon(target_delta=delta)
 
 
 def compute_noise(num_train_samples: int, batch_size: int, target_epsilon: float, epochs: int, delta: float, min_noise: float = 1e-5) -> float:
