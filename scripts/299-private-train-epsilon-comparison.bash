@@ -10,7 +10,7 @@
 #SBATCH --mail-type=FAIL
 
 ds='mnist fmnist cifar10 svhn'
-epochs=10
+epochs=20
 model="private_cnn"
 batch=200
 run_name="private-train-eps-comparison"
