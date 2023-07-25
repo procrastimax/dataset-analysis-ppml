@@ -406,8 +406,8 @@ def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
                          epochs=epochs,
                          learning_rate=learning_rate,
                          momentum=momentum,
-                         patience=7,
-                         use_early_stopping=True,
+                         patience=15,
+                         use_early_stopping=False,
                          is_private_model=False)
     elif model_name == "private_cnn":
         model = PrivateCNNModel(img_height=32,

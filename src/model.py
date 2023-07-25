@@ -119,7 +119,7 @@ class Model(ABC):
                                val_y: np.ndarray) -> tf.keras.callbacks.History:
         callback_list = []
         if self.use_early_stopping:
-            es = EarlyStopping(monitor='val_accuracy', mode='max', verbose=1,
+            es = EarlyStopping(monitor='val_loss', mode='min', verbose=1,
                                patience=self.patience, restore_best_weights=True)
             callback_list.append(es)
 
@@ -195,9 +195,6 @@ class Model(ABC):
         """
         self.model = tf.keras.models.load_model(filepath=self.model_path, compile=False)
 
-
-@ dataclass
-class CNNModel(Model):
     def build_model(self):
         print("Building model")
         model = tf.keras.models.Sequential()
@@ -208,7 +205,6 @@ class CNNModel(Model):
 
         model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
             3, 3), strides=1, padding="same", activation='relu'))
-
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
@@ -217,16 +213,23 @@ class CNNModel(Model):
         model.add(tf.keras.layers.BatchNormalization())
         model.add(tf.keras.layers.MaxPooling2D(2, 2))
 
+        model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(
+            3, 3), strides=1, padding="same", activation='relu'))
+        model.add(tf.keras.layers.BatchNormalization())
+        model.add(tf.keras.layers.MaxPooling2D(2, 2))
+
         model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(256, activation='relu'))
+        model.add(tf.keras.layers.Dense(512, activation='relu'))
         model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.Dense(128, activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
+
         model.add(tf.keras.layers.Dense(self.num_classes))
 
         self.model = None  # reset previous model
         self.model = model
 
+
+@ dataclass
+class CNNModel(Model):
     def compile_model(self):
         print("Compiling model")
         optimizer = self.get_optimizer()
@@ -245,34 +248,6 @@ class CNNModel(Model):
 
 @ dataclass
 class PrivateCNNModel(Model):
-    def build_model(self):
-        print("Building model")
-        model = tf.keras.models.Sequential()
-        # Add a layer to do random horizontal augmentation.
-        model.add(tf.keras.layers.RandomFlip('horizontal',
-                                             seed=self.random_seed,
-                                             input_shape=(self.img_height, self.img_width, 3)))
-
-        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
-            3, 3), strides=1, padding="same", activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.MaxPooling2D(2, 2))
-
-        model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(
-            3, 3), strides=1, padding="same", activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.MaxPooling2D(2, 2))
-
-        model.add(tf.keras.layers.Flatten())
-        model.add(tf.keras.layers.Dense(256, activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.Dense(128, activation='relu'))
-        model.add(tf.keras.layers.BatchNormalization())
-        model.add(tf.keras.layers.Dense(self.num_classes))
-
-        self.model = None  # reset previous model
-        self.model = model
-
     def compile_model(self):
         print("Compiling model")
         optimizer: tf.keras.optimizers.Optimizer = self.get_optimizer()
