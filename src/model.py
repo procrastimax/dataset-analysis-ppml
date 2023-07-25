@@ -93,7 +93,7 @@ class Model(ABC):
         steps = self.epochs * num_train_samples // self.batch_size
         numerical_epsilon = compute_numerical_epsilon(
             steps=steps,
-            noise_multiplier=noise_multiplier,
+            noise_multiplier=self.noise_multiplier,
             batch_size=self.batch_size,
             num_samples=num_train_samples)
         print(f"Another calculated epsilon is: {numerical_epsilon}")

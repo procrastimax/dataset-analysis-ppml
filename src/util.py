@@ -141,7 +141,7 @@ def compute_privacy(n: int, batch_size: int, noise_multiplier: float, epochs: in
                                             used_microbatching=used_microbatching)
 
 
-def compute_numerical_epsilon(steps: int, noise_multiplier: float, batch_size: int, num_samples: int = 50000) -> float:
+def compute_numerical_epsilon(steps: int, noise_multiplier: float, batch_size: int, num_samples: int) -> float:
     """Computes epsilon value for given hyperparameters.
 
         Code copied from: https://github.com/tensorflow/privacy/blob/v0.8.10/tutorials/mnist_dpsgd_tutorial_keras_model.py
@@ -153,6 +153,7 @@ def compute_numerical_epsilon(steps: int, noise_multiplier: float, batch_size: i
     accountant = dp_accounting.rdp.RdpAccountant(orders)
 
     sampling_probability = batch_size / num_samples
+
     event = dp_accounting.SelfComposedDpEvent(
         dp_accounting.PoissonSampledDpEvent(
             sampling_probability,
