@@ -20,7 +20,7 @@ import json
 from model import CNNModel, Model, PrivateCNNModel
 
 epochs: int = 30
-batch: int = 600
+batch: int = 512
 learning_rate: float = 0.005
 use_ema: bool = False
 ema_momentum: Optional[float] = None
