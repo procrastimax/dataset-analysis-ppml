@@ -1,5 +1,6 @@
-from ppml_datasets import MnistDataset, MnistDatasetClassImbalance
 import matplotlib.pyplot as plt
+
+from ppml_datasets import MnistDataset, MnistDatasetClassImbalance
 
 model_input_shape = [32, 32, 3]
 random_seed: int = 42
@@ -37,15 +38,15 @@ axs[0].bar(classes, class_counts)
 axs[1].bar(classes_1, class_counts_1)
 axs[2].bar(classes_2, class_counts_2)
 
-axs[0].set_ylabel('Number of samples per class')
-axs[0].set_xlabel('Class Label')
-axs[1].set_ylabel('Number of samples per class')
-axs[1].set_xlabel('Class Label')
-axs[2].set_ylabel('Number of samples per class')
-axs[2].set_xlabel('Class Label')
+axs[0].set_ylabel("Number of samples per class")
+axs[0].set_xlabel("Class Label")
+axs[1].set_ylabel("Number of samples per class")
+axs[1].set_xlabel("Class Label")
+axs[2].set_ylabel("Number of samples per class")
+axs[2].set_xlabel("Class Label")
 
-axs[0].set_title('MNIST Imbalanced Normal Mode (i=0)')
-axs[1].set_title('MNIST Imbalanced Normal Mode (i=0.3)')
-axs[2].set_title('MNIST Imbalanced Normal Mode (i=0.6)')
+axs[0].set_title("MNIST Imbalanced Normal Mode (i=0)")
+axs[1].set_title("MNIST Imbalanced Normal Mode (i=0.3)")
+axs[2].set_title("MNIST Imbalanced Normal Mode (i=0.6)")
 
 plt.show()

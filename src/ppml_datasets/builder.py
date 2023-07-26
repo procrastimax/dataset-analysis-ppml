@@ -1,15 +1,18 @@
-from ppml_datasets.datasets.mnist import build_mnist
-from ppml_datasets.datasets.fmnist import build_fmnist
-from ppml_datasets.datasets.cifar10 import build_cifar10
-from ppml_datasets.datasets.cifar100 import build_cifar100
-from ppml_datasets.datasets.svhn import build_svhn
-from ppml_datasets.datasets.emnist import EMNISTLargeUnbalancedDataset, EMNISTMediumBalancedDataset, EMNISTLettersBalancedDataset, EMNISTMediumUnbalancedDataset, EMNISTDigitsManyBalancedDataset, EMNISTDigitsNormalBalancedDataset
+import sys
+from typing import Any, Dict, List, Tuple
 
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
-
-from typing import Any, Dict, Tuple, List
-
-import sys
+from ppml_datasets.datasets.cifar10 import build_cifar10
+from ppml_datasets.datasets.cifar100 import build_cifar100
+from ppml_datasets.datasets.emnist import (EMNISTDigitsManyBalancedDataset,
+                                           EMNISTDigitsNormalBalancedDataset,
+                                           EMNISTLargeUnbalancedDataset,
+                                           EMNISTLettersBalancedDataset,
+                                           EMNISTMediumBalancedDataset,
+                                           EMNISTMediumUnbalancedDataset)
+from ppml_datasets.datasets.fmnist import build_fmnist
+from ppml_datasets.datasets.mnist import build_mnist
+from ppml_datasets.datasets.svhn import build_svhn
 
 
 def parse_dataset_name_parameter(ds_mods: List[str]) -> Dict[str, List[Any]]:
@@ -43,7 +46,9 @@ def parse_dataset_name_parameter(ds_mods: List[str]) -> Dict[str, List[Any]]:
     return mod_dict
 
 
-def build_dataset(full_ds_name: str, batch_size: int, model_input_shape: Tuple[int, int, int]) -> AbstractDataset:
+def build_dataset(
+    full_ds_name: str, batch_size: int, model_input_shape: Tuple[int, int, int]
+) -> AbstractDataset:
     ds = None
     parameterized_name = full_ds_name.split("_")
 
@@ -67,44 +72,58 @@ def build_dataset(full_ds_name: str, batch_size: int, model_input_shape: Tuple[i
 
     # the EMNIST datasets and their variations
     elif parameterized_name[0] == "emnist-large-unbalanced":
-        ds = EMNISTLargeUnbalancedDataset(model_img_shape=model_input_shape,
-                                          builds_ds_info=False,
-                                          batch_size=batch_size,
-                                          augment_train=False)
+        ds = EMNISTLargeUnbalancedDataset(
+            model_img_shape=model_input_shape,
+            builds_ds_info=False,
+            batch_size=batch_size,
+            augment_train=False,
+        )
         ds.load_dataset()
     elif parameterized_name[0] == "emnist-medium-unbalanced":
-        ds = EMNISTMediumUnbalancedDataset(model_img_shape=model_input_shape,
-                                           builds_ds_info=False,
-                                           batch_size=batch_size,
-                                           augment_train=False)
+        ds = EMNISTMediumUnbalancedDataset(
+            model_img_shape=model_input_shape,
+            builds_ds_info=False,
+            batch_size=batch_size,
+            augment_train=False,
+        )
         ds.load_dataset()
     elif parameterized_name[0] == "emnist-medium-balanced":
-        ds = EMNISTMediumBalancedDataset(model_img_shape=model_input_shape,
-                                         builds_ds_info=False,
-                                         batch_size=batch_size,
-                                         augment_train=False)
+        ds = EMNISTMediumBalancedDataset(
+            model_img_shape=model_input_shape,
+            builds_ds_info=False,
+            batch_size=batch_size,
+            augment_train=False,
+        )
         ds.load_dataset()
     elif parameterized_name[0] == "emnist-letters-balanced":
-        ds = EMNISTLettersBalancedDataset(model_img_shape=model_input_shape,
-                                          builds_ds_info=False,
-                                          batch_size=batch_size,
-                                          augment_train=False)
+        ds = EMNISTLettersBalancedDataset(
+            model_img_shape=model_input_shape,
+            builds_ds_info=False,
+            batch_size=batch_size,
+            augment_train=False,
+        )
         ds.load_dataset()
     elif parameterized_name[0] == "emnist-digits-balanced":
-        ds = EMNISTDigitsManyBalancedDataset(model_img_shape=model_input_shape,
-                                             builds_ds_info=False,
-                                             batch_size=batch_size,
-                                             augment_train=False)
+        ds = EMNISTDigitsManyBalancedDataset(
+            model_img_shape=model_input_shape,
+            builds_ds_info=False,
+            batch_size=batch_size,
+            augment_train=False,
+        )
         ds.load_dataset()
     elif parameterized_name[0] == "emnist-mnist-balanced":
-        ds = EMNISTDigitsNormalBalancedDataset(model_img_shape=model_input_shape,
-                                               builds_ds_info=False,
-                                               batch_size=batch_size,
-                                               augment_train=False)
+        ds = EMNISTDigitsNormalBalancedDataset(
+            model_img_shape=model_input_shape,
+            builds_ds_info=False,
+            batch_size=batch_size,
+            augment_train=False,
+        )
         ds.load_dataset()
 
     else:
-        print(f"The requested: {full_ds_name} dataset does not exist or is not implemented!")
+        print(
+            f"The requested: {full_ds_name} dataset does not exist or is not implemented!"
+        )
         return None
 
     if ds is None:

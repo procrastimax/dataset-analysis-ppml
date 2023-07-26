@@ -1,9 +1,10 @@
-import tensorflow as tf
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-from typing import Tuple, Any, Dict, Optional
 import json
+import os
+from typing import Any, Dict, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import tensorflow as tf
 
 
 def check_create_folder(dir: str):
@@ -26,35 +27,35 @@ def get_img(x, y):
     return img, label
 
 
-def visualize_training(history: tf.keras.callbacks.History,
-                       img_name: str = "results.png"):
+def visualize_training(
+    history: tf.keras.callbacks.History, img_name: str = "results.png"
+):
     print(f"Saving training figure {img_name}")
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
+    acc = history.history["accuracy"]
+    val_acc = history.history["val_accuracy"]
 
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
+    loss = history.history["loss"]
+    val_loss = history.history["val_loss"]
 
     epochs_range = range(len(acc))
 
     plt.figure(figsize=(8, 8))
     plt.subplot(1, 2, 1)
-    plt.plot(epochs_range, acc, label='Training Accuracy')
-    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-    plt.legend(loc='lower right')
-    plt.title('Training and Validation Accuracy')
+    plt.plot(epochs_range, acc, label="Training Accuracy")
+    plt.plot(epochs_range, val_acc, label="Validation Accuracy")
+    plt.legend(loc="lower right")
+    plt.title("Training and Validation Accuracy")
 
     plt.subplot(1, 2, 2)
-    plt.plot(epochs_range, loss, label='Training Loss')
-    plt.plot(epochs_range, val_loss, label='Validation Loss')
-    plt.legend(loc='upper right')
-    plt.title('Training and Validation Loss')
+    plt.plot(epochs_range, loss, label="Training Loss")
+    plt.plot(epochs_range, val_loss, label="Validation Loss")
+    plt.legend(loc="upper right")
+    plt.title("Training and Validation Loss")
     plt.savefig(img_name)
     plt.close()
 
 
 def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
-
     class_names = None
 
     if hasattr(ds, "class_names"):
@@ -105,10 +106,12 @@ def filter_labels(y, allowed_classes: list):
     allowed_classes = tf.constant(allowed_classes)
     isallowed = tf.equal(allowed_classes, tf.cast(y, allowed_classes.dtype))
     reduced_sum = tf.reduce_sum(tf.cast(isallowed, tf.float32))
-    return tf.greater(reduced_sum, tf.constant(0.))
+    return tf.greater(reduced_sum, tf.constant(0.0))
 
 
-def get_ds_as_numpy(ds: tf.data.Dataset, unbatch: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+def get_ds_as_numpy(
+    ds: tf.data.Dataset, unbatch: bool = True
+) -> Tuple[np.ndarray, np.ndarray]:
     if ds is None:
         print("Cannot convert dataset to numpy arrays! Dataset is not initialized!")
         return

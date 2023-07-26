@@ -1,5 +1,6 @@
-from ppml_datasets import MnistDataset, MnistDatasetClassSize
 import matplotlib.pyplot as plt
+
+from ppml_datasets import MnistDataset, MnistDatasetClassSize
 
 model_input_shape = [32, 32, 3]
 random_seed: int = 42
@@ -24,12 +25,12 @@ fig, axs = plt.subplots(2)
 axs[0].bar(classes, class_counts)
 axs[1].bar(classes_1, class_counts_1)
 
-axs[0].set_ylabel('Number of samples per class')
-axs[0].set_xlabel('Class Label')
-axs[1].set_ylabel('Number of samples per class')
-axs[1].set_xlabel('Class Label')
+axs[0].set_ylabel("Number of samples per class")
+axs[0].set_xlabel("Class Label")
+axs[1].set_ylabel("Number of samples per class")
+axs[1].set_xlabel("Class Label")
 
-axs[0].set_title('MNIST Imbalanced Linear Mode (i=0)')
-axs[1].set_title('MNIST Imbalanced Linear Mode (i=0.3)')
+axs[0].set_title("MNIST Imbalanced Linear Mode (i=0)")
+axs[1].set_title("MNIST Imbalanced Linear Mode (i=0.3)")
 
 plt.show()

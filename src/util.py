@@ -1,44 +1,48 @@
-import matplotlib.pyplot as plt
-import numpy as np
-import tensorflow as tf
-from typing import Any
 import os
 import pickle
-import pandas as pd
-from ppml_datasets.utils import check_create_folder
-from tensorflow_privacy.privacy.analysis.compute_noise_from_budget_lib import compute_noise as tfp_compute_noise
-from tensorflow_privacy.privacy.analysis.compute_dp_sgd_privacy_lib import compute_dp_sgd_privacy_statement
+from typing import Any
+
 import dp_accounting
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import tensorflow as tf
+from tensorflow_privacy.privacy.analysis.compute_dp_sgd_privacy_lib import \
+    compute_dp_sgd_privacy_statement
+from tensorflow_privacy.privacy.analysis.compute_noise_from_budget_lib import \
+    compute_noise as tfp_compute_noise
+
+from ppml_datasets.utils import check_create_folder
 
 
-def visualize_training(history: tf.keras.callbacks.History,
-                       img_name: str = "results.png"):
+def visualize_training(
+    history: tf.keras.callbacks.History, img_name: str = "results.png"
+):
     print(f"Saving trainings results to: {img_name}")
-    acc = history.history['accuracy']
-    val_acc = history.history['val_accuracy']
+    acc = history.history["accuracy"]
+    val_acc = history.history["val_accuracy"]
 
-    loss = history.history['loss']
-    val_loss = history.history['val_loss']
+    loss = history.history["loss"]
+    val_loss = history.history["val_loss"]
 
     epochs_range = range(len(acc))
 
     plt.figure(figsize=(8, 8))
     plt.subplot(1, 2, 1)
-    plt.plot(epochs_range, acc, label='Training Accuracy')
-    plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-    plt.legend(loc='lower right')
-    plt.title('Training and Validation Accuracy')
+    plt.plot(epochs_range, acc, label="Training Accuracy")
+    plt.plot(epochs_range, val_acc, label="Validation Accuracy")
+    plt.legend(loc="lower right")
+    plt.title("Training and Validation Accuracy")
 
     plt.subplot(1, 2, 2)
-    plt.plot(epochs_range, loss, label='Training Loss')
-    plt.plot(epochs_range, val_loss, label='Validation Loss')
-    plt.legend(loc='upper right')
-    plt.title('Training and Validation Loss')
+    plt.plot(epochs_range, loss, label="Training Loss")
+    plt.plot(epochs_range, val_loss, label="Validation Loss")
+    plt.legend(loc="upper right")
+    plt.title("Training and Validation Loss")
     plt.savefig(img_name)
 
 
 def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
-
     plt.figure(figsize=(10, 10))
 
     ds_it = ds.as_numpy_iterator()
@@ -107,21 +111,36 @@ def find_nearest(array, value) -> (int, float):
     return idx, array[idx]
 
 
-def save_dataframe(df: pd.DataFrame, filename: str, sep: str = ",", use_index: bool = True, header: bool = True):
+def save_dataframe(
+    df: pd.DataFrame,
+    filename: str,
+    sep: str = ",",
+    use_index: bool = True,
+    header: bool = True,
+):
     print(f"Saving dataframe as csv: {filename}")
     df.to_csv(path_or_buf=filename, header=header, index=use_index, sep=sep)
 
 
-def plot_curve_with_area(x, y, xlabel, ylabel, ax, label, title: str, use_log_scale: bool):
-    ax.plot([0, 1], [0, 1], 'k-', lw=1.0)
+def plot_curve_with_area(
+    x, y, xlabel, ylabel, ax, label, title: str, use_log_scale: bool
+):
+    ax.plot([0, 1], [0, 1], "k-", lw=1.0)
     ax.plot(x, y, lw=2, label=label)
     ax.set(xlabel=xlabel, ylabel=ylabel)
     if use_log_scale:
-        ax.set(aspect=1, xscale='log', yscale='log')
+        ax.set(aspect=1, xscale="log", yscale="log")
     ax.title.set_text(title)
 
 
-def plot_histogram(counts: np.array, bins: np.array, filename: str, title: str, xlabel: str, ylabel: str):
+def plot_histogram(
+    counts: np.array,
+    bins: np.array,
+    filename: str,
+    title: str,
+    xlabel: str,
+    ylabel: str,
+):
     plt.figure(figsize=(5, 5))
     plt.stairs(counts, bins, fill=True)
     plt.title(title)
@@ -131,33 +150,46 @@ def plot_histogram(counts: np.array, bins: np.array, filename: str, title: str, 
     plt.close()
 
 
-def compute_privacy(n: int, batch_size: int, noise_multiplier: float, epochs: int, delta: float, used_microbatching: bool) -> str:
+def compute_privacy(
+    n: int,
+    batch_size: int,
+    noise_multiplier: float,
+    epochs: int,
+    delta: float,
+    used_microbatching: bool,
+) -> str:
     """Calculate value of epsilon for given DP-SGD parameters."""
-    return compute_dp_sgd_privacy_statement(number_of_examples=n,
-                                            batch_size=batch_size,
-                                            num_epochs=epochs,
-                                            noise_multiplier=noise_multiplier,
-                                            delta=delta,
-                                            used_microbatching=used_microbatching)
+    return compute_dp_sgd_privacy_statement(
+        number_of_examples=n,
+        batch_size=batch_size,
+        num_epochs=epochs,
+        noise_multiplier=noise_multiplier,
+        delta=delta,
+        used_microbatching=used_microbatching,
+    )
 
 
-def compute_numerical_epsilon(steps: int, noise_multiplier: float, batch_size: int, num_samples: int) -> float:
+def compute_numerical_epsilon(
+    steps: int, noise_multiplier: float, batch_size: int, num_samples: int
+) -> float:
     """Computes epsilon value for given hyperparameters.
 
-        Code copied from: https://github.com/tensorflow/privacy/blob/v0.8.10/tutorials/mnist_dpsgd_tutorial_keras_model.py
+    Code copied from: https://github.com/tensorflow/privacy/blob/v0.8.10/tutorials/mnist_dpsgd_tutorial_keras_model.py
     """
     if noise_multiplier == 0.0:
-        return float('inf')
+        return float("inf")
 
-    orders = [1 + x / 10. for x in range(1, 100)] + list(range(12, 64))
+    orders = [1 + x / 10.0 for x in range(1, 100)] + list(range(12, 64))
     accountant = dp_accounting.rdp.RdpAccountant(orders)
 
     sampling_probability = batch_size / num_samples
 
     event = dp_accounting.SelfComposedDpEvent(
         dp_accounting.PoissonSampledDpEvent(
-            sampling_probability,
-            dp_accounting.GaussianDpEvent(noise_multiplier)), steps)
+            sampling_probability, dp_accounting.GaussianDpEvent(noise_multiplier)
+        ),
+        steps,
+    )
 
     accountant.compose(event)
 
@@ -165,9 +197,18 @@ def compute_numerical_epsilon(steps: int, noise_multiplier: float, batch_size: i
     return accountant.get_epsilon(target_delta=delta)
 
 
-def compute_noise(num_train_samples: int, batch_size: int, target_epsilon: float, epochs: int, delta: float, min_noise: float = 1e-5) -> float:
+def compute_noise(
+    num_train_samples: int,
+    batch_size: int,
+    target_epsilon: float,
+    epochs: int,
+    delta: float,
+    min_noise: float = 1e-5,
+) -> float:
     """Calculate noise for given training hyperparameters."""
-    return tfp_compute_noise(num_train_samples, batch_size, target_epsilon, epochs, delta, min_noise)
+    return tfp_compute_noise(
+        num_train_samples, batch_size, target_epsilon, epochs, delta, min_noise
+    )
 
 
 def compute_delta(num_train_samples: int):
@@ -178,5 +219,7 @@ def compute_delta(num_train_samples: int):
     # delta should be one magnitude lower than inverse of training set size: 1/n
     # e.g. 1e-5 for n=60.000
     # take 1e-x, were x is the magnitude of training set size
-    delta = np.power(10, - float(len(str(num_train_samples))))  # remove all trailing decimals
+    delta = np.power(
+        10, -float(len(str(num_train_samples)))
+    )  # remove all trailing decimals
     return delta
