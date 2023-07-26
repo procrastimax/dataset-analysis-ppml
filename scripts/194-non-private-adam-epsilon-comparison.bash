@@ -22,24 +22,27 @@ case $SLURM_ARRAY_TASK_ID in
                 ae=1e-9
                 ;;
         1)
-                ae=1e-7
+                ae=1e-8
                 ;;
         2)
-                ae=1e-6
+                ae=1e-7
                 ;;
         3)
-                ae=1e-5
+                ae=1e-6
                 ;;
         4)
-                ae=1e-4
+                ae=1e-5
                 ;;
         5)
-                ae=1e-3
+                ae=1e-4
                 ;;
         6)
-                ae=1e-2
+                ae=1e-3
                 ;;
         7)
+                ae=1e-2
+                ;;
+        8)
                 ae=1e-1
                 ;;
 esac
