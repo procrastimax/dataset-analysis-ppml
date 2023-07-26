@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J private-train-eps-comparison
+#SBATCH -J private-epsilon-comparison
 #SBATCH --ntasks=1
 #SBATCH --mem=40G
 #SBATCH --partition=clara
@@ -12,8 +12,8 @@
 ds='mnist fmnist cifar10 svhn'
 epochs=30
 model="private_cnn"
-batch=600
-run_name="private-train-eps-comparison"
+batch=512
+run_name="private-epsilon-comparison"
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in
@@ -47,4 +47,4 @@ case $SLURM_ARRAY_TASK_ID in
 esac
 
 echo $run_name "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
-srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -e $eps -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --epochs $epochs --batch-size $batch --train-model --evaluate-model -n $run_name
+srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -e $eps -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --epochs $epochs --batch-size $batch -tm -em -n $run_name
