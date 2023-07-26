@@ -19,9 +19,9 @@ import json
 
 from model import CNNModel, Model, PrivateCNNModel
 
-epochs: int = 20
-batch: int = 200
-learning_rate: float = 0.001
+epochs: int = 30
+batch: int = 600
+learning_rate: float = 0.005
 use_ema: bool = False
 ema_momentum: Optional[float] = None  # default value could be 0.99
 weight_decay: Optional[float] = None  # default value could be: 0.001
