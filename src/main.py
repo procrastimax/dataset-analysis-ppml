@@ -143,14 +143,21 @@ def main():
 
     if arg_momentum is not None:
         global ema_momentum
-        ema_momentum = arg_momentum
-
         global use_ema
-        use_ema = True
+
+        if arg_momentum == 0:
+            ema_momentum = None
+            use_ema = False
+        else:
+            ema_momentum = arg_momentum
+            use_ema = True
 
     if arg_weight_decay is not None:
         global weight_decay
-        weight_decay = arg_weight_decay
+        if arg_weight_decay == 0:
+            weight_decay = None
+        else:
+            weight_decay = arg_weight_decay
 
     if arg_learning_rate is not None:
         global learning_rate
