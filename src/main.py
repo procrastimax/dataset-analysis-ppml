@@ -23,9 +23,10 @@ epochs: int = 30
 batch: int = 600
 learning_rate: float = 0.005
 use_ema: bool = False
-ema_momentum: Optional[float] = None  # default value could be 0.99
-weight_decay: Optional[float] = None  # default value could be: 0.001
+ema_momentum: Optional[float] = None
+weight_decay: Optional[float] = None
 noise_multiplier: Optional[float] = None
+adam_epsilon: float = 1e-7  # default value according to tensorflow
 
 model_input_shape: Tuple[int, int, int] = [32, 32, 3]
 random_seed: int = 42
@@ -99,6 +100,8 @@ def parse_arguments() -> Dict[str, Any]:
     parser.add_argument("-ce", "--compile-evaluation",
                         help="If this flag is set, the program compiles all single model evaluations from different run numbers to a single file.",
                         action="store_true")
+    parser.add_argument("-ae", "--adam-epsilon", type=float, default=1e-7,
+                        help="The epsilon hat value for the Adam optimizer.")
 
     args = parser.parse_args()
     arg_dict: Dict[str, Any] = vars(args)
@@ -130,6 +133,7 @@ def main():
     arg_momentum: float = args["momentum"]
     arg_learning_rate: float = args["learning_rate"]
     arg_weight_decay: float = args["weight_decay"]
+    arg_adam_epsilon: float = args["adam_epsilon"]
 
     arg_l2_clip_norm: float = args["l2_norm_clip"]
     arg_noise_multiplier: float = args["noise_multiplier"]
@@ -179,6 +183,10 @@ def main():
 
     if arg_microbatches is not None:
         num_microbatches = arg_microbatches
+
+    if arg_adam_epsilon is not None:
+        global adam_epsilon
+        adam_epsilon = arg_adam_epsilon
 
     if is_generating_privacy_report:
         print("Calculating privacy statement for given parameter (assuming 60.000 train samples)...")
@@ -361,11 +369,13 @@ def main():
             "epochs": epochs,
             "batch": batch,
             "learning_rate": learning_rate,
+            "adam_epsilon": adam_epsilon,
             "ema_momentum": ema_momentum,
             "weight_decay": weight_decay,
             "shadow_models": num_shadow_models,
             "privacy_epsilon": privacy_epsilon,
             "l2_norm_clip": l2_norm_clip,
+            "noise_multiplier": noise_multiplier,
             "num_microbatches": num_microbatches}
 
         param_filepath = os.path.join(result_path, model.model_name, run_name,
@@ -442,6 +452,7 @@ def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
                          model_path=model_path,
                          epochs=epochs,
                          learning_rate=learning_rate,
+                         adam_epsilon=adam_epsilon,
                          ema_momentum=ema_momentum,
                          weight_decay=weight_decay)
     elif model_name == "private_cnn":
@@ -455,6 +466,7 @@ def load_model(model_path: str, model_name: str, num_classes: int) -> Model:
                                 model_path=model_path,
                                 epochs=epochs,
                                 learning_rate=learning_rate,
+                                adam_epsilon=adam_epsilon,
                                 ema_momentum=ema_momentum,
                                 weight_decay=weight_decay)
     return model

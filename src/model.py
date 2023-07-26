@@ -29,6 +29,10 @@ class Model(ABC):
 
     learning_rate: float
     epochs: int
+
+    # default value according to: https://www.tensorflow.org/api_docs/python/tf/keras/optimizers/Adam
+    adam_epsilon: float = 1e-7
+
     ema_momentum: Optional[float] = None
     weight_decay: Optional[float] = None
     use_early_stopping: Optional[bool] = None
@@ -249,6 +253,7 @@ class CNNModel(Model):
     def get_optimizer(self):
         return tf.keras.optimizers.Adam(
             learning_rate=self.learning_rate,
+            epsilon=self.adam_epsilon,
             weight_decay=self.weight_decay,
             use_ema=self.ema_momentum is not None,
             ema_momentum=self.ema_momentum,
@@ -273,6 +278,7 @@ class PrivateCNNModel(Model):
     def get_optimizer(self):
         return tf.keras.optimizers.Adam(
             learning_rate=self.learning_rate,
+            epsilon=self.adam_epsilon,
             weight_decay=self.weight_decay,
             use_ema=self.ema_momentum is not None,
             ema_momentum=self.ema_momentum,
