@@ -94,6 +94,12 @@ class AmiaAttack():
 
         """
         (train_samples, train_labels) = self.ds.get_train_ds_as_numpy()
+        (test_samples, test_labels) = self.ds.get_test_ds_as_numpy()
+
+        test_labels = tf.one_hot(test_labels, depth=self.ds.num_classes)
+
+        # convert to one-hot encoding
+        train_labels = tf.one_hot(train_labels, depth=self.ds.num_classes).numpy()
 
         self.num_training_samples = len(train_samples)
 
@@ -148,8 +154,6 @@ class AmiaAttack():
             else:
                 print("Model does not exist, training a new one")
                 self.cnn_model.build_compile()
-                # convert to one-hot encoding
-                train_labels = tf.one_hot(train_labels, depth=self.ds.num_classes)
                 self.cnn_model.train_model_from_numpy(x=train_samples[keep],
                                                       y=train_labels[keep],
                                                       val_x=train_samples[~keep],
@@ -165,7 +169,7 @@ class AmiaAttack():
 
                 # test shadow model accuracy
                 print("Testing shadow model on test data")
-                self.cnn_model.test_model(self.ds.ds_test)
+                loss, acc = self.cnn_model.model.evaluate(x=test_samples, y=test_labels, batch_size=self.cnn_model.batch_size, verbose=2)
                 print(
                     f"\n============================= DONE TRAINING Shadow Model: {i} =============================\n")
 
@@ -241,13 +245,8 @@ class AmiaAttack():
                                           slicing_spec=slicing_spec
                                           )
             self.attack_result_list.append(result_lira)
-            result_lira_single = result_lira.single_attack_results[0]
-            result_lira_class = result_lira.single_attack_results[1]
 
-            print("Advanced MIA attack with Gaussian:",
-                  f"auc = {result_lira_single.get_auc():.4f}",
-                  f"adv = {result_lira_single.get_attacker_advantage():.4f}")
-
+            print("Advanced MIA Attack Results:")
             print(result_lira.calculate_pd_dataframe())
 
             if self.include_mia:
@@ -263,10 +262,8 @@ class AmiaAttack():
                                                   slicing_spec=slicing_spec)
 
                 self.attack_baseline_result_list.append(result_baseline)
-                result_baseline_single = result_baseline.single_attack_results[0]
-                print('Baseline MIA attack:',
-                      f'auc = {result_baseline_single.get_auc():.4f}',
-                      f'adv = {result_baseline_single.get_attacker_advantage():.4f}')
+                print("MIA Attack Results:")
+                print(result_baseline.calculate_pd_dataframe())
 
         # pickle attack result list for LiRA and baseline
         pickle_object(self.attack_result_list_filename, self.attack_result_list)
@@ -276,6 +273,9 @@ class AmiaAttack():
                                 cnn_model: Model,
                                 x: np.ndarray,
                                 y: np.ndarray):
+        # convert labels to integer indexing
+        y = tf.argmax(y, axis=1).numpy()
+
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
             logits = cnn_model.model.predict(x=data, batch_size=cnn_model.batch_size)
@@ -295,6 +295,9 @@ class AmiaAttack():
                                      cnn_model: Model,
                                      x: np.ndarray,
                                      y: np.ndarray):
+        # convert labels to integer indexing
+        y = tf.argmax(y, axis=1).numpy()
+
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
             prob = amia.convert_logit_to_prob(

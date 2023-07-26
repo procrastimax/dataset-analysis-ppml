@@ -178,6 +178,12 @@ class AbstractDataset():
         np.array - keep in_indices
 
         """
+
+        # check if one-hot encoded f.e. (60000, 10,)
+        if len(labels.shape) == 2:
+            # convert labels to integer indexing
+            labels = tf.argmax(labels, axis=1).numpy()
+
         class_arrays_in: Dict[int, list] = defaultdict(list)
 
         for data, label in zip(values, labels):
@@ -1015,7 +1021,7 @@ class AbstractDatasetClassImbalance(AbstractDataset):
             # create the imbalanced class counts
             # the smallest class size is multiplied with the imbalance_ratio factor, therefore decreasing its size
             new_class_counts = np.linspace(
-                classes_class_count[0][1], int(classes_class_count[-1][1] * (1-imbalance_ratio)), num=len(classes_class_count))
+                classes_class_count[0][1], int(classes_class_count[-1][1] * (1 - imbalance_ratio)), num=len(classes_class_count))
 
             class_count_dict = {}
             for i, (class_count) in enumerate(classes_class_count):
