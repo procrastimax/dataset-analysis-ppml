@@ -11,7 +11,7 @@
 
 ds='mnist fmnist cifar10 svhn'
 model="private_cnn"
-batch=600
+batch=512
 run_name="private-train-epochs-comparison"
 
 # get correct run for array id
