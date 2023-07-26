@@ -14,6 +14,7 @@ model="cnn"
 batch=600
 run_name="non-private-ema-momentum-comparison"
 epochs=30
+lr=0.005
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in
@@ -21,18 +22,21 @@ case $SLURM_ARRAY_TASK_ID in
                 ema_momentum=0.0
                 ;;
         1)
-                ema_momentum=0.1
+                ema_momentum=0.001
                 ;;
         2)
-                ema_momentum=0.333
+                ema_momentum=0.1
                 ;;
         3)
-                ema_momentum=0.666
+                ema_momentum=0.333
                 ;;
         4)
+                ema_momentum=0.666
+                ;;
+        5)
                 ema_momentum=0.999
                 ;;
 esac
 
 echo "non-private" "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
-srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --epochs $epochs --batch-size $batch -n $run_name -tm -ema $ema_momentum
+srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --epochs $epochs --batch-size $batch -n $run_name -tm -ema $ema_momentum -l $lr
