@@ -60,7 +60,7 @@ class RunSettings:
         filename = os.path.join(filepath, "parameter.json")
         print(f"Saving settings to: {filename}")
         with open(filename, "w") as f:
-            json.dump(self.dict(), f)
+            json.dump(self.dict(), f, indent=2)
 
     def print_values(self):
         print(self.dict())
