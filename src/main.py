@@ -12,10 +12,14 @@ from model import CNNModel, Model, PrivateCNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.builder import build_dataset
 from ppml_datasets.utils import check_create_folder
-from settings import (RunSettings, create_arg_parse_instance,
-                      create_settings_from_args)
-from util import (compute_delta, compute_noise, compute_privacy,
-                  plot_histogram, save_dataframe)
+from settings import RunSettings, create_arg_parse_instance, create_settings_from_args
+from util import (
+    compute_delta,
+    compute_noise,
+    compute_privacy,
+    plot_histogram,
+    save_dataframe,
+)
 
 data_path: str = "data"
 model_path: str = "models"
@@ -46,7 +50,6 @@ def main():
 
     single_model_test_df: Optional[pd.DataFrame] = None
     ds_info_df_all: Optional[pd.DataFrame] = None
-    model = None
 
     print("=========================================")
     print("=========================================")
@@ -85,10 +88,13 @@ def main():
     if settings.is_evaluating_model:
         save_bundled_model_evaluation(single_model_test_df, settings)
 
-    if model is not None:
-        param_filepath = os.path.join(result_path, model.model_name,
-                                      settings.run_name,
-                                      str(settings.run_number))
+    if settings.model_name is not None:
+        param_filepath = os.path.join(
+            result_path,
+            settings.model_name,
+            settings.run_name,
+            str(settings.run_number),
+        )
         settings.save_settings_as_json(param_filepath)
 
     if settings.is_compiling_evalulation:
