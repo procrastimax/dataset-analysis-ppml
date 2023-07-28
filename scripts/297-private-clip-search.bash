@@ -11,7 +11,6 @@
 
 ds='mnist fmnist cifar10 svhn'
 model="private_cnn"
-batch=600
 run_name="private-clip-search"
 noise=0.0
 
@@ -41,4 +40,4 @@ case $SLURM_ARRAY_TASK_ID in
 esac
 
 echo $run_name "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
-srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -e $eps -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --epochs $epochs --batch-size $batch --train-model --evaluate-model -n $run_name -c $clip_norm -np $noise
+srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --train-model --evaluate-model -n $run_name -c $clip_norm -np $noise
