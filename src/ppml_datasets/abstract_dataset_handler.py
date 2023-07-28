@@ -14,14 +14,19 @@ import tensorflow_datasets as tfds
 from imblearn.datasets import make_imbalance
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.utils import class_weight
-from tensorflow.keras.layers import (Layer, RandomFlip, RandomRotation,
-                                     RandomTranslation, RandomZoom, Rescaling,
-                                     Resizing)
+from tensorflow.keras.layers import (
+    Layer,
+    RandomFlip,
+    RandomRotation,
+    RandomTranslation,
+    RandomZoom,
+    Rescaling,
+    Resizing,
+)
 from tensorflow.keras.utils import to_categorical
 
 from ppml_datasets.piqe import piqe
-from ppml_datasets.utils import (get_ds_as_numpy, load_dict_from_json,
-                                 save_dict_as_json)
+from ppml_datasets.utils import get_ds_as_numpy, load_dict_from_json, save_dict_as_json
 
 
 @dataclass(eq=True, frozen=False)

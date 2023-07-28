@@ -45,8 +45,7 @@ def main():
     run_args_parameter_check(settings)
 
     if settings.datasets is not None:
-        settings.datasets.sort(
-        )  # sort ds name list to create deterministic filenames
+        settings.datasets.sort()  # sort ds name list to create deterministic filenames
 
     single_model_test_df: Optional[pd.DataFrame] = None
     ds_info_df_all: Optional[pd.DataFrame] = None
@@ -64,14 +63,16 @@ def main():
             )
             loaded_ds_list.append(ds)
 
-            (test_results_df,
-             ds_info_df) = handle_single_dataset(ds=ds, settings=settings)
+            (test_results_df, ds_info_df) = handle_single_dataset(
+                ds=ds, settings=settings
+            )
             # combine single results with other results
             if single_model_test_df is None:
                 single_model_test_df = test_results_df
             else:
                 single_model_test_df = pd.concat(
-                    [single_model_test_df, test_results_df])
+                    [single_model_test_df, test_results_df]
+                )
 
             # combine single results with other results
             if ds_info_df_all is None:
@@ -120,8 +121,11 @@ def handle_single_dataset(
     # prepare dataset after generating ds_info!
     ds.prepare_datasets()
 
-    if (settings.is_train_model or settings.is_evaluating_model
-            or settings.is_running_amia_attack):
+    if (
+        settings.is_train_model
+        or settings.is_evaluating_model
+        or settings.is_running_amia_attack
+    ):
         model_save_path: str = os.path.join(
             model_path,
             settings.model_name,
@@ -130,11 +134,10 @@ def handle_single_dataset(
             ds.dataset_name,
         )
         check_create_folder(model_save_path)
-        model_save_file: str = os.path.join(model_save_path,
-                                            f"{ds.dataset_name}.tf")
-        model = load_model(model_path=model_save_file,
-                           num_classes=ds.num_classes,
-                           settings=settings)
+        model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.tf")
+        model = load_model(
+            model_path=model_save_file, num_classes=ds.num_classes, settings=settings
+        )
 
         # set values for private training
         if type(model) is PrivateCNNModel:
@@ -169,9 +172,7 @@ def handle_single_dataset(
 
     if settings.is_running_amia_attack:
         print("---------------------")
-        print(
-            "Running AMIA attack (train shadow models, calc statistics, run attack)"
-        )
+        print("Running AMIA attack (train shadow models, calc statistics, run attack)")
         print("---------------------")
         shadow_model_save_path: str = os.path.join(
             model_path,
@@ -215,11 +216,12 @@ def generate_ds_info(ds: AbstractDataset, force_ds_info_regen: bool):
 
     ds.build_ds_info(force_regeneration=force_ds_info_regen)
 
-    hist_filename = os.path.join(ds_info_path, "histogram",
-                                 f"train_data_hist_{ds.dataset_name}.png")
+    hist_filename = os.path.join(
+        ds_info_path, "histogram", f"train_data_hist_{ds.dataset_name}.png"
+    )
     hist_filename_mean = os.path.join(
-        ds_info_path, "histogram",
-        f"mean_train_data_hist_{ds.dataset_name}.png")
+        ds_info_path, "histogram", f"mean_train_data_hist_{ds.dataset_name}.png"
+    )
     check_create_folder(os.path.dirname(hist_filename))
     # save histogram
     hist, bins = ds.get_data_histogram(use_mean=False)
@@ -245,8 +247,7 @@ def generate_ds_info(ds: AbstractDataset, force_ds_info_regen: bool):
     ds.save_ds_info_as_json()
 
 
-def load_model(model_path: str, num_classes: int,
-               settings: RunSettings) -> Model:
+def load_model(model_path: str, num_classes: int, settings: RunSettings) -> Model:
     model = None
 
     model_height = settings.model_input_shape[0]
@@ -288,21 +289,19 @@ def load_model(model_path: str, num_classes: int,
     return model
 
 
-def train_model(ds: AbstractDataset, model: Model, run_name: str,
-                run_number: int):
+def train_model(ds: AbstractDataset, model: Model, run_name: str, run_number: int):
     model.build_compile()
     model.print_summary()
 
     x, y = ds.convert_ds_to_one_hot_encoding(ds.ds_train, unbatch=True)
-    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test,
-                                                       unbatch=True)
+    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test, unbatch=True)
 
     model.train_model_from_numpy(x=x, y=y, val_x=test_x, val_y=test_y)
     model.save_model()
 
-    train_history_folder = os.path.join(result_path,
-                                        model.model_name, run_name,
-                                        str(run_number), "single-model-train")
+    train_history_folder = os.path.join(
+        result_path, model.model_name, run_name, str(run_number), "single-model-train"
+    )
     model.save_train_history(
         folder_name=train_history_folder,
         image_name=f"{ds.dataset_name}_model_train_history.png",
@@ -318,8 +317,7 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
     model.print_summary()
 
     x, y = ds.convert_ds_to_one_hot_encoding(ds.ds_train, unbatch=True)
-    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test,
-                                                       unbatch=True)
+    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test, unbatch=True)
 
     train_eval_dict = model.test_model(x, y)
     test_eval_dict = model.test_model(test_x, test_y)
@@ -335,9 +333,7 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
         merged_dicts[k] = [v, test_eval_dict[k]]
 
     df = pd.DataFrame.from_dict(merged_dicts)
-    df = df[[
-        "name", "type", "accuracy", "f1-score", "precision", "recall", "loss"
-    ]]
+    df = df[["name", "type", "accuracy", "f1-score", "precision", "recall", "loss"]]
     return df
 
 
@@ -352,9 +348,9 @@ def run_amia_attack(
     include_mia: bool,
     num_microbatches: Optional[int] = None,
 ):
-    amia_result_path = os.path.join(result_path,
-                                    settings.model_name, settings.run_name,
-                                    str(settings.run_number))
+    amia_result_path = os.path.join(
+        result_path, settings.model_name, settings.run_name, str(settings.run_number)
+    )
     amia = AmiaAttack(
         model=model,
         ds=ds,
@@ -407,8 +403,11 @@ def run_args_parameter_check(settings: RunSettings):
         print("No model was specified! Please provide a valid model name!")
         sys.exit(1)
 
-    if (settings.is_train_model or settings.is_evaluating_model
-            or settings.is_running_amia_attack):
+    if (
+        settings.is_train_model
+        or settings.is_evaluating_model
+        or settings.is_running_amia_attack
+    ):
         if settings.run_number is None:
             print(
                 "No run number specified! A run number is required when training/ attacking/ testing models!"
@@ -434,22 +433,17 @@ def run_args_parameter_check(settings: RunSettings):
         sys.exit(1)
 
 
-def compile_attack_results(settings: RunSettings,
-                           ds_list: List[AbstractDataset]):
+def compile_attack_results(settings: RunSettings, ds_list: List[AbstractDataset]):
     print("---------------------")
     print("Compiling attack results")
     print("---------------------")
     analyser = AttackAnalyser(
         ds_list=ds_list,
-        model_name=settings.model_name,
-        run_name=settings.run_name,
-        run_number=settings.run_number,
+        settings=settings,
         result_path=result_path,
         model_path=model_path,
-        num_shadow_models=settings.num_shadow_models,
-        include_mia=settings.is_including_mia,
     )
-    analyser.generate_results()
+    analyser.generate_results_dataset_slice()
 
 
 def save_bundled_ds_info_df(ds_info_df: pd.DataFrame, settings: RunSettings):
@@ -458,12 +452,12 @@ def save_bundled_ds_info_df(ds_info_df: pd.DataFrame, settings: RunSettings):
     print("---------------------")
     print(ds_info_df)
     ds_info_df_file = os.path.join(
-        ds_info_path, f'dataframe_{"-".join(settings.datasets)}_ds_info.csv')
+        ds_info_path, f'dataframe_{"-".join(settings.datasets)}_ds_info.csv'
+    )
     save_dataframe(ds_info_df, ds_info_df_file)
 
 
-def save_bundled_model_evaluation(model_test_df: pd.DataFrame,
-                                  settings: RunSettings):
+def save_bundled_model_evaluation(model_test_df: pd.DataFrame, settings: RunSettings):
     # save result_df with model's accuracy, loss, etc. gathered as csv
     result_df_filename = os.path.join(
         result_path,
@@ -475,9 +469,7 @@ def save_bundled_model_evaluation(model_test_df: pd.DataFrame,
     )
     check_create_folder(os.path.dirname(result_df_filename))
 
-    save_dataframe(df=model_test_df,
-                   filename=result_df_filename,
-                   use_index=False)
+    save_dataframe(df=model_test_df, filename=result_df_filename, use_index=False)
 
 
 def compile_model_evaluation(settings: RunSettings):
@@ -486,9 +478,9 @@ def compile_model_evaluation(settings: RunSettings):
     print("---------------------")
     cwd = os.getcwd()
     res_path = os.path.join(cwd, result_path)
-    analyser = UtilityAnalyser(result_path=res_path,
-                               run_name=settings.run_name,
-                               model_name=settings.model_name)
+    analyser = UtilityAnalyser(
+        result_path=res_path, run_name=settings.run_name, model_name=settings.model_name
+    )
     analyser.analyse_utility()
 
 

@@ -9,11 +9,17 @@ from keras.callbacks import EarlyStopping
 from sklearn.metrics import classification_report
 from tensorflow_privacy import DPSequential
 from tensorflow_privacy.privacy.fast_gradient_clipping.layer_registry import (
-    LayerRegistry, dense_layer_computation)
+    LayerRegistry,
+    dense_layer_computation,
+)
 
 from ppml_datasets.utils import check_create_folder, visualize_training
-from util import (compute_delta, compute_noise, compute_numerical_epsilon,
-                  compute_privacy)
+from util import (
+    compute_delta,
+    compute_noise,
+    compute_numerical_epsilon,
+    compute_privacy,
+)
 
 
 @dataclass

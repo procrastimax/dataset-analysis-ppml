@@ -3,8 +3,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import tensorflow as tf
 
 from ppml_datasets.abstract_dataset_handler import (
-    AbstractDataset, AbstractDatasetClassImbalance, AbstractDatasetClassSize,
-    AbstractDatasetCustomClasses, AbstractDatasetGray, RgbToGrayscale)
+    AbstractDataset,
+    AbstractDatasetClassImbalance,
+    AbstractDatasetClassSize,
+    AbstractDatasetCustomClasses,
+    AbstractDatasetGray,
+    RgbToGrayscale,
+)
 
 
 class Cifar10Dataset(AbstractDataset):

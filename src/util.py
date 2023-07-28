@@ -8,15 +8,18 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from tensorflow_privacy.privacy.analysis.compute_dp_sgd_privacy_lib import (
-    compute_dp_sgd_privacy_statement, )
+    compute_dp_sgd_privacy_statement,
+)
 from tensorflow_privacy.privacy.analysis.compute_noise_from_budget_lib import (
-    compute_noise as tfp_compute_noise, )
+    compute_noise as tfp_compute_noise,
+)
 
 from ppml_datasets.utils import check_create_folder
 
 
-def visualize_training(history: tf.keras.callbacks.History,
-                       img_name: str = "results.png"):
+def visualize_training(
+    history: tf.keras.callbacks.History, img_name: str = "results.png"
+):
     print(f"Saving trainings results to: {img_name}")
     acc = history.history["accuracy"]
     val_acc = history.history["val_accuracy"]
@@ -55,9 +58,7 @@ def visualize_data(ds: tf.data.Dataset, file_name: str = "data_vis.png"):
     plt.savefig(file_name)
 
 
-def visualize_data_np(x: np.ndarray,
-                      y: np.ndarray,
-                      file_name: str = "data_vis_np.png"):
+def visualize_data_np(x: np.ndarray, y: np.ndarray, file_name: str = "data_vis_np.png"):
     plt.figure(figsize=(10, 10))
 
     counter: int = 0
@@ -74,9 +75,7 @@ def visualize_data_np(x: np.ndarray,
     plt.savefig(file_name)
 
 
-def pickle_object(full_filename: str,
-                  object: Any,
-                  overwrite_if_exist: bool = True):
+def pickle_object(full_filename: str, object: Any, overwrite_if_exist: bool = True):
     dirname = os.path.dirname(full_filename)
     check_create_folder(dirname)
 
@@ -98,8 +97,7 @@ def unpickle_object(full_filename: str) -> Any:
             print(f"Loaded .pckl file: {full_filename}")
             return object
     else:
-        print(
-            f"Cannot load object from pickel! {full_filename} does not exist!")
+        print(f"Cannot load object from pickel! {full_filename} does not exist!")
         return None
 
 
@@ -126,8 +124,9 @@ def save_dataframe(
     df.to_csv(path_or_buf=filename, header=header, index=use_index, sep=sep)
 
 
-def plot_curve_with_area(x, y, xlabel, ylabel, ax, label, title: str,
-                         use_log_scale: bool):
+def plot_curve_with_area(
+    x, y, xlabel, ylabel, ax, label, title: str, use_log_scale: bool
+):
     ax.plot([0, 1], [0, 1], "k-", lw=1.0)
     ax.plot(x, y, lw=2, label=label)
     ax.set(xlabel=xlabel, ylabel=ylabel)
@@ -172,8 +171,9 @@ def compute_privacy(
     )
 
 
-def compute_numerical_epsilon(steps: int, noise_multiplier: float,
-                              batch_size: int, num_samples: int) -> float:
+def compute_numerical_epsilon(
+    steps: int, noise_multiplier: float, batch_size: int, num_samples: int
+) -> float:
     """Computes epsilon value for given hyperparameters.
 
     Code copied from: https://github.com/tensorflow/privacy/blob/v0.8.10/tutorials/mnist_dpsgd_tutorial_keras_model.py
@@ -188,8 +188,8 @@ def compute_numerical_epsilon(steps: int, noise_multiplier: float,
 
     event = dp_accounting.SelfComposedDpEvent(
         dp_accounting.PoissonSampledDpEvent(
-            sampling_probability,
-            dp_accounting.GaussianDpEvent(noise_multiplier)),
+            sampling_probability, dp_accounting.GaussianDpEvent(noise_multiplier)
+        ),
         steps,
     )
 
@@ -208,8 +208,9 @@ def compute_noise(
     min_noise: float = 1e-5,
 ) -> float:
     """Calculate noise for given training hyperparameters."""
-    return tfp_compute_noise(num_train_samples, batch_size, target_epsilon,
-                             epochs, delta, min_noise)
+    return tfp_compute_noise(
+        num_train_samples, batch_size, target_epsilon, epochs, delta, min_noise
+    )
 
 
 def compute_delta(num_train_samples: int):
@@ -221,6 +222,6 @@ def compute_delta(num_train_samples: int):
     # e.g. 1e-5 for n=60.000
     # take 1e-x, were x is the magnitude of training set size
     delta = np.power(
-        10,
-        -float(len(str(num_train_samples))))  # remove all trailing decimals
+        10, -float(len(str(num_train_samples)))
+    )  # remove all trailing decimals
     return delta

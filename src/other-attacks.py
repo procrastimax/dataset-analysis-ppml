@@ -6,12 +6,19 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.plotting as plotting
 from scipy import special
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import \
-    membership_inference_attack as mia
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import (
+    membership_inference_attack as mia,
+)
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import (
-    AttackInputData, AttackType, SingleSliceSpec, SlicingFeature, SlicingSpec)
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.dataset_slicing import \
-    get_slice
+    AttackInputData,
+    AttackType,
+    SingleSliceSpec,
+    SlicingFeature,
+    SlicingSpec,
+)
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.dataset_slicing import (
+    get_slice,
+)
 
 from model import CNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset

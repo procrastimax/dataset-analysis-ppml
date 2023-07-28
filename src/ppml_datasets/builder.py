@@ -4,12 +4,14 @@ from typing import Any, Dict, List, Tuple
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.datasets.cifar10 import build_cifar10
 from ppml_datasets.datasets.cifar100 import build_cifar100
-from ppml_datasets.datasets.emnist import (EMNISTDigitsManyBalancedDataset,
-                                           EMNISTDigitsNormalBalancedDataset,
-                                           EMNISTLargeUnbalancedDataset,
-                                           EMNISTLettersBalancedDataset,
-                                           EMNISTMediumBalancedDataset,
-                                           EMNISTMediumUnbalancedDataset)
+from ppml_datasets.datasets.emnist import (
+    EMNISTDigitsManyBalancedDataset,
+    EMNISTDigitsNormalBalancedDataset,
+    EMNISTLargeUnbalancedDataset,
+    EMNISTLettersBalancedDataset,
+    EMNISTMediumBalancedDataset,
+    EMNISTMediumUnbalancedDataset,
+)
 from ppml_datasets.datasets.fmnist import build_fmnist
 from ppml_datasets.datasets.mnist import build_mnist
 from ppml_datasets.datasets.svhn import build_svhn

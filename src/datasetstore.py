@@ -8,7 +8,9 @@ import numpy as np
 import pandas as pd
 import tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.plotting as plotting
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import (
-    AttackResults, SingleAttackResult)
+    AttackResults,
+    SingleAttackResult,
+)
 
 from ppml_datasets.utils import check_create_folder
 from util import find_nearest, plot_curve_with_area, unpickle_object

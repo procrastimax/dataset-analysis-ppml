@@ -3,7 +3,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import tensorflow as tf
 
 from ppml_datasets.abstract_dataset_handler import (
-    AbstractDataset, AbstractDatasetCustomClasses)
+    AbstractDataset,
+    AbstractDatasetCustomClasses,
+)
 
 
 class Cifar100Dataset(AbstractDataset):

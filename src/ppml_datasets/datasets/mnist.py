@@ -3,8 +3,11 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 import tensorflow as tf
 
 from ppml_datasets.abstract_dataset_handler import (
-    AbstractDataset, AbstractDatasetClassImbalance, AbstractDatasetClassSize,
-    AbstractDatasetCustomClasses)
+    AbstractDataset,
+    AbstractDatasetClassImbalance,
+    AbstractDatasetClassSize,
+    AbstractDatasetCustomClasses,
+)
 
 
 class MnistDataset(AbstractDataset):

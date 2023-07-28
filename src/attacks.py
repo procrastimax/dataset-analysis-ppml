@@ -6,12 +6,16 @@ from typing import Optional
 import numpy as np
 import tensorflow as tf
 from tensorflow_privacy.privacy.privacy_tests import utils
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import \
-    advanced_mia as amia
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import \
-    membership_inference_attack as mia
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import (
+    advanced_mia as amia,
+)
+from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import (
+    membership_inference_attack as mia,
+)
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import (
-    AttackInputData, SlicingSpec)
+    AttackInputData,
+    SlicingSpec,
+)
 
 from model import Model
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
