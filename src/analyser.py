@@ -105,8 +105,6 @@ class AttackAnalyser:
 
             lira_result_dict[ds_name].attack_result_df = result_df
 
-            lira_result_dict[ds_name].set_best_attack_run_idx(result_df)
-
             df_filename = os.path.join(
                 self.attack_statistics_folder,
                 f"{attack_type.value}_attack_statistic_results_{store.ds_name}.csv",
@@ -118,14 +116,108 @@ class AttackAnalyser:
                 generate_std_area=True)
             store.create_average_class_attack_roc()
 
-            sys.exit(1)
+        # create figures to compare the best runs of each dataset with each other
+        attack_stores = list(lira_result_dict.values())
+        self.create_combined_best_run_fpr0001(attack_stores)
+        self.create_combined_best_run_fpr01(attack_stores)
+        self.create_combined_best_run_auc(attack_stores)
 
-        self.create_combined_best_run_fpr0001(list(self.dataset_data.values()))
-        self.create_combined_best_run_fpr01(list(self.dataset_data.values()))
-        self.create_combined_best_run_auc(list(self.dataset_data.values()))
-        self.create_combined_averaged_roc_curve(
-            list(self.dataset_data.values()))
-        self.create_combined_df(list(self.dataset_data.values()))
+        # self.create_combined_df(list(self.dataset_data.values()))
+
+    def create_combined_best_run_auc(self,
+                                     attack_stores: List[AttackResultStore]):
+        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
+
+        ds_name_list = []
+
+        for store in attack_stores:
+            ds_name_list.append(store.ds_name)
+
+            best_attack = store.get_best_auc_run()
+            fpr = best_attack.roc_curve.fpr
+            tpr = best_attack.roc_curve.tpr
+            auc = best_attack.get_auc()
+            ax.plot(fpr, tpr, label=f"{store.ds_name} AUC={auc:.3f}")
+
+        ax.set(xlabel="FPR", ylabel="TPR")
+        ax.set(aspect=1, xscale="log", yscale="log")
+        ax.title.set_text("ROC Combined Best Run AUC")
+        plt.xlim([0.00001, 1])
+        plt.ylim([0.00001, 1])
+        plt.legend()
+
+        plt_name = os.path.join(
+            self.attack_statistics_folder,
+            f"roc_combined_best_run_auc_{'-'.join(ds_name_list)}_results.png",
+        )
+        plt.savefig(plt_name)
+        print(f"Saved combined best attack run AUC ROC curve {plt_name}")
+        plt.close()
+
+    def create_combined_best_run_fpr0001(
+            self, attack_stores: List[AttackResultStore]):
+        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
+
+        ds_name_list = []
+
+        for store in attack_stores:
+            ds_name_list.append(store.ds_name)
+
+            best_attack = store.get_best_fpr001_run()
+            _, fpr_0001 = store.get_fpr_at_fixed_tpr(best_attack)
+            fpr = best_attack.roc_curve.fpr
+            tpr = best_attack.roc_curve.tpr
+            ax.plot(fpr,
+                    tpr,
+                    label=f"{store.ds_name} FPR@0.001={fpr_0001:.3f}")
+
+        ax.set(xlabel="FPR", ylabel="TPR")
+        ax.set(aspect=1, xscale="log", yscale="log")
+        ax.title.set_text("ROC Combined Best Run FPR@0.001")
+        plt.xlim([0.00001, 1])
+        plt.ylim([0.00001, 1])
+        plt.legend()
+
+        plt_name = os.path.join(
+            self.attack_statistics_folder,
+            f"roc_combined_best_run_fpr0001_{'-'.join(ds_name_list)}_results.png",
+        )
+        plt.savefig(plt_name)
+        print(f"Saved combined best attack run fpr0001 ROC curve {plt_name}")
+        plt.close()
+
+    def create_combined_best_run_fpr01(self,
+                                       attack_stores: List[AttackResultStore]):
+        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
+
+        ds_name_list = []
+
+        for store in attack_stores:
+            ds_name_list.append(store.ds_name)
+
+            best_attack = store.get_best_fpr01_run()
+            fpr_01, _ = store.get_fpr_at_fixed_tpr(best_attack)
+            fpr = best_attack.roc_curve.fpr
+            tpr = best_attack.roc_curve.tpr
+            ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.1={fpr_01:.3f}")
+
+        ax.set(xlabel="FPR", ylabel="TPR")
+        ax.set(aspect=1, xscale="log", yscale="log")
+        ax.title.set_text("ROC Combined Best Run FPR@0.1")
+        plt.xlim([0.00001, 1])
+        plt.ylim([0.00001, 1])
+        plt.legend()
+
+        plt_name = os.path.join(
+            self.attack_statistics_folder,
+            f"roc_combined_best_run_fpr01_{'-'.join(ds_name_list)}_results.png",
+        )
+        plt.savefig(plt_name)
+        print(f"Saved combined best attack run fpr01 ROC curve {plt_name}")
+        plt.close()
 
     def create_combined_df(self, ds_stores: List[AttackResultStore]):
         combined_list = []
@@ -219,124 +311,6 @@ class AttackAnalyser:
         )
         plt.savefig(plt_name)
         print(f"Saved all-in-one ROC curve {plt_name}")
-        plt.close()
-
-    def create_combined_best_run_fpr0001(self,
-                                         ds_stores: List[AttackResultStore]):
-        _, ax = plt.subplots(1, 1, figsize=(5, 5))
-        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
-
-        name_list = []
-
-        # sort by fpr01
-        ds_stores.sort(
-            key=lambda x: x.get_fpr_at_fixed_tpr(x.attack_result_list[
-                x.best_idx_auc].single_attack_results[0])[1],
-            reverse=True,
-        )
-
-        for store in ds_stores:
-            name_list.append(store.ds_name)
-
-            single_attack: SingleAttackResult = store.attack_result_list[
-                store.best_idx_fpr0001].single_attack_results[0]
-            fpr_01, fpr_0001 = store.get_fpr_at_fixed_tpr(single_attack)
-            fpr = single_attack.roc_curve.fpr
-            tpr = single_attack.roc_curve.tpr
-            ax.plot(fpr,
-                    tpr,
-                    label=f"{store.ds_name} FPR@0.001={fpr_0001:.4f}")
-
-        ax.set(xlabel="FPR", ylabel="TPR")
-        ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("ROC Combined Best Run FPR@0.001")
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
-        plt.legend()
-
-        plt_name = os.path.join(
-            self.attack_statistics_folder_combined,
-            f"combined_best_run_fpr0001_{'-'.join(name_list)}_results.png",
-        )
-        plt.savefig(plt_name)
-        print(f"Saved combined best attackrun fpr0001 ROC curve {plt_name}")
-        plt.close()
-
-    def create_combined_best_run_fpr01(self,
-                                       ds_stores: List[AttackResultStore]):
-        _, ax = plt.subplots(1, 1, figsize=(5, 5))
-        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
-
-        name_list = []
-
-        # sort by fpr01
-        ds_stores.sort(
-            key=lambda x: x.get_fpr_at_fixed_tpr(x.attack_result_list[
-                x.best_idx_auc].single_attack_results[0])[0],
-            reverse=True,
-        )
-
-        for store in ds_stores:
-            name_list.append(store.ds_name)
-
-            single_attack: SingleAttackResult = store.attack_result_list[
-                store.best_idx_fpr01].single_attack_results[0]
-            fpr_01, fpr_0001 = store.get_fpr_at_fixed_tpr(single_attack)
-            fpr = single_attack.roc_curve.fpr
-            tpr = single_attack.roc_curve.tpr
-            ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.1={fpr_01:.4f}")
-
-        ax.set(xlabel="FPR", ylabel="TPR")
-        ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("ROC Combined Best Run FPR@0.1")
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
-        plt.legend()
-
-        plt_name = os.path.join(
-            self.attack_statistics_folder_combined,
-            f"combined_best_run_fpr01_{'-'.join(name_list)}_results.png",
-        )
-        plt.savefig(plt_name)
-        print(f"Saved combined best attackrun fpr01 ROC curve {plt_name}")
-        plt.close()
-
-    def create_combined_best_run_auc(self, ds_stores: List[AttackResultStore]):
-        _, ax = plt.subplots(1, 1, figsize=(5, 5))
-        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
-
-        name_list = []
-
-        # sort by auc
-        ds_stores.sort(
-            key=lambda x: x.attack_result_list[x.best_idx_auc].
-            single_attack_results[0].roc_curve.get_auc(),
-            reverse=True,
-        )
-
-        for store in ds_stores:
-            name_list.append(store.ds_name)
-
-            single_attack: SingleAttackResult = store.attack_result_list[
-                store.best_idx_auc].single_attack_results[0]
-            fpr = single_attack.roc_curve.fpr
-            tpr = single_attack.roc_curve.tpr
-            auc = single_attack.roc_curve.get_auc()
-            ax.plot(fpr, tpr, label=f"{store.ds_name} AUC={auc:.3f}")
-
-        ax.set(xlabel="FPR", ylabel="TPR")
-        ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("ROC Combined Best Run AUC")
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
-        plt.legend()
-
-        plt_name = os.path.join(
-            self.attack_statistics_folder_combined,
-            f"combined_best_run_auc_{'-'.join(name_list)}_results.png",
-        )
-        plt.savefig(plt_name)
-        print(f"Saved combined best attackrun AUC ROC curve {plt_name}")
         plt.close()
 
 

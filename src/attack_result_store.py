@@ -150,12 +150,6 @@ class AttackResultStore:
 
         return attack_result_frame
 
-    def set_best_attack_run_idx(self, attack_result: pd.DataFrame):
-        a = attack_result.select_dtypes(np.number).idxmax(axis=0, skipna=True)
-        self.best_idx_fpr0001 = a["fpr@0.001"]
-        self.best_idx_fpr01 = a["fpr@0.1"]
-        self.best_idx_auc = a["AUC"]
-
     def get_fpr_at_fixed_tpr(
             self,
             single_attack_result: SingleAttackResult) -> Tuple[float, float]:
@@ -208,10 +202,8 @@ class AttackResultStore:
     def get_single_entire_ds_attack_results(self) -> List[SingleAttackResult]:
         result_list = []
         for attack_results in self.attack_result_list:
-            for result in attack_results.single_attack_results:
-                # when slice feature is None, it is Entire Dataset Attack
-                if result.slice_spec.feature is None:
-                    result_list.append(result)
+            result_list.append(
+                self._extract_entire_dataset_slice(attack_results))
         return result_list
 
     def get_single_class_attack_result_dict(
@@ -343,6 +335,38 @@ class AttackResultStore:
         print(f"Saved averaged ROC curve {plt_name} (entire dataset)")
         plt.close()
         return (mean_tpr, fpr_grid)
+
+    def get_attack_df_entire_dataset_only(self) -> pd.DataFrame:
+        """Return a dataframe, which only represents the Entire dataset attack slice."""
+        return self.attack_result_df[self.attack_result_df["slice feature"] ==
+                                     "Entire dataset"]
+
+    def _extract_entire_dataset_slice(
+            self, result: AttackResults) -> SingleAttackResult:
+        """Extract the Entire Dataset slice from an AttackResult object."""
+        for i in result.single_attack_results:
+            if i.slice_spec.feature is None:
+                return i
+
+    def get_best_fpr001_run(self) -> SingleAttackResult:
+        return self._get_best_X_from_run("fpr@0.001")
+
+    def get_best_fpr01_run(self) -> SingleAttackResult:
+        return self._get_best_X_from_run("fpr@0.1")
+
+    def get_best_auc_run(self) -> SingleAttackResult:
+        return self._get_best_X_from_run("AUC")
+
+    def _get_best_X_from_run(self, col_name: str) -> SingleAttackResult:
+        # get ID of best Entire dataset X (fpr@0.001, auc, ...)
+        best_001_idx = self.get_attack_df_entire_dataset_only(
+        )[col_name].idxmax()
+
+        shadow_model_number = self.attack_result_df.loc[best_001_idx][
+            "shadow model"]
+
+        attack_results = self.attack_result_list[shadow_model_number]
+        return self._extract_entire_dataset_slice(attack_results)
 
     # def create_lira_vs_mia_roc_curves(self):
     #    print("Generating AUC curve plot for comparing lira and mia")
