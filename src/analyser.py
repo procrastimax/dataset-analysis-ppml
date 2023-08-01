@@ -1,10 +1,11 @@
 import os
 import sys
 from collections import defaultdict
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import (
     AttackResults, )
@@ -96,8 +97,7 @@ class AttackAnalyser:
         #                                           run_number=run)
         #    self._compile_attack_results(attack_type, result_dict, run)
 
-        self.create_combined_runs_average_per_ds(attack_type, runs)
-        self.create_combined_runs_class_average(attack_type)
+        self.create_runs_combined_graphics(attack_type, runs)
 
     def _compile_attack_results(
         self,
@@ -306,6 +306,71 @@ class AttackAnalyser:
         print(f"Saved combined averaged DS ROC curve {plt_name}")
         plt.close()
 
+    def create_runs_combined_graphics(self, attack_type: AttackType,
+                                      run_numbers: List[int]):
+        """Create a comparison of averaged ROC curves for Entire Dataset attacks for every dataset."""
+
+        avg_run_dict: Dict[str, List[AttackResultStore]] = defaultdict(list)
+
+        for run in run_numbers:
+            result_dict = self.load_attack_results(attack_type, run)
+            for ds_name, store in result_dict.items():
+                avg_run_dict[ds_name].append(store)
+
+        for ds_name, store_list in avg_run_dict.items():
+            # self.create_combined_averaged_roc_curve_from_list(
+            #    attack_type, store_list)
+            self.create_combined_average_class_rocs(attack_type, store_list,
+                                                    run_numbers)
+
+    def create_combined_average_class_rocs(
+        self,
+        attack_type: AttackType,
+        attack_store: List[AttackResultStore],
+        runs: List[int],
+    ):
+        run_dict = {}
+
+        for store in attack_store:
+            class_attack_dict = store.get_single_class_attack_result_dict()
+
+            class_wise_mean_tpr_dict: Dict[str, Tuple[np.ndarray,
+                                                      np.ndarray]] = {}
+
+            for class_number, single_result_list in class_attack_dict.items():
+                tpr_mean, _, fpr_grid = store.calculate_mean_tpr_and_fpr(
+                    single_result_list)
+                class_wise_mean_tpr_dict[class_number] = (tpr_mean, fpr_grid)
+
+            run_dict[store.run_number] = class_wise_mean_tpr_dict
+
+        fig, axs = plt.subplots(len(runs), figsize=(7, 5 * len(runs)))
+        fig.suptitle(
+            f"Receiver Operator Characteristics - Class-wise Attack ({attack_type.value}, {attack_store[0].ds_name})"
+        )
+
+        for run_number, class_wise_dict in run_dict.items():
+            axs[run_number].plot([0, 1], [0, 1], "k--", lw=1.0)
+            for class_number, mean_values in class_wise_dict.items():
+                axs[run_number].plot(mean_values[0],
+                                     mean_values[1],
+                                     label=f"Class {class_number}")
+                axs[run_number].set(xlabel="FPR", ylabel="TPR")
+                axs[run_number].set(aspect=1, xscale="log", yscale="log")
+                axs[run_number].title.set_text(f"Run {run_number}")
+                axs[run_number].legend(loc="lower right")
+                axs[run_number].set_xlim([0.00001, 1])
+                axs[run_number].set_ylim([0.00001, 1])
+
+        plt_name = os.path.join(
+            self.analysis_combined_runs,
+            f"roc_combined_average_{attack_store[0].ds_name}_results_class_wise.png",
+        )
+        os.makedirs(os.path.dirname(plt_name), exist_ok=True)
+        plt.savefig(plt_name)
+        print(f"Saved combined averaged DS ROC curve {plt_name} (class wise)")
+        plt.close()
+
     def create_combined_averaged_roc_curve_from_list(
         self,
         attack_type: AttackType,
@@ -334,7 +399,9 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text(f"Receiver Operator Characteristics - All Runs ({attack_type.value}, {attack_store[0].ds_name})")
+        ax.title.set_text(
+            f"Receiver Operator Characteristics - All Runs ({attack_type.value}, {attack_store[0].ds_name})"
+        )
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()
@@ -347,25 +414,6 @@ class AttackAnalyser:
         plt.savefig(plt_name)
         print(f"Saved combined averaged DS ROC curve {plt_name}")
         plt.close()
-
-    def create_combined_runs_average_per_ds(self, attack_type: AttackType,
-                                            run_numbers: List[int]):
-        """Create a comparison of averaged ROC curves for Entire Dataset attacks for every dataset."""
-
-        avg_run_dict: Dict[str, List[AttackResultStore]] = defaultdict(list)
-
-        for run in run_numbers:
-            result_dict = self.load_attack_results(attack_type, run)
-            for ds_name, store in result_dict.items():
-                avg_run_dict[ds_name].append(store)
-
-        for ds_name, store_list in avg_run_dict.items():
-            self.create_combined_averaged_roc_curve_from_list(
-                attack_type, store_list)
-
-    # TODO: show average class attack ROC curves in multiple graphs next to each other
-    def create_combined_runs_class_average(self, attack_type: AttackType):
-        pass
 
 
 class UtilityAnalyser:

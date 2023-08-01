@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -230,8 +230,9 @@ class AttackResultStore:
         class_wise_mean_tpr_dict = {}
 
         for k, v in class_attack_dict.items():
-            class_wise_mean_tpr_dict[
-                k] = self.get_mean_tpr_for_single_results_list(v, fpr_grid)[0]
+            mean_tpr, _, grid_fpr = self.calculate_mean_tpr_and_fpr(
+                v, fpr_grid=fpr_grid)
+            class_wise_mean_tpr_dict[k] = mean_tpr
 
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
@@ -258,10 +259,13 @@ class AttackResultStore:
         plt.close()
 
     def calculate_mean_tpr_and_fpr(
-        self, results: List[SingleAttackResult]
+        self,
+        results: List[SingleAttackResult],
+        fpr_grid: Optional[np.ndarray] = None,
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        fpr_len = len(results[0].roc_curve.fpr)
-        fpr_grid = np.logspace(-5, 0, num=fpr_len)
+        if fpr_grid is None:
+            fpr_len = len(results[0].roc_curve.fpr)
+            fpr_grid = np.logspace(-5, 0, num=fpr_len)
 
         # get all fpr and tpr values from single class slice
         fprs = [i.roc_curve.fpr for i in results]
