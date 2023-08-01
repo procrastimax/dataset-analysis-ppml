@@ -29,18 +29,36 @@ class AttackResultStore:
 
     # filenames to be stored
     attack_type: AttackType
+
     ds_name: str
-    attack_result_list_filename: str
-    attack_analysis_folder: str
+    run_number: int
+
+    # the path until attack-statistics or attack-analysis folder
+    base_path: str
 
     attack_result_list: List[AttackResults] = field(default_factory=list)
     attack_result_df: pd.DataFrame = None
     fpr_grid: np.ndarray = None
     mean_tpr: np.ndarray = None
 
+    def get_statistics_folder(self) -> str:
+        return os.path.join(self.base_path, str(self.run_number),
+                            "attack-statistics")
+
+    def get_analysis_folder(self) -> str:
+        return os.path.join(
+            self.base_path,
+            str(self.run_number),
+            "attack-analysis",
+            self.ds_name,
+        )
+
     def load_saved_values(self):
-        self.attack_result_list = unpickle_object(
-            self.attack_result_list_filename)
+        attack_result_list_filename = os.path.join(
+            self.get_statistics_folder(),
+            f"{self.ds_name}_attack_{self.attack_type.value}_results.pckl",
+        )
+        self.attack_result_list = unpickle_object(attack_result_list_filename)
 
     def create_complete_dataframe(
         self,
@@ -122,7 +140,7 @@ class AttackResultStore:
         attack_result_frame = pd.concat([attack_result_frame, mean_df, max_df],
                                         ignore_index=False)
 
-        return attack_result_frame
+        return attack_result_frame.round(decimals=4)
 
     def get_fpr_at_fixed_tpr(
             self,
@@ -152,7 +170,7 @@ class AttackResultStore:
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         for res, title in zip(entire_ds_attack_list,
                               range(len(self.attack_result_list))):
-            label = f"Model #{title} auc={res.get_auc():.4f}"
+            label = f"Model #{title} auc={res.get_auc():.3f}"
             plotting.plot_roc_curve(
                 res.roc_curve,
                 functools.partial(
@@ -161,12 +179,12 @@ class AttackResultStore:
                     label=label,
                     use_log_scale=True,
                     title=
-                    f"All Shadow Model ROC Curves ({self.attack_type.value})",
+                    f"All Shadow Model ROC Curves ({self.attack_type.value}, {self.ds_name})",
                 ),
             )
         plt.legend()
         plt_name = os.path.join(
-            self.attack_analysis_folder,
+            self.get_analysis_folder(),
             f"{self.ds_name}_{self.attack_type.value}_all_roc_entire_ds_results.png",
         )
         plt.savefig(plt_name)
@@ -214,9 +232,7 @@ class AttackResultStore:
 
         tpr_int = np.array(tpr_int)
 
-        self.mean_tpr = tpr_int.mean(axis=0)
-
-        return self.mean_tpr, tpr_int
+        return tpr_int.mean(axis=0), tpr_int
 
     def create_average_class_attack_roc(self):
         """Create an averaged ROC curve over all class attack slices.
@@ -228,7 +244,6 @@ class AttackResultStore:
         # get item from dict to get fpr_len
         fpr_len = len(next(iter(class_attack_dict.values()))[0].roc_curve.fpr)
         fpr_grid = np.logspace(-5, 0, num=fpr_len)
-        self.fpr_grid = fpr_grid
 
         class_wise_mean_tpr_dict = {}
 
@@ -245,14 +260,15 @@ class AttackResultStore:
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale="log", yscale="log")
         ax.title.set_text(
-            f"Class-wise Attack ROC Curve ({self.attack_type.value})")
+            f"Class-wise Attack ROC Curve ({self.attack_type.value}, {self.ds_name})"
+        )
 
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()
 
         plt_name = os.path.join(
-            self.attack_analysis_folder,
+            self.get_analysis_folder(),
             f"{self.ds_name}_{self.attack_type.value}_all_roc_class_results.png",
         )
         plt.savefig(plt_name)
@@ -274,10 +290,12 @@ class AttackResultStore:
 
         fpr_len = len(entire_ds_results[0].roc_curve.fpr)
         fpr_grid = np.logspace(-5, 0, num=fpr_len)
-        self.fpr_grid = fpr_grid
 
         mean_tpr, tpr_int = self.get_mean_tpr_for_single_results_list(
             entire_ds_results, fpr_grid)
+
+        self.mean_tpr = mean_tpr
+        self.fpr_grid = fpr_grid
 
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         if generate_std_area:
@@ -295,7 +313,8 @@ class AttackResultStore:
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale="log", yscale="log")
         ax.title.set_text(
-            f"Entire Dataset Attack ROC Curve ({self.attack_type.value})")
+            f"Entire Dataset Attack ROC Curve ({self.attack_type.value}, {self.ds_name})"
+        )
 
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
@@ -306,7 +325,7 @@ class AttackResultStore:
             options += "_std_bounds_"
 
         plt_name = os.path.join(
-            self.attack_analysis_folder,
+            self.get_analysis_folder(),
             f"{self.ds_name}_{self.attack_type.value}{options}average_roc_results.png",
         )
         plt.savefig(plt_name)

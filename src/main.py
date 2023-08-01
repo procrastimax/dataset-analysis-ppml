@@ -79,7 +79,7 @@ def main():
             else:
                 ds_info_df_all = pd.concat([ds_info_df_all, ds_info_df])
 
-    if settings.is_generating_attack_results:
+    if settings.is_compiling_attack_results:
         compile_attack_results(settings, loaded_ds_list)
 
     if settings.is_generating_ds_info:

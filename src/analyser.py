@@ -17,6 +17,19 @@ from util import save_dataframe
 pd.options.mode.chained_assignment = None
 
 
+def get_run_numbers(run_result_folder: str) -> List[int]:
+    """Scan run result folder for available run numbers."""
+    run_numbers: List[int] = []
+    folders = os.scandir(run_result_folder)
+    for entry in folders:
+        if entry.is_dir():
+            if entry.name.isnumeric():
+                run_numbers.append(int(entry.name))
+
+    run_numbers.sort()
+    return run_numbers
+
+
 class AttackAnalyser:
 
     def __init__(
@@ -34,69 +47,52 @@ class AttackAnalyser:
         self.settings: RunSettings = settings
         self.model_path: str = model_path
 
-        self.attack_base_folder = os.path.join(
-            result_path,
-            settings.model_name,
-            settings.run_name,
-            str(settings.run_number),
-        )
+        # base folder where all individual runs are saved
+        self.run_result_folder = os.path.join(result_path, settings.model_name,
+                                              settings.run_name)
 
-        # here are all the results after attacking the models with LIRA or MIA
-        self.attack_statistics_folder: str = os.path.join(
-            self.attack_base_folder,
-            "attack-statistics",
-        )
-        check_create_folder(self.attack_statistics_folder)
-
-        # here we want to save all analysis results
-        self.attack_analysis_folder: str = os.path.join(
-            self.attack_base_folder,
+    def get_combined_ds_analysis_folder(self, run_number: int) -> str:
+        return os.path.join(
+            self.run_result_folder,
+            str(run_number),
             "attack-analysis",
+            "combined-ds",
         )
-        check_create_folder(self.attack_analysis_folder)
 
-    def load_attack_results(self, attack_type: AttackType,
-                            settings: RunSettings,
-                            model_path: str) -> Dict[str, AttackResultStore]:
+    def load_attack_results(
+        self,
+        attack_type: AttackType,
+        run_number: int,
+    ) -> Dict[str, AttackResultStore]:
         attack_result_dict: Dict[str, AttackResultStore] = {}
+
         for ds in self.ds_list:
-            attack_list_filename = os.path.join(
-                self.attack_statistics_folder,
-                f"{ds.dataset_name}_attack_{attack_type.value}_results.pckl",
-            )
-
-            attack_analysis_folder = os.path.join(self.attack_analysis_folder,
-                                                  attack_type.value,
-                                                  ds.dataset_name)
-            check_create_folder(attack_analysis_folder)
-
             attack_results_store = AttackResultStore(
                 attack_type=attack_type,
                 ds_name=ds.dataset_name,
-                attack_result_list_filename=attack_list_filename,
-                attack_analysis_folder=attack_analysis_folder,
+                run_number=run_number,
+                base_path=self.run_result_folder,
             )
             attack_result_dict[ds.dataset_name] = attack_results_store
+
+            check_create_folder(attack_results_store.get_analysis_folder())
+
         return attack_result_dict
 
     def compile_attack_results_lira(self):
         attack_type = AttackType.LIRA
-        self._compile_attack_results(attack_type,
-                                     self._load_result_dict(attack_type))
+        runs = get_run_numbers(self.run_result_folder)
+        for run in runs:
+            result_dict = self.load_attack_results(attack_type=attack_type,
+                                                   run_number=run)
+            self._compile_attack_results(attack_type, result_dict, run)
 
-    def compile_attack_results_mia(self):
-        attack_type = AttackType.MIA
-        self._compile_attack_results(attack_type,
-                                     self._load_result_dict(attack_type))
-
-    def _load_result_dict(self,
-                          attack_type: AttackType) -> Dict[str, AttackResults]:
-        return self.load_attack_results(attack_type,
-                                        settings=self.settings,
-                                        model_path=self.model_path)
-
-    def _compile_attack_results(self, attack_type: AttackType,
-                                attack_result_dict: Dict[str, AttackResults]):
+    def _compile_attack_results(
+        self,
+        attack_type: AttackType,
+        attack_result_dict: Dict[str, AttackResultStore],
+        run_number: int,
+    ):
         for ds_name, store in attack_result_dict.items():
             store.load_saved_values()
 
@@ -106,27 +102,37 @@ class AttackAnalyser:
             attack_result_dict[ds_name].attack_result_df = result_df
 
             df_filename = os.path.join(
-                store.attack_analysis_folder,
+                store.get_analysis_folder(),
                 f"{attack_type.value}_attack_statistic_results_{store.ds_name}.csv",
             )
             save_dataframe(store.attack_result_df, df_filename)
 
             store.create_entire_dataset_combined_roc_curve()
+
+            # this function sets the store's mean_tpr and fpr_grid
             store.create_average_roc_curve_entire_dataset(
                 generate_std_area=True)
             store.create_average_class_attack_roc()
 
         # create figures to compare the best runs of each dataset with each other
         attack_stores = list(attack_result_dict.values())
-        self.create_combined_best_run_fpr0001(attack_type, attack_stores)
-        self.create_combined_best_run_fpr01(attack_type, attack_stores)
-        self.create_combined_best_run_auc(attack_type, attack_stores)
+        self.create_combined_df(attack_type, attack_stores, run_number)
+        self.create_combined_best_run_fpr0001(attack_type, attack_stores,
+                                              run_number)
+        self.create_combined_best_run_fpr01(attack_type, attack_stores,
+                                            run_number)
+        self.create_combined_best_run_auc(attack_type, attack_stores,
+                                          run_number)
 
-        self.create_combined_df(attack_type, attack_stores)
-        self.create_combined_averaged_roc_curve(attack_type, attack_stores)
+        self.create_combined_averaged_roc_curve(attack_type, attack_stores,
+                                                run_number)
 
-    def create_combined_best_run_auc(self, attack_type: AttackType,
-                                     attack_stores: List[AttackResultStore]):
+    def create_combined_best_run_auc(
+        self,
+        attack_type: AttackType,
+        attack_stores: List[AttackResultStore],
+        run_number: int,
+    ):
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
@@ -143,15 +149,13 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("ROC Combined Best Run AUC")
+        ax.title.set_text("Receiver Operator Characteristics - Best Run AUC")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()
 
         plt_name = os.path.join(
-            self.attack_analysis_folder,
-            attack_type.value,
-            "combined-ds",
+            self.get_combined_ds_analysis_folder(run_number),
             f"roc_combined_best_run_auc_{'-'.join(ds_name_list)}_results.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
@@ -159,13 +163,12 @@ class AttackAnalyser:
         print(f"Saved combined best attack run AUC ROC curve {plt_name}")
         plt.close()
 
-    # TODO:
-    #   - combine best auc, fpr01, fpr0001, mean for different run numbers
-    #   - compare only same datasets with eatch other
-
     def create_combined_best_run_fpr0001(
-            self, attack_type: AttackType,
-            attack_stores: List[AttackResultStore]):
+        self,
+        attack_type: AttackType,
+        attack_stores: List[AttackResultStore],
+        run_number: int,
+    ):
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
@@ -184,15 +187,14 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("ROC Combined Best Run FPR@0.001")
+        ax.title.set_text(
+            "Receiver Operator Characteristics - Best Run FPR@0.001")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()
 
         plt_name = os.path.join(
-            self.attack_analysis_folder,
-            attack_type.value,
-            "combined-ds",
+            self.get_combined_ds_analysis_folder(run_number),
             f"roc_combined_best_run_fpr0001_{'-'.join(ds_name_list)}_results.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
@@ -200,8 +202,12 @@ class AttackAnalyser:
         print(f"Saved combined best attack run fpr0001 ROC curve {plt_name}")
         plt.close()
 
-    def create_combined_best_run_fpr01(self, attack_type: AttackType,
-                                       attack_stores: List[AttackResultStore]):
+    def create_combined_best_run_fpr01(
+        self,
+        attack_type: AttackType,
+        attack_stores: List[AttackResultStore],
+        run_number: int,
+    ):
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
@@ -218,15 +224,14 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("ROC Combined Best Run FPR@0.1")
+        ax.title.set_text(
+            "Receiver Operator Characteristics - Best Run FPR@0.1")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()
 
         plt_name = os.path.join(
-            self.attack_analysis_folder,
-            attack_type.value,
-            "combined-ds",
+            self.get_combined_ds_analysis_folder(run_number),
             f"roc_combined_best_run_fpr01_{'-'.join(ds_name_list)}_results.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
@@ -234,8 +239,12 @@ class AttackAnalyser:
         print(f"Saved combined best attack run fpr01 ROC curve {plt_name}")
         plt.close()
 
-    def create_combined_df(self, attack_type: AttackType,
-                           attack_stores: List[AttackResultStore]):
+    def create_combined_df(
+        self,
+        attack_type: AttackType,
+        attack_stores: List[AttackResultStore],
+        run_number: int,
+    ):
         combined_df = pd.DataFrame()
 
         ds_names = []
@@ -255,20 +264,19 @@ class AttackAnalyser:
             combined_df = pd.concat([combined_df, ds_attack_result_df])
             ds_names.append(store.ds_name)
 
-        print("Combined DF:")
-        print(combined_df)
         file_name = os.path.join(
-            self.attack_statistics_folder,
-            attack_type.value,
-            "combined-ds",
+            self.get_combined_ds_analysis_folder(run_number),
             f"combined_df_{'_'.join(ds_names)}.csv",
         )
         os.makedirs(os.path.dirname(file_name), exist_ok=True)
-        save_dataframe(combined_df, filename=file_name)
+        save_dataframe(combined_df.round(decimals=4), filename=file_name)
 
     def create_combined_averaged_roc_curve(
-            self, attack_type: AttackType,
-            attack_store: List[AttackResultStore]):
+        self,
+        attack_type: AttackType,
+        attack_store: List[AttackResultStore],
+        run_number: int,
+    ):
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
@@ -285,21 +293,23 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("Receiver Operator Characteristics Averaged")
+        ax.title.set_text("Receiver Operator Characteristics - Averaged")
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])
         plt.legend()
 
         plt_name = os.path.join(
-            self.attack_analysis_folder,
-            attack_type.value,
-            "combined-ds",
+            self.get_combined_ds_analysis_folder(run_number),
             f"roc_combined_average_{'-'.join(name_list)}_results.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
         print(f"Saved combined averaged DS ROC curve {plt_name}")
         plt.close()
+
+    def create_combined_runs_average_auc(self, attack_type: AttackType):
+        run_numbers = get_run_numbers(self.run_result_folder)
+        print(run_numbers)
 
 
 class UtilityAnalyser:
@@ -310,18 +320,7 @@ class UtilityAnalyser:
         self.result_path = result_path
         self.run_result_folder = os.path.join(self.result_path,
                                               self.model_name, self.run_name)
-        self.run_numbers = self.get_run_numbers()
-
-    def get_run_numbers(self) -> List[int]:
-        """Scan run result folder for available run numbers."""
-        run_numbers: List[int] = []
-        folders = os.scandir(self.run_result_folder)
-        for entry in folders:
-            if entry.is_dir():
-                run_numbers.append(int(entry.name))
-
-        run_numbers.sort()
-        return run_numbers
+        self.run_numbers = get_run_numbers(self.run_result_folder)
 
     def load_run_utility_df(self, run_number: int) -> pd.DataFrame:
         df_folder = os.path.join(self.run_result_folder, str(run_number),
