@@ -52,9 +52,8 @@ class AttackResultStore:
 
     result_path: str = None
 
-    best_idx_fpr0001 = None
-    best_idx_fpr01 = None
-    best_idx_auc = None
+    fpr_grid: np.ndarray = None
+    mean_tpr: np.ndarray = None
 
     def __post_init__(self):
         """Auto-Initialize values dependant from other values."""
@@ -138,14 +137,19 @@ class AttackResultStore:
             "fpr@0.001",
         ]]
         mean_df = group.mean(numeric_only=True)
+        max_df = group.max(numeric_only=True)
 
         # set nice index values
         idx_mean = pd.Index([f"mean {spec}" for spec in slice_spec_list])
         mean_df.set_index(idx_mean, inplace=True)
 
-        mean_df["attack type"] = self.attack_type.value
+        idx_max = pd.Index([f"max {spec}" for spec in slice_spec_list])
+        max_df.set_index(idx_max, inplace=True)
 
-        attack_result_frame = pd.concat([attack_result_frame, mean_df],
+        mean_df["attack type"] = self.attack_type.value
+        max_df["attack type"] = self.attack_type.value
+
+        attack_result_frame = pd.concat([attack_result_frame, mean_df, max_df],
                                         ignore_index=False)
 
         return attack_result_frame
@@ -219,7 +223,7 @@ class AttackResultStore:
 
         return single_attack_dict
 
-    def _get_mean_tpr_for_single_results_list(
+    def get_mean_tpr_for_single_results_list(
             self, single_result_list: List[SingleAttackResult],
             fpr_grid: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Calculate mean TPR for single results list.
@@ -240,7 +244,9 @@ class AttackResultStore:
 
         tpr_int = np.array(tpr_int)
 
-        return tpr_int.mean(axis=0), tpr_int
+        self.mean_tpr = tpr_int.mean(axis=0)
+
+        return self.mean_tpr, tpr_int
 
     def create_average_class_attack_roc(self):
         """Create an averaged ROC curve over all class attack slices.
@@ -252,15 +258,16 @@ class AttackResultStore:
         # get item from dict to get fpr_len
         fpr_len = len(next(iter(class_attack_dict.values()))[0].roc_curve.fpr)
         fpr_grid = np.logspace(-5, 0, num=fpr_len)
+        self.fpr_grid = fpr_grid
 
         class_wise_mean_tpr_dict = {}
 
         for k, v in class_attack_dict.items():
             class_wise_mean_tpr_dict[
-                k] = self._get_mean_tpr_for_single_results_list(v, fpr_grid)[0]
+                k] = self.get_mean_tpr_for_single_results_list(v, fpr_grid)[0]
 
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
-        ax.plot([0, 1], [0, 1], "r--", lw=1.0)
+        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         for k, v in class_wise_mean_tpr_dict.items():
             ax.plot(fpr_grid, v, lw=2, label=f"Class {k}")
@@ -297,8 +304,9 @@ class AttackResultStore:
 
         fpr_len = len(entire_ds_results[0].roc_curve.fpr)
         fpr_grid = np.logspace(-5, 0, num=fpr_len)
+        self.fpr_grid = fpr_grid
 
-        mean_tpr, tpr_int = self._get_mean_tpr_for_single_results_list(
+        mean_tpr, tpr_int = self.get_mean_tpr_for_single_results_list(
             entire_ds_results, fpr_grid)
 
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
@@ -312,7 +320,7 @@ class AttackResultStore:
                              color="grey",
                              alpha=0.3)
 
-        ax.plot([0, 1], [0, 1], "r--", lw=1.0)
+        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
         ax.plot(fpr_grid, mean_tpr, "b", lw=2, label="Average ROC")
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale="log", yscale="log")
@@ -359,72 +367,10 @@ class AttackResultStore:
 
     def _get_best_X_from_run(self, col_name: str) -> SingleAttackResult:
         # get ID of best Entire dataset X (fpr@0.001, auc, ...)
-        best_001_idx = self.get_attack_df_entire_dataset_only(
-        )[col_name].idxmax()
+        best_idx = self.get_attack_df_entire_dataset_only()[col_name].idxmax()
 
-        shadow_model_number = self.attack_result_df.loc[best_001_idx][
+        shadow_model_number = self.attack_result_df.loc[best_idx][
             "shadow model"]
 
         attack_results = self.attack_result_list[shadow_model_number]
         return self._extract_entire_dataset_slice(attack_results)
-
-    # def create_lira_vs_mia_roc_curves(self):
-    #    print("Generating AUC curve plot for comparing lira and mia")
-
-    #    for idx, (result_lira, result_baseline) in enumerate(
-    #            zip(self.attack_lira_result_list,
-    #                self.attack_mia_result_list)):
-    #        result_lira_single: SingleAttackResult = result_lira.single_attack_results[
-    #            0]
-    #        result_baseline_single: SingleAttackResult = (
-    #            result_baseline.single_attack_results[0])
-    #        # Plot and save the AUC curves for the three methods.
-    #        _, ax = plt.subplots(1, 1, figsize=(10, 10))
-    #        for res, title in zip(
-    #            [result_lira_single, result_baseline_single],
-    #            ["LiRA", "MIA"],
-    #        ):
-    #            label = f"{title} auc={res.get_auc():.4f}"
-    #            plotting.plot_roc_curve(
-    #                res.roc_curve,
-    #                functools.partial(
-    #                    plot_curve_with_area,
-    #                    ax=ax,
-    #                    label=label,
-    #                    use_log_scale=True,
-    #                    title=f"MIA vs LiRA - Log scale #{idx}",
-    #                ),
-    #            )
-    #        plt.legend()
-    #        plt_name = os.path.join(
-    #            self.attack_result_iamge_path_mia_vs_lira_path,
-    #            f"model_{self.ds_name}_id{idx}_log_scaled_lira.png",
-    #        )
-    #        print(f"Saving MIA vs LiRA {plt_name}")
-    #        plt.savefig(plt_name)
-    #        plt.close()
-
-    #        _, ax = plt.subplots(1, 1, figsize=(10, 10))
-    #        for res, title in zip(
-    #            [result_lira_single, result_baseline_single],
-    #            ["LiRA", "MIA"],
-    #        ):
-    #            label = f"{title} auc={res.get_auc():.4f}"
-    #            plotting.plot_roc_curve(
-    #                res.roc_curve,
-    #                functools.partial(
-    #                    plot_curve_with_area,
-    #                    ax=ax,
-    #                    label=label,
-    #                    use_log_scale=False,
-    #                    title=f"MIA vs LiRA - Linear scale #{idx}",
-    #                ),
-    #            )
-    #        plt.legend()
-    #        plt_name = os.path.join(
-    #            self.attack_result_iamge_path_mia_vs_lira_path,
-    #            f"model_{self.ds_name}_id{idx}_linear_scaled_lira.png",
-    #        )
-    #        print(f"Saving MIA vs LiRA {plt_name}")
-    #        plt.savefig(plt_name)
-    #        plt.close()
