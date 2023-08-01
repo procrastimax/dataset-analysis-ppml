@@ -435,6 +435,9 @@ def compile_attack_results(settings: RunSettings,
     )
     analyser.compile_attack_results_lira()
 
+    if settings.is_running_mia_attack:
+        analyser.compile_attack_results_mia()
+
 
 def save_bundled_ds_info_df(ds_info_df: pd.DataFrame, settings: RunSettings):
     print("---------------------")

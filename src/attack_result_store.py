@@ -15,13 +15,12 @@ from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_s
     SlicingFeature,
 )
 
-from ppml_datasets.utils import check_create_folder
 from util import find_nearest, plot_curve_with_area, unpickle_object
 
 
 class AttackType(Enum):
     LIRA = "lira"
-    MIRA = "mia"
+    MIA = "mia"
 
 
 @dataclass
@@ -30,45 +29,16 @@ class AttackResultStore:
 
     # filenames to be stored
     attack_type: AttackType
-    shadow_model_dir: str  # path to the shadow models and numpy files
-    model_save_path: str  # path of weights to the single-trained models
     ds_name: str
-    numpy_path: str
-    in_indices_filename: str
-    stat_filename: str
-    loss_filename: str
-
     attack_result_list_filename: str
-    attack_result_base_folder: str
-
-    # data to be stored
-    in_indices: List[np.ndarray] = field(default_factory=list)
-    stat_list: List[np.ndarray] = field(default_factory=list)
-    losses_list: List[np.ndarray] = field(default_factory=list)
+    attack_analysis_folder: str
 
     attack_result_list: List[AttackResults] = field(default_factory=list)
-
     attack_result_df: pd.DataFrame = None
-
-    result_path: str = None
-
     fpr_grid: np.ndarray = None
     mean_tpr: np.ndarray = None
 
-    def __post_init__(self):
-        """Auto-Initialize values dependant from other values."""
-        if self.result_path is None:
-            self.result_path = os.path.join(self.attack_result_base_folder,
-                                            self.attack_type.value,
-                                            self.ds_name)
-            check_create_folder(self.result_path)
-            print(self.result_path)
-
     def load_saved_values(self):
-        self.in_indices_filename = unpickle_object(self.in_indices_filename)
-        self.stat = unpickle_object(self.stat_filename)
-        self.losses = unpickle_object(self.loss_filename)
-
         self.attack_result_list = unpickle_object(
             self.attack_result_list_filename)
 
@@ -196,7 +166,7 @@ class AttackResultStore:
             )
         plt.legend()
         plt_name = os.path.join(
-            self.result_path,
+            self.attack_analysis_folder,
             f"{self.ds_name}_{self.attack_type.value}_all_roc_entire_ds_results.png",
         )
         plt.savefig(plt_name)
@@ -282,7 +252,7 @@ class AttackResultStore:
         plt.legend()
 
         plt_name = os.path.join(
-            self.result_path,
+            self.attack_analysis_folder,
             f"{self.ds_name}_{self.attack_type.value}_all_roc_class_results.png",
         )
         plt.savefig(plt_name)
@@ -336,7 +306,7 @@ class AttackResultStore:
             options += "_std_bounds_"
 
         plt_name = os.path.join(
-            self.result_path,
+            self.attack_analysis_folder,
             f"{self.ds_name}_{self.attack_type.value}{options}average_roc_results.png",
         )
         plt.savefig(plt_name)

@@ -91,12 +91,10 @@ class AmiaAttack:
 
         self.attack_lira_result_list_filename = os.path.join(
             self.attack_statistics_folder,
-            "pickles",
             f"{ds.dataset_name}_attack_lira_results.pckl",
         )
         self.attack_mia_result_list_filename = os.path.join(
             self.attack_statistics_folder,
-            "pickles",
             f"{ds.dataset_name}_attack_mia_results.pckl",
         )
 
