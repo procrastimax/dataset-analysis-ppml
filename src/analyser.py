@@ -1,5 +1,6 @@
 import os
 import sys
+from collections import defaultdict
 from typing import Dict, List
 
 import matplotlib
@@ -51,6 +52,11 @@ class AttackAnalyser:
         self.run_result_folder = os.path.join(result_path, settings.model_name,
                                               settings.run_name)
 
+        self.analysis_combined_runs = os.path.join(result_path,
+                                                   settings.model_name,
+                                                   settings.run_name,
+                                                   "combined-runs")
+
     def get_combined_ds_analysis_folder(self, run_number: int) -> str:
         return os.path.join(
             self.run_result_folder,
@@ -73,19 +79,25 @@ class AttackAnalyser:
                 run_number=run_number,
                 base_path=self.run_result_folder,
             )
-            attack_result_dict[ds.dataset_name] = attack_results_store
-
             check_create_folder(attack_results_store.get_analysis_folder())
+
+            attack_results_store.load_saved_values()
+            attack_results_store.create_complete_dataframe()
+
+            attack_result_dict[ds.dataset_name] = attack_results_store
 
         return attack_result_dict
 
     def compile_attack_results_lira(self):
         attack_type = AttackType.LIRA
         runs = get_run_numbers(self.run_result_folder)
-        for run in runs:
-            result_dict = self.load_attack_results(attack_type=attack_type,
-                                                   run_number=run)
-            self._compile_attack_results(attack_type, result_dict, run)
+        # for run in runs:
+        #    result_dict = self.load_attack_results(attack_type=attack_type,
+        #                                           run_number=run)
+        #    self._compile_attack_results(attack_type, result_dict, run)
+
+        self.create_combined_runs_average_per_ds(attack_type, runs)
+        self.create_combined_runs_class_average(attack_type)
 
     def _compile_attack_results(
         self,
@@ -94,19 +106,6 @@ class AttackAnalyser:
         run_number: int,
     ):
         for ds_name, store in attack_result_dict.items():
-            store.load_saved_values()
-
-            result_df = store.create_complete_dataframe(
-                store.attack_result_list)
-
-            attack_result_dict[ds_name].attack_result_df = result_df
-
-            df_filename = os.path.join(
-                store.get_analysis_folder(),
-                f"{attack_type.value}_attack_statistic_results_{store.ds_name}.csv",
-            )
-            save_dataframe(store.attack_result_df, df_filename)
-
             store.create_entire_dataset_combined_roc_curve()
 
             # this function sets the store's mean_tpr and fpr_grid
@@ -307,9 +306,66 @@ class AttackAnalyser:
         print(f"Saved combined averaged DS ROC curve {plt_name}")
         plt.close()
 
-    def create_combined_runs_average_auc(self, attack_type: AttackType):
-        run_numbers = get_run_numbers(self.run_result_folder)
-        print(run_numbers)
+    def create_combined_averaged_roc_curve_from_list(
+        self,
+        attack_type: AttackType,
+        attack_store: List[AttackResultStore],
+    ):
+        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        ax.plot([0, 1], [0, 1], "k--", lw=1.0)
+
+        for store in attack_store:
+            entire_dataset_result_list = store.get_single_entire_ds_attack_results(
+            )
+            tpr_mean, _, fpr_grid = store.calculate_mean_tpr_and_fpr(
+                entire_dataset_result_list)
+
+            avg_auc = store.attack_result_df.loc["mean Entire dataset"]["AUC"]
+            fpr0001 = store.attack_result_df.loc["mean Entire dataset"][
+                "fpr@0.001"]
+            fpr01 = store.attack_result_df.loc["mean Entire dataset"][
+                "fpr@0.1"]
+            ax.plot(
+                tpr_mean,
+                fpr_grid,
+                label=
+                f"Run {store.run_number} AUC={avg_auc:.3f} FPR@0.001={fpr0001:.3f} FPR@0.1={fpr01:.3f}",
+            )
+
+        ax.set(xlabel="FPR", ylabel="TPR")
+        ax.set(aspect=1, xscale="log", yscale="log")
+        ax.title.set_text(f"Receiver Operator Characteristics - All Runs ({attack_type.value}, {attack_store[0].ds_name})")
+        plt.xlim([0.00001, 1])
+        plt.ylim([0.00001, 1])
+        plt.legend()
+
+        plt_name = os.path.join(
+            self.analysis_combined_runs,
+            f"roc_combined_average_{attack_store[0].ds_name}_results_entire_dataset.png",
+        )
+        os.makedirs(os.path.dirname(plt_name), exist_ok=True)
+        plt.savefig(plt_name)
+        print(f"Saved combined averaged DS ROC curve {plt_name}")
+        plt.close()
+
+    def create_combined_runs_average_per_ds(self, attack_type: AttackType,
+                                            run_numbers: List[int]):
+        """Create a comparison of averaged ROC curves for Entire Dataset attacks for every dataset."""
+
+        avg_run_dict: Dict[str, List[AttackResultStore]] = defaultdict(list)
+
+        for run in run_numbers:
+            result_dict = self.load_attack_results(attack_type, run)
+            for ds_name, store in result_dict.items():
+                avg_run_dict[ds_name].append(store)
+
+        for ds_name, store_list in avg_run_dict.items():
+            self.create_combined_averaged_roc_curve_from_list(
+                attack_type, store_list)
+
+    # TODO: show average class attack ROC curves in multiple graphs next to each other
+    def create_combined_runs_class_average(self, attack_type: AttackType):
+        pass
 
 
 class UtilityAnalyser:

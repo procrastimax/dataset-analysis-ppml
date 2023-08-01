@@ -15,7 +15,7 @@ from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_s
     SlicingFeature,
 )
 
-from util import find_nearest, plot_curve_with_area, unpickle_object
+from util import find_nearest, plot_curve_with_area, save_dataframe, unpickle_object
 
 
 class AttackType(Enum):
@@ -60,10 +60,7 @@ class AttackResultStore:
         )
         self.attack_result_list = unpickle_object(attack_result_list_filename)
 
-    def create_complete_dataframe(
-        self,
-        attack_result_list: List[AttackResults],
-    ) -> pd.DataFrame:
+    def create_complete_dataframe(self) -> pd.DataFrame:
         """Combine the dataframes from all attacked models. Also adds mean, min, max calculation results for every attack slice type (Entire Dataset, Class=X)."""
         columns = [
             "attack type",
@@ -80,7 +77,7 @@ class AttackResultStore:
         ]
         attack_result_frame = pd.DataFrame(columns=columns)
 
-        if attack_result_list is None:
+        if self.attack_result_list is None:
             print(
                 "Attack result list is None -> cannot proceed to calculate TPR at fixed FPR!"
             )
@@ -88,10 +85,10 @@ class AttackResultStore:
 
         slice_spec_list = []
 
-        for result in attack_result_list[0].single_attack_results:
+        for result in self.attack_result_list[0].single_attack_results:
             slice_spec_list.append(str(result.slice_spec))
 
-        for i, val in enumerate(attack_result_list):
+        for i, val in enumerate(self.attack_result_list):
             results: AttackResults = val
             # split dataframe to indexed dict and add it alter to the dataframe again
             df = results.calculate_pd_dataframe()
@@ -137,10 +134,18 @@ class AttackResultStore:
         mean_df["attack type"] = self.attack_type.value
         max_df["attack type"] = self.attack_type.value
 
-        attack_result_frame = pd.concat([attack_result_frame, mean_df, max_df],
-                                        ignore_index=False)
+        attack_result_df = pd.concat([attack_result_frame, mean_df, max_df],
+                                     ignore_index=False).round(decimals=4)
 
-        return attack_result_frame.round(decimals=4)
+        df_filename = os.path.join(
+            self.get_analysis_folder(),
+            f"{self.attack_type.value}_attack_statistic_results_{self.ds_name}.csv",
+        )
+        save_dataframe(attack_result_df, df_filename)
+
+        self.attack_result_df = attack_result_df
+
+        return attack_result_df
 
     def get_fpr_at_fixed_tpr(
             self,
@@ -211,29 +216,6 @@ class AttackResultStore:
 
         return single_attack_dict
 
-    def get_mean_tpr_for_single_results_list(
-            self, single_result_list: List[SingleAttackResult],
-            fpr_grid: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Calculate mean TPR for single results list.
-
-        Return:
-        ------
-        Tuple[np.ndarray, np.ndarray] : tpr_mean, tpr_int
-
-        """
-        # get all fpr and tpr values from single class slice
-        fprs = [i.roc_curve.fpr for i in single_result_list]
-        tprs = [i.roc_curve.tpr for i in single_result_list]
-
-        tpr_int = []
-
-        for fpr, tpr in zip(fprs, tprs):
-            tpr_int.append(np.interp(fpr_grid, fpr, tpr))
-
-        tpr_int = np.array(tpr_int)
-
-        return tpr_int.mean(axis=0), tpr_int
-
     def create_average_class_attack_roc(self):
         """Create an averaged ROC curve over all class attack slices.
 
@@ -275,6 +257,25 @@ class AttackResultStore:
         print(f"Saved averaged ROC curve {plt_name} (class wise)")
         plt.close()
 
+    def calculate_mean_tpr_and_fpr(
+        self, results: List[SingleAttackResult]
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        fpr_len = len(results[0].roc_curve.fpr)
+        fpr_grid = np.logspace(-5, 0, num=fpr_len)
+
+        # get all fpr and tpr values from single class slice
+        fprs = [i.roc_curve.fpr for i in results]
+        tprs = [i.roc_curve.tpr for i in results]
+
+        tpr_int = []
+
+        for fpr, tpr in zip(fprs, tprs):
+            tpr_int.append(np.interp(fpr_grid, fpr, tpr))
+
+        tpr_int = np.array(tpr_int)
+        mean_tpr = tpr_int.mean(axis=0)
+        return (mean_tpr, tpr_int, fpr_grid)
+
     def create_average_roc_curve_entire_dataset(
         self,
         generate_std_area: bool = True,
@@ -288,11 +289,8 @@ class AttackResultStore:
         """
         entire_ds_results = self.get_single_entire_ds_attack_results()
 
-        fpr_len = len(entire_ds_results[0].roc_curve.fpr)
-        fpr_grid = np.logspace(-5, 0, num=fpr_len)
-
-        mean_tpr, tpr_int = self.get_mean_tpr_for_single_results_list(
-            entire_ds_results, fpr_grid)
+        mean_tpr, tpr_int, fpr_grid = self.calculate_mean_tpr_and_fpr(
+            entire_ds_results)
 
         self.mean_tpr = mean_tpr
         self.fpr_grid = fpr_grid
