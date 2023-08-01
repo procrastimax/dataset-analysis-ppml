@@ -88,7 +88,11 @@ def main():
     if settings.is_evaluating_model:
         save_bundled_model_evaluation(single_model_test_df, settings)
 
-    if settings.model_name is not None:
+    if settings.is_compiling_evalulation:
+        compile_model_evaluation(settings)
+
+    if settings.model_name is not None and (settings.is_train_model or
+                                            settings.is_running_amia_attack):
         param_filepath = os.path.join(
             result_path,
             settings.model_name,
@@ -96,9 +100,6 @@ def main():
             str(settings.run_number),
         )
         settings.save_settings_as_json(param_filepath)
-
-    if settings.is_compiling_evalulation:
-        compile_model_evaluation(settings)
 
 
 def handle_single_dataset(
@@ -173,7 +174,7 @@ def handle_single_dataset(
             settings.model_name,
             settings.run_name,
             str(settings.run_number),
-            "shadow_models",
+            "shadow-models",
             ds.dataset_name,
         )
         check_create_folder(shadow_model_save_path)
