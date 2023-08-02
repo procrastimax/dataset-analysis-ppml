@@ -17,7 +17,7 @@ class RunSettings:
 
     epochs: int = 30
     batch: int = 512
-    learning_rate: float = 0.005
+    learning_rate: float = 0.001
     ema_momentum: Optional[float] = 0.999
     weight_decay: Optional[float] = None
     noise_multiplier: Optional[float] = None
