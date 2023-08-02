@@ -288,6 +288,7 @@ def train_model(ds: AbstractDataset, model: Model, settings: RunSettings):
                                                        unbatch=True)
 
     model.train_model_from_numpy(x=x, y=y, val_x=test_x, val_y=test_y)
+
     model.save_model()
 
     train_history_folder = os.path.join(

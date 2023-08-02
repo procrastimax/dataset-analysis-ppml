@@ -43,4 +43,4 @@ case $SLURM_ARRAY_TASK_ID in
 esac
 
 echo $run_name "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
-srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --epochs $epochs --batch-size $batch -tm -em -n $run_name -b $microbatch
+srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --batch-size $batch -tm -em -n $run_name -b $microbatch
