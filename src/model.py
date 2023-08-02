@@ -260,6 +260,7 @@ class Model(ABC):
         self.model.load_weights(filepath=self.model_path)
 
     def get_layer(self) -> List[tf.keras.layers.Layer]:
+        groups = 32
         return [
             tf.keras.layers.RandomFlip(
                 "horizontal",
@@ -273,7 +274,7 @@ class Model(ABC):
                 padding="same",
                 activation="relu",
             ),
-            tf.keras.layers.GroupNormalization(),
+            tf.keras.layers.GroupNormalization(groups=groups),
             tf.keras.layers.MaxPooling2D(2, 2),
             tf.keras.layers.Conv2D(
                 filters=32,
@@ -282,7 +283,7 @@ class Model(ABC):
                 padding="same",
                 activation="relu",
             ),
-            tf.keras.layers.GroupNormalization(),
+            tf.keras.layers.GroupNormalization(groups=groups),
             tf.keras.layers.MaxPooling2D(2, 2),
             tf.keras.layers.Conv2D(
                 filters=64,
@@ -291,11 +292,11 @@ class Model(ABC):
                 padding="same",
                 activation="relu",
             ),
-            tf.keras.layers.GroupNormalization(),
+            tf.keras.layers.GroupNormalization(groups=groups),
             tf.keras.layers.MaxPooling2D(2, 2),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(512, activation="relu"),
-            tf.keras.layers.GroupNormalization(),
+            tf.keras.layers.GroupNormalization(groups=groups),
             tf.keras.layers.Dense(self.num_classes),
         ]
 
