@@ -534,15 +534,16 @@ class UtilityAnalyser:
         use_grid: bool = True,
         use_legend: bool = True,
     ) -> matplotlib.figure.Figure:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(10, 10))
         for index, row in df.iterrows():
-            if type(index) == "tuple":
+            if type(index) == tuple:
                 index = " ".join(index)
             ax.plot(range(len(row)), row, label=index)
 
         ax.set(xlabel=xLabel, ylabel=yLabel, title=title)
         ax.legend()
         plt.legend(loc=(1.04, 0))
+        plt.xticks(range(len(row)))
         plt.subplots_adjust(right=0.72)
         ax.grid()
         return fig
