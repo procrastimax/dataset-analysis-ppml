@@ -298,6 +298,9 @@ class AttackResultStore:
 
         self.mean_tpr = mean_tpr
         self.fpr_grid = fpr_grid
+        avg_auc = self.attack_result_df.loc["mean Entire dataset"]["AUC"]
+        fpr0001 = self.attack_result_df.loc["mean Entire dataset"]["fpr@0.001"]
+        fpr01 = self.attack_result_df.loc["mean Entire dataset"]["fpr@0.1"]
 
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         if generate_std_area:
@@ -311,7 +314,14 @@ class AttackResultStore:
                              alpha=0.3)
 
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
-        ax.plot(fpr_grid, mean_tpr, "b", lw=2, label="Average ROC")
+        ax.plot(
+            fpr_grid,
+            mean_tpr,
+            "b",
+            lw=2,
+            label=
+            f"Average ROC - AUC={avg_auc:.3f} FPR@0.001={fpr0001:.3f} FPR@0.1={fpr01:.3f}",
+        )
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale="log", yscale="log")
         ax.title.set_text(
