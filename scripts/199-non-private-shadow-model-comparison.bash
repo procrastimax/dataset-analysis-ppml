@@ -29,4 +29,4 @@ case $SLURM_ARRAY_TASK_ID in
         ;;
 esac
 
-srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID --run-amia-attack --include-mia --generate-results --force-model-retrain -n $run_name
+srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -s $shadow_models -r $SLURM_ARRAY_TASK_ID --run-amia-attack --include-mia --compile-attack-results --force-model-retrain -n $run_name
