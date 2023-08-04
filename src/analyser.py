@@ -1,5 +1,4 @@
 import os
-import sys
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
@@ -7,8 +6,6 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import (
-    AttackResults, )
 
 from attack_result_store import AttackResultStore, AttackType
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
@@ -89,15 +86,16 @@ class AttackAnalyser:
 
         return attack_result_dict
 
-    def compile_attack_results_lira(self):
-        attack_type = AttackType.LIRA
+    def compile_attack_results(self, attack_type : AttackType):
         runs = get_run_numbers(self.run_result_folder)
-        # for run in runs:
-        #    result_dict = self.load_attack_results(attack_type=attack_type,
-        #                                           run_number=run)
-        #    self._compile_attack_results(attack_type, result_dict, run)
+        for run in runs:
+            result_dict = self.load_attack_results(attack_type=attack_type,
+                                                   run_number=run)
+            self._compile_attack_results(attack_type, result_dict, run)
 
-        self.create_runs_combined_graphics(attack_type, runs)
+        # only combine multiple runs if there are any
+        if len(runs) > 1:
+            self.create_runs_combined_graphics(attack_type, runs)
 
     def _compile_attack_results(
         self,
@@ -318,8 +316,8 @@ class AttackAnalyser:
                 avg_run_dict[ds_name].append(store)
 
         for ds_name, store_list in avg_run_dict.items():
-            # self.create_combined_averaged_roc_curve_from_list(
-            #    attack_type, store_list)
+            self.create_combined_averaged_roc_curve_from_list(
+                attack_type, store_list)
             self.create_combined_average_class_rocs(attack_type, store_list,
                                                     run_numbers)
 

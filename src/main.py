@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple
 import pandas as pd
 import tensorflow as tf
 
-from analyser import AttackAnalyser, UtilityAnalyser
+from analyser import AttackAnalyser, UtilityAnalyser, AttackType
 from attacks import AmiaAttack
 from model import CNNModel, Model, PrivateCNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
@@ -435,10 +435,10 @@ def compile_attack_results(settings: RunSettings,
         result_path=result_path,
         model_path=model_path,
     )
-    analyser.compile_attack_results_lira()
+    analyser.compile_attack_results(AttackType.LIRA)
 
     if settings.is_running_mia_attack:
-        analyser.compile_attack_results_mia()
+        analyser.compile_attack_results(AttackType.MIA)
 
 
 def save_bundled_ds_info_df(ds_info_df: pd.DataFrame, settings: RunSettings):
