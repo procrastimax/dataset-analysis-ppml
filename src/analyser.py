@@ -282,10 +282,12 @@ class AttackAnalyser:
         for store in attack_store:
             name_list.append(store.ds_name)
             avg_auc = store.attack_result_df.loc["mean Entire dataset"]["AUC"]
+            avg_fpr01 = store.attack_result_df.loc["mean Entire dataset"]["fpr@0.1"]
+            avg_fpr0001 = store.attack_result_df.loc["mean Entire dataset"]["fpr@0.001"]
             ax.plot(
                 store.fpr_grid,
                 store.mean_tpr,
-                label=f"{store.ds_name} AUC={avg_auc:.3f}",
+                label=f"{store.ds_name} AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
             )
 
         ax.set(xlabel="FPR", ylabel="TPR")
@@ -350,8 +352,8 @@ class AttackAnalyser:
         for run_number, class_wise_dict in run_dict.items():
             axs[run_number].plot([0, 1], [0, 1], "k--", lw=1.0)
             for class_number, mean_values in class_wise_dict.items():
-                axs[run_number].plot(mean_values[0],
-                                     mean_values[1],
+                axs[run_number].plot(mean_values[1],
+                                     mean_values[0],
                                      label=f"Class {class_number}")
                 axs[run_number].set(xlabel="FPR", ylabel="TPR")
                 axs[run_number].set(aspect=1, xscale="log", yscale="log")
@@ -389,8 +391,8 @@ class AttackAnalyser:
             fpr01 = store.attack_result_df.loc["mean Entire dataset"][
                 "fpr@0.1"]
             ax.plot(
-                tpr_mean,
                 fpr_grid,
+                tpr_mean,
                 label=
                 f"Run {store.run_number} AUC={avg_auc:.3f} FPR@0.001={fpr0001:.3f} FPR@0.1={fpr01:.3f}",
             )
