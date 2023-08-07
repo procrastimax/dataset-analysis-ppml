@@ -45,6 +45,10 @@ class RunSettings:
 
     def __post_init__(self):
         """Post init function to restore the field's default values when initialized with None."""
+
+        if self.num_microbatches is None:
+            self.num_microbatches = self.batch
+
         # if the passed field was None, then apply the dataclasses' default field value
         for f in fields(self):
             if (not isinstance(f.default, dataclasses._MISSING_TYPE)
