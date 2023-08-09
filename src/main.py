@@ -1,12 +1,13 @@
 import gc
 import os
 import sys
+from datetime import datetime as dt
 from typing import List, Optional, Tuple
 
 import pandas as pd
 import tensorflow as tf
 
-from analyser import AttackAnalyser, UtilityAnalyser, AttackType
+from analyser import AttackAnalyser, AttackType, UtilityAnalyser
 from attacks import AmiaAttack
 from model import CNNModel, Model, PrivateCNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
@@ -25,6 +26,9 @@ data_path: str = "data"
 model_path: str = "models"
 result_path: str = "results"
 ds_info_path: str = "ds-info"
+
+# get starttime of program
+start_time = dt.now()
 
 
 def main():
@@ -99,6 +103,13 @@ def main():
             settings.run_name,
             str(settings.run_number),
         )
+
+        end_time = dt.now()
+        elapsed = end_time - start_time
+        elapsed_time_str = f"{elapsed.days}D - {elapsed.seconds // 3600}H - {elapsed.seconds // 60 % 60}M - {elapsed.seconds % 60}S"
+        print(f"Execution took: {elapsed_time_str}")
+
+        settings.execution_time = elapsed_time_str
         settings.save_settings_as_json(param_filepath)
 
 

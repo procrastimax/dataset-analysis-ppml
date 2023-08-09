@@ -3,6 +3,7 @@ import json
 import os
 from argparse import ArgumentParser
 from dataclasses import asdict, dataclass, field, fields
+from datetime import datetime as dt
 from typing import Any, Dict, List, Optional, Tuple
 
 from util import check_create_folder
@@ -30,6 +31,8 @@ class RunSettings:
 
     model_input_shape: Tuple[int, int, int] = (32, 32, 3)
     random_seed: int = 42
+
+    execution_time: Optional[str] = None
 
     is_train_model: bool = False
     is_evaluating_model: bool = False
