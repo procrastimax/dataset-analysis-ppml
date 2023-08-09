@@ -157,6 +157,7 @@ class Model(ABC):
             epochs=self.epochs,
             steps_per_epoch=steps_per_epoch,
             callbacks=callback_list,
+            verbose=2,
         )
 
         return self.history
@@ -190,6 +191,7 @@ class Model(ABC):
             batch_size=self.batch_size,
             steps_per_epoch=steps_per_epoch,
             callbacks=callback_list,
+            verbose=2,
         )
         return self.history
 
