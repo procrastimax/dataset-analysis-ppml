@@ -66,6 +66,7 @@ def main():
                 batch_size=settings.batch,
                 model_input_shape=settings.model_input_shape,
             )
+
             loaded_ds_list.append(ds)
 
             (test_results_df,

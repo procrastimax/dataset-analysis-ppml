@@ -17,22 +17,29 @@ case $SLURM_ARRAY_TASK_ID in
         ds='mnist_c5000 cifar10_c5000 fmnist_c5000 svhn_c5000'
         ;;
     1)
-        ds='mnist_c5000_iN0.75 cifar10_c5000_iN0.75 fmnist_c5000_iN0.75 svhn_c5000_iN0.75'
+        ds='mnist_c5000_iL0.1 cifar10_c5000_iL0.1 fmnist_c5000_iL0.1 svhn_c5000_iL0.1'
         ;;
     2)
-        ds='mnist_c5000_iN0.5 cifar10_c5000_iN0.5 fmnist_c5000_iN0.5 svhn_c5000_iN0.5'
+        ds='mnist_c5000_iL0.3 cifar10_c5000_iL0.3 fmnist_c5000_iL0.3 svhn_c5000_iL0.3'
         ;;
     3)
-        ds='mnist_c5000_iN0.25 cifar10_c5000_iN0.25 fmnist_c5000_iN0.25 svhn_c5000_iN0.25'
+        ds='mnist_c5000_iL0.6 cifar10_c5000_iL0.6 fmnist_c5000_iL0.6 svhn_c5000_iL0.6'
         ;;
     4)
-        ds='mnist_c5000_iL0.75 cifar10_c5000_iL0.75 fmnist_c5000_iL0.75 svhn_c5000_iL0.75'
+        ds='mnist_c5000_iL0.9 cifar10_c5000_iL0.9 fmnist_c5000_iL0.9 svhn_c5000_iL0.9'
         ;;
     5)
-        ds='mnist_c5000_iL0.5 cifar10_c5000_iL0.5 fmnist_c5000_iL0.5 svhn_c5000_iL0.5'
+        ds='mnist_c5000_iN0.1 cifar10_c5000_iN0.1 fmnist_c5000_iN0.1 svhn_c5000_iN0.1'
         ;;
     6)
-        ds='mnist_c5000_iL0.25 cifar10_c5000_iL0.25 fmnist_c5000_iL0.25 svhn_c5000_iL0.25'
+        ds='mnist_c5000_iN0.3 cifar10_c5000_iN0.3 fmnist_c5000_iN0.3 svhn_c5000_iN0.3'
+        ;;
+    7)
+        ds='mnist_c5000_iN0.6 cifar10_c5000_iN0.6 fmnist_c5000_iN0.6 svhn_c5000_iN0.6'
+        ;;
+    8)
+        ds='mnist_c5000_iN0.9 cifar10_c5000_iN0.9 fmnist_c5000_iN0.9 svhn_c5000_iN0.9'
+        ;;
 esac
 
 srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --run-amia-attack -ca --force-model-retrain -n $run_name
