@@ -4,7 +4,7 @@
 #SBATCH --mem=40G
 #SBATCH --partition=clara-long
 #SBATCH --gres=gpu:v100:1
-#SBATCH --time=5-00:00:00
+#SBATCH --time=3-00:00:00
 #SBATCH -o logs/%A-%x-%a.out
 #SBATCH -e logs/%A-%x-%a.error
 #SBATCH --mail-type=FAIL
@@ -23,8 +23,4 @@ case $SLURM_ARRAY_TASK_ID in
         ;;
 esac
 
-date
-
 srun singularity exec --nv container-dataset-analysis.sif python3.9 src/main.py -e $eps -d $ds -m $model -r $SLURM_ARRAY_TASK_ID --run-amia-attack --force-model-retrain -n $run_name
-
-date
