@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J private-dataset-size-comparison
+#SBATCH -J non-private-dataset-size-comparison
 #SBATCH --ntasks=1
 #SBATCH --mem=40G
 #SBATCH --partition=clara
@@ -9,8 +9,8 @@
 #SBATCH -e logs/%A-%x-%a.error
 #SBATCH --mail-type=FAIL
 
-run_name="private-dataset-size-comparison"
-model="private_cnn"
+run_name="non-private-dataset-size-comparison"
+model="cnn"
 
 case $SLURM_ARRAY_TASK_ID in
     0)
@@ -33,6 +33,9 @@ case $SLURM_ARRAY_TASK_ID in
         ;;
     6)
         ds='mnist_c100 cifar10_c100 fmnist_c100 svhn_c100'
+        ;;
+    7)
+        ds='mnist_c50 cifar10_c50 fmnist_c50 svhn_c50'
         ;;
 esac
 
