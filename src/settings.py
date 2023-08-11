@@ -24,7 +24,7 @@ class RunSettings:
     delta: Optional[float] = None
     l2_norm_clip: float = 1.0
     privacy_epsilon: float = 1.0
-    num_microbatches: int = 512
+    num_microbatches: int = None
     num_shadow_models: int = 32
     adam_epsilon: float = 1e-7
 
