@@ -3,7 +3,6 @@ import json
 import os
 from argparse import ArgumentParser
 from dataclasses import asdict, dataclass, field, fields
-from datetime import datetime as dt
 from typing import Any, Dict, List, Optional, Tuple
 
 from util import check_create_folder
@@ -17,7 +16,7 @@ class RunSettings:
     model_name: str = None
 
     epochs: int = 30
-    batch: int = 512
+    batch: int = 256
     learning_rate: float = 0.001
     ema_momentum: Optional[float] = 0.999
     weight_decay: Optional[float] = None
@@ -48,7 +47,6 @@ class RunSettings:
 
     def __post_init__(self):
         """Post init function to restore the field's default values when initialized with None."""
-
         if self.num_microbatches is None:
             self.num_microbatches = self.batch
 
