@@ -206,9 +206,11 @@ class AbstractDataset:
 
         class_arrays_in: Dict[int, list] = defaultdict(list)
 
+        # create dict of labels containing the associated samples
         for data, label in zip(values, labels):
             class_arrays_in[int(label)].append(data)
 
+        # convert list of samples to numpy array of samples
         for class_name, data_list in class_arrays_in.items():
             class_arrays_in[class_name] = np.array(data_list)
 
@@ -216,14 +218,22 @@ class AbstractDataset:
         for k, v in class_arrays_in.items():
             # generate random bool array with exactly X True values
             keep = np.zeros(len(v), dtype=bool)
+
+            # the replace flag indicates that no values shall appear twice
             true_indices = np.random.choice(keep.size,
                                             int(len(v) * reduction_factor),
                                             replace=False)
-            keep.flat[true_indices] = True
+            keep[true_indices] = True
+
+            # now we have a keep for every class, with exactly 'reduction_factor * N' TRUEs
             class_keep[k] = keep
 
         in_indices: List[bool] = []
-        for data, label in zip(values, labels):
+
+        # create indice list by iterating the sequence of labels
+        # add the according TRUE/FALSE of the respective label to the in_indice list
+        # than remove the first indice value from the class_keep
+        for label in labels:
             in_indices.append(class_keep[label][0])
             class_keep[label] = class_keep[label][1:]
 
