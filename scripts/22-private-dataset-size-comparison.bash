@@ -42,7 +42,7 @@ case $SLURM_ARRAY_TASK_ID in
         eps=1
         ;;
     7)
-        ds='mnist_c50 cifar10_c50 fmnist_c50 svhn_c50'
+        ds='mnist_c52 cifar10_c52 fmnist_c52 svhn_c52'
         eps=1
         ;;
 
@@ -75,7 +75,7 @@ case $SLURM_ARRAY_TASK_ID in
         eps=30
         ;;
     15)
-        ds='mnist_c50 cifar10_c50 fmnist_c50 svhn_c50'
+        ds='mnist_c52 cifar10_c52 fmnist_c52 svhn_c52'
         eps=30
         ;;
 esac
