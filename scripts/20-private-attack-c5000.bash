@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J private-attack-c5000
 #SBATCH --ntasks=1
-#SBATCH --mem=40G
+#SBATCH --mem=60G
 #SBATCH --partition=clara-long
 #SBATCH --gres=gpu:v100:1
 #SBATCH --time=3-00:00:00
