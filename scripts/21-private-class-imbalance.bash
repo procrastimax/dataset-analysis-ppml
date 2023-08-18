@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J non-private-class-imbalance
+#SBATCH -J private-class-imbalance
 #SBATCH --ntasks=1
 #SBATCH --mem=40G
 #SBATCH --partition=clara
@@ -9,8 +9,8 @@
 #SBATCH -e logs/%A-%x-%a.error
 #SBATCH --mail-type=FAIL
 
-run_name="non-private-attack-class-imbalance"
-model="cnn"
+run_name="private-attack-class-imbalance"
+model="private_cnn"
 
 case $SLURM_ARRAY_TASK_ID in
     0)
