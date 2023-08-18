@@ -11,6 +11,7 @@ from ppml_datasets.abstract_dataset_handler import (
 
 
 class MnistDataset(AbstractDataset):
+
     def __init__(
         self,
         model_img_shape: Tuple[int, int, int],
@@ -39,6 +40,7 @@ class MnistDataset(AbstractDataset):
 
 
 class MnistDatasetClassSize(AbstractDatasetClassSize):
+
     def __init__(self, ds: MnistDataset, class_size: int):
         self.class_size = class_size
         self.ds_train = ds.ds_train
@@ -61,7 +63,9 @@ class MnistDatasetClassSize(AbstractDatasetClassSize):
 
 
 class MnistDatasetClassImbalance(AbstractDatasetClassImbalance):
-    def __init__(self, ds: MnistDataset, imbalance_mode: str, imbalance_ratio: float):
+
+    def __init__(self, ds: MnistDataset, imbalance_mode: str,
+                 imbalance_ratio: float):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
         self.ds_train = ds.ds_train
@@ -70,7 +74,8 @@ class MnistDatasetClassImbalance(AbstractDatasetClassImbalance):
         super().__init__(
             tfds_name=ds.tfds_name,
             num_classes=ds.num_classes,
-            dataset_name=f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+            dataset_name=
+            f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
             dataset_path=ds.dataset_path,
             dataset_img_shape=ds.dataset_img_shape,
             model_img_shape=ds.model_img_shape,
@@ -84,6 +89,7 @@ class MnistDatasetClassImbalance(AbstractDatasetClassImbalance):
 
 
 class MnistDatasetCustomClasses(AbstractDatasetCustomClasses):
+
     def __init__(self, ds: MnistDataset, new_num_classes: int):
         self.new_num_classes = new_num_classes
         self.ds_train = ds.ds_train
@@ -132,9 +138,9 @@ def build_mnist(
 
     if "i" in mods:
         (imbalance_mode, imbalance_ratio) = mods["i"]
-        ds = MnistDatasetClassImbalance(
-            ds=ds, imbalance_mode=imbalance_mode, imbalance_ratio=imbalance_ratio
-        )
+        ds = MnistDatasetClassImbalance(ds=ds,
+                                        imbalance_mode=imbalance_mode,
+                                        imbalance_ratio=imbalance_ratio)
         ds.load_dataset()
 
     return ds
