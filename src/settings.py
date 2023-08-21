@@ -42,7 +42,7 @@ class RunSettings:
     is_force_model_retrain: bool = False
     is_force_stat_recalculation: bool = False
     is_generating_ds_info: bool = False
-    is_force_regenerate_ds_info: bool = False
+    is_forcing_ds_info_regeneration: bool = False
     is_generating_privacy_report: bool = False
 
     def __post_init__(self):
@@ -97,7 +97,7 @@ def create_settings_from_args(args):
         is_force_model_retrain=args.force_model_retrain,
         is_force_stat_recalculation=args.force_stat_recalculation,
         is_generating_ds_info=args.generate_ds_info,
-        is_force_regenerate_ds_info=args.force_ds_info_regeneration,
+        is_forcing_ds_info_regeneration=args.force_ds_info_regeneration,
         is_generating_privacy_report=args.generate_privacy_report,
     )
 

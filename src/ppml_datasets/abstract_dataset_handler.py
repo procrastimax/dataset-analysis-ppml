@@ -26,6 +26,7 @@ from tensorflow.keras.layers import (
 
 from ppml_datasets.piqe import piqe
 from ppml_datasets.utils import get_ds_as_numpy, load_dict_from_json, save_dict_as_json
+from util import check_create_folder, plot_histogram
 
 
 @dataclass(eq=True, frozen=False)
@@ -457,9 +458,9 @@ class AbstractDataset:
             class_weights = dict(enumerate(weights))
         return class_counts_dict, class_weights
 
-    def get_data_histogram(self,
-                           use_mean: bool = False
-                           ) -> Tuple[np.array, np.array]:
+    def _get_data_histogram(self,
+                            use_mean: bool = False
+                            ) -> Tuple[np.array, np.array]:
         """Calculate histogram from train datasets.
 
         Return:
@@ -970,13 +971,14 @@ class AbstractDataset:
 
     def save_ds_info_as_json(self):
         """Save the ds_info dictionary to a json file."""
-        ds_info_json_file = os.path.join(self.ds_info_path,
+        ds_info_json_file = os.path.join(self.ds_info_path, self.dataset_name,
                                          f"{self.dataset_name}_ds_info.json")
+        check_create_folder(os.path.dirname(ds_info_json_file))
         save_dict_as_json(self.ds_info, ds_info_json_file)
 
     def load_ds_info_from_json(self):
         """Load the ds_info dictionary from a json file."""
-        ds_info_json_file = os.path.join(self.ds_info_path,
+        ds_info_json_file = os.path.join(self.ds_info_path, self.dataset_name,
                                          f"{self.dataset_name}_ds_info.json")
         if not os.path.isfile(ds_info_json_file):
             print(
@@ -984,6 +986,43 @@ class AbstractDataset:
             )
             return
         self.ds_info = load_dict_from_json(ds_info_json_file)
+
+    def create_data_histogram(self):
+        """Create and save a data histogram from the train_ds."""
+        hist_filename = os.path.join(
+            self.ds_info_path,
+            self.dataset_name,
+            "histogram",
+            f"train_data_hist_{self.dataset_name}.png",
+        )
+        check_create_folder(os.path.dirname(hist_filename))
+
+        hist_filename_mean = os.path.join(
+            self.ds_info_path,
+            self.dataset_name,
+            "histogram",
+            f"mean_train_data_hist_{self.dataset_name}.png",
+        )
+        # save histogram
+        hist, bins = self._get_data_histogram(use_mean=False)
+        plot_histogram(
+            hist,
+            bins,
+            hist_filename,
+            title="Train Data Histogram",
+            xlabel="Pixel Value",
+            ylabel="Probability",
+        )
+
+        hist, bins = self._get_data_histogram(use_mean=True)
+        plot_histogram(
+            hist,
+            bins,
+            hist_filename_mean,
+            title="Train Data Histogram (Averaged)",
+            xlabel="Pixel Value",
+            ylabel="Probability",
+        )
 
     def get_train_ds_subset(self,
                             keep: np.ndarray,

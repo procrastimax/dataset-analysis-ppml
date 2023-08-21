@@ -14,13 +14,7 @@ from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.builder import build_dataset
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings, create_arg_parse_instance, create_settings_from_args
-from util import (
-    compute_delta,
-    compute_noise,
-    compute_privacy,
-    plot_histogram,
-    save_dataframe,
-)
+from util import compute_delta, compute_noise, compute_privacy, save_dataframe
 
 data_path: str = "data"
 model_path: str = "models"
@@ -125,7 +119,7 @@ def handle_single_dataset(
         print("---------------------")
         print("Generating Dataset Info")
         print("---------------------")
-        generate_ds_info(
+        ds_info_df = generate_ds_info(
             ds=ds,
             force_ds_info_regen=settings.is_forcing_ds_info_regeneration,
         )
@@ -201,7 +195,8 @@ def handle_single_dataset(
     return result_df, ds_info_df
 
 
-def generate_ds_info(ds: AbstractDataset, force_ds_info_regen: bool):
+def generate_ds_info(ds: AbstractDataset,
+                     force_ds_info_regen: bool) -> pd.DataFrame:
     """Generate dataset info.
 
     Needs to be run before dataset preprocessing is called.
@@ -211,41 +206,10 @@ def generate_ds_info(ds: AbstractDataset, force_ds_info_regen: bool):
     pd.Dataframe -> Dataframe to compare different datasets by single-value metrics.
 
     """
-    # create folder for ds-info
-    # we need this since we save some more information on datasets
-    ds_info_path_specific = os.path.join("ds-info", ds.dataset_name)
-    check_create_folder(ds_info_path_specific)
-
     ds.build_ds_info(force_regeneration=force_ds_info_regen)
-
-    hist_filename = os.path.join(ds_info_path, "histogram",
-                                 f"train_data_hist_{ds.dataset_name}.png")
-    hist_filename_mean = os.path.join(
-        ds_info_path, "histogram",
-        f"mean_train_data_hist_{ds.dataset_name}.png")
-    check_create_folder(os.path.dirname(hist_filename))
-    # save histogram
-    hist, bins = ds.get_data_histogram(use_mean=False)
-    plot_histogram(
-        hist,
-        bins,
-        hist_filename,
-        title="Train Data Histogram",
-        xlabel="Pixel Value",
-        ylabel="Probability",
-    )
-
-    hist, bins = ds.get_data_histogram(use_mean=True)
-    plot_histogram(
-        hist,
-        bins,
-        hist_filename_mean,
-        title="Train Data Histogram (Averaged)",
-        xlabel="Pixel Value",
-        ylabel="Probability",
-    )
-
     ds.save_ds_info_as_json()
+    ds.create_data_histogram()
+    return ds.get_ds_info_as_df()
 
 
 def load_model(model_path: str, num_classes: int,
@@ -406,8 +370,11 @@ def generate_privacy_report(settings: RunSettings, num_samples: int = 60000):
 
 def run_args_parameter_check(settings: RunSettings):
     if settings.model_name is None:
-        print("No model was specified! Please provide a valid model name!")
-        sys.exit(1)
+        if not settings.is_generating_ds_info and (
+                not settings.is_train_model
+                or not settings.is_evaluating_model):
+            print("No model was specified! Please provide a valid model name!")
+            sys.exit(1)
 
     if (settings.is_train_model or settings.is_evaluating_model
             or settings.is_running_amia_attack):
@@ -455,7 +422,7 @@ def compile_attack_results(settings: RunSettings,
 
 def save_bundled_ds_info_df(ds_info_df: pd.DataFrame, settings: RunSettings):
     print("---------------------")
-    print("Saving Dataset Info")
+    print("Saving Bundled Dataset Info")
     print("---------------------")
     print(ds_info_df)
     ds_info_df_file = os.path.join(
