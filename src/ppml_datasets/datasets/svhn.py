@@ -6,11 +6,13 @@ from ppml_datasets.abstract_dataset_handler import (
     AbstractDataset,
     AbstractDatasetClassImbalance,
     AbstractDatasetClassSize,
+    AbstractDatasetCustomClasses,
     AbstractDatasetGray,
 )
 
 
 class SVHNDataset(AbstractDataset):
+
     def __init__(
         self,
         model_img_shape: Tuple[int, int, int],
@@ -39,6 +41,7 @@ class SVHNDataset(AbstractDataset):
 
 
 class SVHNDatasetClassSize(AbstractDatasetClassSize):
+
     def __init__(self, ds: SVHNDataset, class_size: int):
         self.class_size = class_size
         self.ds_train = ds.ds_train
@@ -61,7 +64,9 @@ class SVHNDatasetClassSize(AbstractDatasetClassSize):
 
 
 class SVHNDatasetClassImbalance(AbstractDatasetClassImbalance):
-    def __init__(self, ds: SVHNDataset, imbalance_mode: str, imbalance_ratio: float):
+
+    def __init__(self, ds: SVHNDataset, imbalance_mode: str,
+                 imbalance_ratio: float):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
         self.ds_train = ds.ds_train
@@ -70,7 +75,8 @@ class SVHNDatasetClassImbalance(AbstractDatasetClassImbalance):
         super().__init__(
             tfds_name=ds.tfds_name,
             num_classes=ds.num_classes,
-            dataset_name=f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+            dataset_name=
+            f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
             dataset_path=ds.dataset_path,
             dataset_img_shape=ds.dataset_img_shape,
             model_img_shape=ds.model_img_shape,
@@ -84,6 +90,7 @@ class SVHNDatasetClassImbalance(AbstractDatasetClassImbalance):
 
 
 class SVHNDatsetGray(AbstractDatasetGray):
+
     def __init__(self, ds: SVHNDataset):
         self.ds_train = ds.ds_train
         self.ds_test = ds.ds_test
@@ -97,6 +104,29 @@ class SVHNDatsetGray(AbstractDatasetGray):
             dataset_img_shape=ds.dataset_img_shape,
             batch_size=ds.batch_size,
             convert_to_rgb=True,
+            augment_train=ds.augment_train,
+            shuffle=ds.shuffle,
+            is_tfds_ds=ds.is_tfds_ds,
+            builds_ds_info=ds.builds_ds_info,
+        )
+
+
+class SVHNDatasetCustomClasses(AbstractDatasetCustomClasses):
+
+    def __init__(self, ds: SVHNDataset, new_num_classes: int):
+        self.new_num_classes = new_num_classes
+        self.ds_train = ds.ds_train
+        self.ds_test = ds.ds_test
+        self.ds_val = ds.ds_val
+        super().__init__(
+            tfds_name=ds.tfds_name,
+            num_classes=self.new_num_classes,
+            dataset_name=f"{ds.dataset_name}_n{self.new_num_classes}",
+            dataset_path=ds.dataset_path,
+            dataset_img_shape=ds.dataset_img_shape,
+            model_img_shape=ds.model_img_shape,
+            batch_size=ds.batch_size,
+            convert_to_rgb=ds.convert_to_rgb,
             augment_train=ds.augment_train,
             shuffle=ds.shuffle,
             is_tfds_ds=ds.is_tfds_ds,
@@ -119,6 +149,11 @@ def build_svhn(
     )
     ds.load_dataset()
 
+    if "n" in mods:
+        num_new_classes = mods["n"][0]
+        ds = SVHNDatasetCustomClasses(ds, num_new_classes)
+        ds.load_dataset()
+
     if "c" in mods:
         class_size = mods["c"][0]
         ds = SVHNDatasetClassSize(ds=ds, class_size=class_size)
@@ -126,9 +161,9 @@ def build_svhn(
 
     if "i" in mods:
         (imbalance_mode, imbalance_ratio) = mods["i"]
-        ds = SVHNDatasetClassImbalance(
-            ds=ds, imbalance_mode=imbalance_mode, imbalance_ratio=imbalance_ratio
-        )
+        ds = SVHNDatasetClassImbalance(ds=ds,
+                                       imbalance_mode=imbalance_mode,
+                                       imbalance_ratio=imbalance_ratio)
         ds.load_dataset()
 
     if "gray" in mods:
