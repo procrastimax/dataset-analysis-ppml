@@ -526,7 +526,11 @@ class AbstractDataset:
 
         return distribution + (y_train, )
 
-    def calculate_class_imbalance2(self, ds: tf.data.Dataset) -> float:
+    def calculate_class_imbalance2(self,
+                                   ds: Optional[tf.data.Dataset] = None
+                                   ) -> float:
+        if ds is None:
+            ds = self.ds_train
         # Convert dataset to numpy arrays
         _, labels = zip(*list(ds.as_numpy_iterator()))
         labels = np.array(labels)
@@ -554,16 +558,10 @@ class AbstractDataset:
 
         """
         _, class_counts, _ = self.get_class_distribution()
-
         n: int = sum(class_counts)
         k: int = len(class_counts)
-        H: float = 0.0
-        for c in class_counts:
-            H += (c / n) * np.log((c / n))
-
-        H *= -1
-        B: float = H / np.log(k)
-        return B
+        H = -sum([(c / n) * np.log(c / n) for c in class_counts])
+        return float(H / np.log(k))
 
     def calculate_piqe_score(self) -> Dict[int, np.array]:
         """Calculate Perception-based Image QUality Evaluator (PIQUE) score without reference on train dataset."""
