@@ -8,6 +8,7 @@ from ppml_datasets.abstract_dataset_handler import (
     AbstractDatasetClassSize,
     AbstractDatasetCustomClasses,
 )
+from util import visualize_data
 
 
 class EMNISTLargeUnbalancedDataset(AbstractDataset):
@@ -206,6 +207,10 @@ class EMNISTMediumBalancedDatasetCustomClasses(AbstractDatasetCustomClasses):
         )
 
 
+def rotate(img):
+    return tf.image.rot90(img, k=1)
+
+
 def build_emnist(
     model_input_shape: Tuple[int, int, int],
     batch_size: int,
@@ -239,8 +244,15 @@ def build_emnist(
     # )
 
     ds.load_dataset()
-    _, classes, _ = ds.get_class_distribution()
-    print(classes)
+
+    # the dataset is inverted and rotated
+    ds.ds_train = ds.ds_train.map(lambda x, y:
+                                  (tf.image.flip_left_right(x), y))
+    ds.ds_train = ds.ds_train.map(lambda x, y: (rotate(x), y))
+
+    ds.ds_test = ds.ds_test.map(lambda x, y:
+                                  (tf.image.flip_left_right(x), y))
+    ds.ds_test = ds.ds_test.map(lambda x, y: (rotate(x), y))
 
     if "n" in mods:
         num_new_classes = mods["n"][0]
