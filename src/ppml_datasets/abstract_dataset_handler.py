@@ -1,3 +1,4 @@
+import itertools
 import math
 import os
 import sys
@@ -562,6 +563,64 @@ class AbstractDataset:
         k: int = len(class_counts)
         H = -sum([(c / n) * np.log(c / n) for c in class_counts])
         return float(H / np.log(k))
+
+    def calculate_imbalance_degree(self,
+                                   ds: Optional[tf.data.Dataset] = None
+                                   ) -> float:
+        """Implement imbalance degree to determine a multi-class dataset imbalance value.
+
+        Theory taken from: https://bird.bcamath.org/bitstream/handle/20.500.11824/716/PRL%20Jonathan.pdf
+        """
+
+        def hellinger_distance(p, q) -> float:
+            """Caclulate Hellinger distance between two discrete distributions.
+
+            Code taken from: https://stackoverflow.com/questions/45741850/python-hellinger-formula-explanation.
+            """
+            return sum([(math.sqrt(t[0]) - math.sqrt(t[1])) *
+                        (math.sqrt(t[0]) - math.sqrt(t[1]))
+                        for t in zip(p, q)]) / math.sqrt(2.0)
+
+        if ds is None:
+            ds = self.ds_train
+
+        _, class_counts, _ = self.get_class_distribution(ds)
+
+        sum_samples = sum(class_counts)
+        num_classes = len(class_counts)
+
+        # ideally equiprobable balanced dataset
+        e_i = 1 / num_classes
+        e = [e_i] * num_classes
+
+        # calculate empirical distribution (chi)
+        chi = []
+        for c in class_counts:
+            chi.append((1 / sum_samples) * c)
+
+        chi_dist = hellinger_distance(chi, e)
+
+        # calculate number of minority classes
+        m = 0
+        for i in chi:
+            if i < e_i:
+                m += 1
+
+        # store hellinger distance and subset length in this list
+        subset_distances = []
+        for subset in itertools.combinations(chi, m):
+            dist = hellinger_distance(subset, e)
+            subset_distances.append(dist)
+
+        # find maximum distance value
+        max_dist = max(subset_distances)
+
+        if chi == e:
+            return 0
+
+        # imbalance degree with hellinger distance
+        id_he = (chi_dist / max_dist) + (m - 1)
+        return id_he
 
     def calculate_piqe_score(self) -> Dict[int, np.array]:
         """Calculate Perception-based Image QUality Evaluator (PIQUE) score without reference on train dataset."""
