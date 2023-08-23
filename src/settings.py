@@ -1,6 +1,7 @@
 import dataclasses
 import json
 import os
+import sys
 from argparse import ArgumentParser
 from dataclasses import asdict, dataclass, field, fields
 from typing import Any, Dict, List, Optional, Tuple
@@ -32,6 +33,8 @@ class RunSettings:
     random_seed: int = 42
 
     execution_time: Optional[str] = None
+
+    analysis_run_numbers: Optional[int] = None
 
     is_train_model: bool = False
     is_evaluating_model: bool = False
@@ -71,7 +74,61 @@ class RunSettings:
         print(self.dict())
 
 
+def convert_str_range_to_int_list(run_numbers_str: str) -> List[int]:
+    """convert analysis run format to list of ints
+    format for analysis run numbers can be:
+    - list = 1,2,3,4
+    - range = 1-5
+    - list + range = 1,2,3,5-9"""
+
+    def convert_str_to_int(num_str: str) -> int:
+        try:
+            num = int(num_str)
+            if num < 0:
+                print(f"{num_str} is not a positive integer!")
+                sys.exit(1)
+            return num
+
+        except ValueError:
+            print(f"{num_str} is not a valid integer!")
+            sys.exit(1)
+
+    def convert_str_range_to_int_list(str_range: str) -> List[int]:
+        run_range = str_range.split("-")
+        range_start = convert_str_to_int(run_range[0])
+        range_end = convert_str_to_int(run_range[1])
+        return list(range(range_start, range_end + 1))
+
+    run_numbers: List[int] = []
+
+    print(f"Converting string: {run_numbers_str}")
+
+    # list of numbers or list of numbers and range
+    if "," in run_numbers_str:
+        run_lists = run_numbers_str.split(",")
+
+        for run in run_lists:
+            # check if a run contains range
+            if "-" in run:
+                run_numbers.extend(convert_str_range_to_int_list(run))
+            else:
+                run_numbers.append(convert_str_to_int(run))
+
+    # single range
+    elif "-" in run_numbers_str:
+        run_numbers.extend(convert_str_range_to_int_list(run_numbers_str))
+
+    # single number
+    else:
+        run_numbers.append(convert_str_to_int(run_numbers_str))
+
+    return run_numbers
+
+
 def create_settings_from_args(args):
+    analysis_run_numbers = convert_str_range_to_int_list(
+        args.analysis_run_numbers)
+
     return RunSettings(
         run_number=args.run_number,
         run_name=args.run_name,
@@ -99,6 +156,7 @@ def create_settings_from_args(args):
         is_generating_ds_info=args.generate_ds_info,
         is_forcing_ds_info_regeneration=args.force_ds_info_regeneration,
         is_generating_privacy_report=args.generate_privacy_report,
+        analysis_run_numbers=analysis_run_numbers,
     )
 
 
@@ -247,6 +305,14 @@ def create_arg_parse_instance() -> ArgumentParser:
         action="store_true",
         help=
         "If this flag is set, all saved attack results are compiled and compared with each other, allowing dataset comparison.",
+    )
+    parser.add_argument(
+        "-ar",
+        "--analysis-run-numbers",
+        type=str,
+        help=
+        "The run numbers (1,2,3,4) or range of run numbers (1-4) or a combination of both (1,2,3-5) to be used for result compilation.",
+        metavar="AR",
     )
     parser.add_argument(
         "--force-model-retrain",

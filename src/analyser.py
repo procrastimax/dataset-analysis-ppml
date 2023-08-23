@@ -86,8 +86,13 @@ class AttackAnalyser:
 
         return attack_result_dict
 
-    def compile_attack_results(self, attack_type : AttackType):
-        runs = get_run_numbers(self.run_result_folder)
+    def compile_attack_results(self, attack_type: AttackType):
+        # only use all existant run numbers (by scanning the run name folder), when the anaylsis run parameter is unset
+        if self.settings.analysis_run_numbers is None:
+            runs = get_run_numbers(self.run_result_folder)
+        else:
+            runs = self.settings.analysis_run_numbers
+
         for run in runs:
             result_dict = self.load_attack_results(attack_type=attack_type,
                                                    run_number=run)
@@ -282,12 +287,15 @@ class AttackAnalyser:
         for store in attack_store:
             name_list.append(store.ds_name)
             avg_auc = store.attack_result_df.loc["mean Entire dataset"]["AUC"]
-            avg_fpr01 = store.attack_result_df.loc["mean Entire dataset"]["fpr@0.1"]
-            avg_fpr0001 = store.attack_result_df.loc["mean Entire dataset"]["fpr@0.001"]
+            avg_fpr01 = store.attack_result_df.loc["mean Entire dataset"][
+                "fpr@0.1"]
+            avg_fpr0001 = store.attack_result_df.loc["mean Entire dataset"][
+                "fpr@0.001"]
             ax.plot(
                 store.fpr_grid,
                 store.mean_tpr,
-                label=f"{store.ds_name} AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
+                label=
+                f"{store.ds_name} AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
             )
 
         ax.set(xlabel="FPR", ylabel="TPR")
