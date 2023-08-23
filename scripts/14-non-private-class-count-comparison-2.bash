@@ -14,28 +14,28 @@ model="cnn"
 
 case $SLURM_ARRAY_TASK_ID in
     0)
-        ds='mnist_c10 fmnist_c10 svhn_c10 cifar10_c10'
+        ds='mnist_n10 fmnist_n10 svhn_n10 cifar10_n10'
         ;;
     1)
-        ds='mnist_c9 fmnist_c9 svhn_c9 cifar10_c9'
+        ds='mnist_n9 fmnist_n9 svhn_n9 cifar10_n9'
         ;;
     2)
-        ds='mnist_c8 fmnist_c8 svhn_c8 cifar10_c8'
+        ds='mnist_n8 fmnist_n8 svhn_n8 cifar10_n8'
         ;;
     3)
-        ds='mnist_c7 fmnist_c7 svhn_c7 cifar10_c7'
+        ds='mnist_n7 fmnist_n7 svhn_n7 cifar10_n7'
         ;;
     4)
-        ds='mnist_c6 fmnist_c6 svhn_c6 cifar10_c6'
+        ds='mnist_n6 fmnist_n6 svhn_n6 cifar10_n6'
         ;;
     5)
-        ds='mnist_c5 fmnist_c5 svhn_c5 cifar10_c5'
+        ds='mnist_n5 fmnist_n5 svhn_n5 cifar10_n5'
         ;;
     6)
-        ds='mnist_c4 fmnist_c4 svhn_c4 cifar10_c4'
+        ds='mnist_n4 fmnist_n4 svhn_n4 cifar10_n4'
         ;;
     7)
-        ds='mnist_c3 fmnist_c3 svhn_c3 cifar10_c3'
+        ds='mnist_n3 fmnist_n3 svhn_n3 cifar10_n3'
         ;;
 esac
 
