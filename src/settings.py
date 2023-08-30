@@ -126,8 +126,11 @@ def convert_str_range_to_int_list(run_numbers_str: str) -> List[int]:
 
 
 def create_settings_from_args(args):
-    analysis_run_numbers = convert_str_range_to_int_list(
-        args.analysis_run_numbers)
+    if args.analysis_run_numbers is not None:
+        analysis_run_numbers = convert_str_range_to_int_list(
+            args.analysis_run_numbers)
+    else:
+        analysis_run_numbers = None
 
     return RunSettings(
         run_number=args.run_number,
