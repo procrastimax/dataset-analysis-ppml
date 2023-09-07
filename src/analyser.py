@@ -462,7 +462,7 @@ class AttackAnalyser:
 
         plt_name = os.path.join(
             self.analysis_combined_runs,
-            f"roc_combined_average_{attack_store[0].ds_name}_results_entire_dataset.png",
+            f"roc_combined_average_{ds_name}_results_entire_dataset.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
