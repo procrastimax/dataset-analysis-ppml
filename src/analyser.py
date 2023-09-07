@@ -1,6 +1,8 @@
+import json
 import os
+import sys
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,7 +10,6 @@ import numpy as np
 import pandas as pd
 
 from attack_result_store import AttackResultStore, AttackType
-from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings
 from util import save_dataframe
@@ -33,15 +34,12 @@ class AttackAnalyser:
 
     def __init__(
         self,
-        ds_list: List[AbstractDataset],
         settings: RunSettings,
         result_path: str,
         model_path: str,
     ):
         self.result_path = result_path
         check_create_folder(self.result_path)
-
-        self.ds_list = ds_list
 
         self.settings: RunSettings = settings
         self.model_path: str = model_path
@@ -67,13 +65,14 @@ class AttackAnalyser:
         self,
         attack_type: AttackType,
         run_number: int,
+        ds_name_list: List[str],
     ) -> Dict[str, AttackResultStore]:
         attack_result_dict: Dict[str, AttackResultStore] = {}
 
-        for ds in self.ds_list:
+        for ds_name in ds_name_list:
             attack_results_store = AttackResultStore(
                 attack_type=attack_type,
-                ds_name=ds.dataset_name,
+                ds_name=ds_name,
                 run_number=run_number,
                 base_path=self.run_result_folder,
             )
@@ -82,7 +81,7 @@ class AttackAnalyser:
             attack_results_store.load_saved_values()
             attack_results_store.create_complete_dataframe()
 
-            attack_result_dict[ds.dataset_name] = attack_results_store
+            attack_result_dict[ds_name] = attack_results_store
 
         return attack_result_dict
 
@@ -93,14 +92,37 @@ class AttackAnalyser:
         else:
             runs = self.settings.analysis_run_numbers
 
+        run_ds_name_dict: Dict[int, List[str]] = {}
+
         for run in runs:
+            print(
+                f" --- Creating attack analysis for run: {self.settings.run_name} -> {run} ---"
+            )
+            # load pararmeter.json and ds_name_list
+            parameter_file_path = os.path.join(self.run_result_folder,
+                                               str(run), "parameter.json")
+            ds_list: List[str] = None
+            with open(parameter_file_path) as parameter_file:
+                parameter_dict = json.load(parameter_file)
+                ds_list = parameter_dict["datasets"]
+                run_ds_name_dict[run] = ds_list
+
+            if ds_list is None:
+                print(
+                    "Cannot load attack results, since the parameter.json file does not contain used dataset names for the runs!"
+                )
+                sys.exit(1)
+
             result_dict = self.load_attack_results(attack_type=attack_type,
-                                                   run_number=run)
+                                                   run_number=run,
+                                                   ds_name_list=ds_list)
             self._compile_attack_results(attack_type, result_dict, run)
 
         # only combine multiple runs if there are any
         if len(runs) > 1:
-            self.create_runs_combined_graphics(attack_type, runs)
+            print(f" --- Creating combined runs graphics ---")
+            self.create_runs_combined_graphics(attack_type, runs,
+                                               run_ds_name_dict)
 
     def _compile_attack_results(
         self,
@@ -314,28 +336,44 @@ class AttackAnalyser:
         print(f"Saved combined averaged DS ROC curve {plt_name}")
         plt.close()
 
-    def create_runs_combined_graphics(self, attack_type: AttackType,
-                                      run_numbers: List[int]):
+    def create_runs_combined_graphics(
+        self,
+        attack_type: AttackType,
+        run_numbers: List[int],
+        run_ds_name_dict: Dict[int, List[str]],
+    ):
         """Create a comparison of averaged ROC curves for Entire Dataset attacks for every dataset."""
 
         avg_run_dict: Dict[str, List[AttackResultStore]] = defaultdict(list)
 
         for run in run_numbers:
-            result_dict = self.load_attack_results(attack_type, run)
+            ds_list = run_ds_name_dict[run]
+
+            result_dict = self.load_attack_results(attack_type,
+                                                   run,
+                                                   ds_name_list=ds_list)
+
             for ds_name, store in result_dict.items():
+                # remove modifications from ds_name
+                if "_" in ds_name:
+                    ds_name = ds_name.split("_")[0]
                 avg_run_dict[ds_name].append(store)
 
         for ds_name, store_list in avg_run_dict.items():
-            self.create_combined_averaged_roc_curve_from_list(
-                attack_type, store_list)
-            self.create_combined_average_class_rocs(attack_type, store_list,
-                                                    run_numbers)
+            self.create_combined_averaged_roc_curve_from_list(attack_type,
+                                                              store_list,
+                                                              ds_name=ds_name)
+            self.create_combined_average_class_rocs(attack_type,
+                                                    store_list,
+                                                    run_numbers,
+                                                    ds_name=ds_name)
 
     def create_combined_average_class_rocs(
         self,
         attack_type: AttackType,
         attack_store: List[AttackResultStore],
         runs: List[int],
+        ds_name: Optional[str] = None,
     ):
         run_dict = {}
 
@@ -352,9 +390,12 @@ class AttackAnalyser:
 
             run_dict[store.run_number] = class_wise_mean_tpr_dict
 
+        if ds_name is None:
+            ds_name = attack_store[0].ds_name
+
         fig, axs = plt.subplots(len(runs), figsize=(7, 5 * len(runs)))
         fig.suptitle(
-            f"Receiver Operator Characteristics - Class-wise Attack ({attack_type.value}, {attack_store[0].ds_name})"
+            f"Receiver Operator Characteristics - Class-wise Attack ({attack_type.value}, {ds_name})"
         )
 
         for run_number, class_wise_dict in run_dict.items():
@@ -372,7 +413,7 @@ class AttackAnalyser:
 
         plt_name = os.path.join(
             self.analysis_combined_runs,
-            f"roc_combined_average_{attack_store[0].ds_name}_results_class_wise.png",
+            f"roc_combined_average_{ds_name}_results_class_wise.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
@@ -383,6 +424,7 @@ class AttackAnalyser:
         self,
         attack_type: AttackType,
         attack_store: List[AttackResultStore],
+        ds_name: Optional[str] = None,
     ):
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
@@ -407,8 +449,12 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
+
+        if ds_name is None:
+            ds_name = attack_store[0].ds_name
+
         ax.title.set_text(
-            f"Receiver Operator Characteristics - All Runs ({attack_type.value}, {attack_store[0].ds_name})"
+            f"Receiver Operator Characteristics - All Runs ({attack_type.value}, {ds_name})"
         )
         plt.xlim([0.00001, 1])
         plt.ylim([0.00001, 1])

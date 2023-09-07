@@ -79,7 +79,7 @@ def main():
                 ds_info_df_all = pd.concat([ds_info_df_all, ds_info_df])
 
     if settings.is_compiling_attack_results:
-        compile_attack_results(settings, loaded_ds_list)
+        compile_attack_results(settings)
 
     if settings.is_generating_ds_info:
         save_bundled_ds_info_df(ds_info_df_all, settings)
@@ -403,13 +403,11 @@ def run_args_parameter_check(settings: RunSettings):
         sys.exit(1)
 
 
-def compile_attack_results(settings: RunSettings,
-                           ds_list: List[AbstractDataset]):
+def compile_attack_results(settings: RunSettings):
     print("---------------------")
     print("Compiling attack results")
     print("---------------------")
     analyser = AttackAnalyser(
-        ds_list=ds_list,
         settings=settings,
         result_path=result_path,
         model_path=model_path,
