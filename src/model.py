@@ -50,6 +50,7 @@ class Model(ABC):
     noise_multiplier: float = field(init=False, default=None)
     num_microbatches: float = field(init=False, default=None)
     epsilon: float = field(init=False, default=None)
+    delta: float = field(init=False, default=None)
 
     model: Optional[tf.keras.Sequential] = field(init=False, default=None)
     history: Optional[tf.keras.callbacks.History] = field(init=False,
@@ -81,7 +82,11 @@ class Model(ABC):
         num_microbatches: int,
         noise_multiplier: Optional[float] = None,
     ):
-        delta = compute_delta(num_train_samples)
+        self.delta = compute_delta(num_train_samples)
+        self.epsilon = epsilon
+        self.l2_norm_clip = l2_norm_clip
+        self.num_microbatches = num_microbatches
+
         used_microbatching = True
         if num_microbatches == 1:
             used_microbatching = False
@@ -93,13 +98,10 @@ class Model(ABC):
                 batch_size=self.batch_size,
                 target_epsilon=epsilon,
                 epochs=self.epochs,
-                delta=delta,
+                delta=self.delta,
             )
         else:
             self.noise_multiplier = noise_multiplier
-
-        self.l2_norm_clip = l2_norm_clip
-        self.num_microbatches = num_microbatches
 
         # calculate epsilon to verify calculated noise values
         calc_epsilon = compute_privacy(
@@ -107,7 +109,7 @@ class Model(ABC):
             batch_size=self.batch_size,
             noise_multiplier=self.noise_multiplier,
             epochs=self.epochs,
-            delta=delta,
+            delta=self.delta,
             used_microbatching=used_microbatching,
         )
         print(f"Calculated epsilon is {calc_epsilon}")

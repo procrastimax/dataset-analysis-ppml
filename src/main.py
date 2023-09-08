@@ -71,7 +71,6 @@ def main():
         for run in runs:
             parameter_file_path = os.path.join(run_result_folder, str(run),
                                                "parameter.json")
-            ds_list: List[str] = None
             with open(parameter_file_path) as parameter_file:
                 parameter_dict = json.load(parameter_file)
                 # load and set run parameter from parameter.json file
@@ -80,11 +79,9 @@ def main():
                 settings.learning_rate = parameter_dict["learning_rate"]
                 settings.ema_momentum = parameter_dict["ema_momentum"]
                 settings.weight_decay = parameter_dict["weight_decay"]
-                settings.noise_multiplier = parameter_dict["noise_multiplier"]
                 settings.delta = parameter_dict["delta"]
                 settings.l2_norm_clip = parameter_dict["l2_norm_clip"]
                 settings.privacy_epsilon = parameter_dict["privacy_epsilon"]
-                settings.num_microbatches = parameter_dict["num_microbatches"]
                 settings.num_shadow_models = parameter_dict["num_shadow_models"]
                 settings.adam_epsilon = parameter_dict["adam_epsilon"]
                 settings.random_seed = parameter_dict["random_seed"]
@@ -242,9 +239,6 @@ def handle_single_dataset(
 
         # set values for private training
         if type(model) is PrivateCNNModel:
-            print(
-                f"Setting private training parameter epsilon: {settings.privacy_epsilon}, l2_norm_clip: {settings.l2_norm_clip}, num_microbatches: {settings.num_microbatches} and noise_multiplier: {settings.noise_multiplier}."
-            )
             num_train_samples = int(len(ds.get_train_ds_as_numpy()[0]))
             model.set_privacy_parameter(
                 epsilon=settings.privacy_epsilon,
@@ -252,6 +246,11 @@ def handle_single_dataset(
                 l2_norm_clip=settings.l2_norm_clip,
                 num_microbatches=settings.num_microbatches,
                 noise_multiplier=settings.noise_multiplier,
+            )
+            settings.noise_multiplier = model.noise_multiplier
+            settings.delta = model.delta
+            print(
+                f"Setting private training parameter epsilon: {model.epsilon}, l2_norm_clip: {model.l2_norm_clip}, num_microbatches: {model.num_microbatches} and noise_multiplier: {model.noise_multiplier}."
             )
 
     if settings.is_train_model:

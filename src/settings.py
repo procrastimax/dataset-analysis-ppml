@@ -50,14 +50,20 @@ class RunSettings:
 
     def __post_init__(self):
         """Post init function to restore the field's default values when initialized with None."""
-        if self.num_microbatches is None:
-            self.num_microbatches = self.batch
+
+        # TODO: unterschied zwischen num_microbatches 0 and 256?
+        #if self.num_microbatches is None:
+        #    self.num_microbatches = self.batch
 
         # if the passed field was None, then apply the dataclasses' default field value
         for f in fields(self):
             if (not isinstance(f.default, dataclasses._MISSING_TYPE)
                     and getattr(self, f.name) is None):
                 setattr(self, f.name, f.default)
+
+        # TODO: unterschied zwischen num_microbatches 0 and 256?
+        if self.num_microbatches is None:
+            self.num_microbatches = self.batch
 
     def dict(self) -> Dict[str, Any]:
         """Convert all dataclass fields to a dict."""
