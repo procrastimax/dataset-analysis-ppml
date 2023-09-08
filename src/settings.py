@@ -63,9 +63,16 @@ class RunSettings:
         """Convert all dataclass fields to a dict."""
         return asdict(self)
 
-    def save_settings_as_json(self, filepath: str):
+    def save_settings_as_json(self,
+                              filepath: str,
+                              file_name_extension: str = None):
         check_create_folder(filepath)
-        filename = os.path.join(filepath, "parameter.json")
+        if file_name_extension is not None:
+            filename = os.path.join(filepath,
+                                    f"parameter_{file_name_extension}.json")
+        else:
+            filename = os.path.join(filepath, "parameter.json")
+
         print(f"Saving settings to: {filename}")
         with open(filename, "w") as f:
             json.dump(self.dict(), f, indent=2)
@@ -280,14 +287,14 @@ def create_arg_parse_instance() -> ArgumentParser:
         "--train-model",
         action="store_true",
         help=
-        "If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number.",
+        "If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number. If no dataset name and no run number but the run name is given, it is assumed that a single model from a series of attacks shall get trained by parsing the datasets from 'parameter.json' files in each runs. In this scenario, all runs are included.",
     )
     parser.add_argument(
         "-em",
         "--evaluate-model",
         action="store_true",
         help=
-        "If this flag is set, a single model is loaded based on run number, run name, model name and dataset name. Then predictions are run on the test and train dataset to evaluate the model.",
+        "If this flag is set, a single model is loaded based on run number, run name, model name and dataset name. Then predictions are run on the test and train dataset to evaluate the model. If no dataset name and no run number but the run name is given, models trained from the 'parameter.json' file are evaluated.",
     )
     parser.add_argument(
         "-ce",

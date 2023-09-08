@@ -1,4 +1,5 @@
 import gc
+import json
 import os
 import sys
 from datetime import datetime as dt
@@ -14,7 +15,13 @@ from ppml_datasets.abstract_dataset_handler import AbstractDataset
 from ppml_datasets.builder import build_dataset
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings, create_arg_parse_instance, create_settings_from_args
-from util import compute_delta, compute_noise, compute_privacy, save_dataframe
+from util import (
+    compute_delta,
+    compute_noise,
+    compute_privacy,
+    get_run_numbers,
+    save_dataframe,
+)
 
 data_path: str = "data"
 model_path: str = "models"
@@ -53,7 +60,90 @@ def main():
     print("=========================================")
     print("=========================================")
 
-    if settings.datasets is not None:
+    # if no datasets were specified, then load them from paramter.json files for each run from a 'run name' folder
+    if (settings.datasets is None and settings.is_train_model
+            or settings.is_evaluating_model):
+        run_result_folder = os.path.join(result_path, settings.model_name,
+                                         settings.run_name)
+
+        runs = get_run_numbers(run_result_folder)
+        print(f"Found the following runs for {settings.run_name}: {runs}")
+        for run in runs:
+            parameter_file_path = os.path.join(run_result_folder, str(run),
+                                               "parameter.json")
+            ds_list: List[str] = None
+            with open(parameter_file_path) as parameter_file:
+                parameter_dict = json.load(parameter_file)
+                # load and set run parameter from parameter.json file
+                settings.epochs = parameter_dict["epochs"]
+                settings.batch = parameter_dict["batch"]
+                settings.learning_rate = parameter_dict["learning_rate"]
+                settings.ema_momentum = parameter_dict["ema_momentum"]
+                settings.weight_decay = parameter_dict["weight_decay"]
+                settings.noise_multiplier = parameter_dict["noise_multiplier"]
+                settings.delta = parameter_dict["delta"]
+                settings.l2_norm_clip = parameter_dict["l2_norm_clip"]
+                settings.privacy_epsilon = parameter_dict["privacy_epsilon"]
+                settings.num_microbatches = parameter_dict["num_microbatches"]
+                settings.num_shadow_models = parameter_dict["num_shadow_models"]
+                settings.adam_epsilon = parameter_dict["adam_epsilon"]
+                settings.random_seed = parameter_dict["random_seed"]
+                settings.datasets = parameter_dict["datasets"]
+
+            if settings.datasets is None:
+                print(
+                    "Cannot load attack results, since the parameter.json file does not contain used dataset names for the runs!"
+                )
+                sys.exit(1)
+
+            print(f"Loading the following datasets for run {run}: {settings.datasets}")
+
+            # update settings' run number for this iteration
+            settings.run_number = int(run)
+
+            for ds_name in settings.datasets:
+                settings.run_number = int(run)
+                ds = build_dataset(
+                    full_ds_name=ds_name,
+                    batch_size=settings.batch,
+                    model_input_shape=settings.model_input_shape,
+                )
+
+                loaded_ds_list.append(ds)
+
+                (test_results_df,
+                 ds_info_df) = handle_single_dataset(ds=ds, settings=settings)
+                # combine single results with other results
+                if single_model_test_df is None:
+                    single_model_test_df = test_results_df
+                else:
+                    single_model_test_df = pd.concat(
+                        [single_model_test_df, test_results_df])
+
+                # combine single results with other results
+                if ds_info_df_all is None:
+                    ds_info_df_all = ds_info_df
+                else:
+                    ds_info_df_all = pd.concat([ds_info_df_all, ds_info_df])
+
+            if settings.is_evaluating_model:
+                save_bundled_model_evaluation(single_model_test_df, settings)
+
+            if settings.is_compiling_evalulation:
+                compile_model_evaluation(settings)
+
+            print("---")
+            print(f"Done training/evaluating models from run {run}")
+            print("---")
+
+        # we cannot really recover from this state
+        # so we have to end the program at this point
+        print(
+            "Done training and evaluating models loaded from parameter.json!")
+        sys.exit(0)
+
+    # normal case of user specified run number, run name, model and dataset
+    elif settings.datasets is not None:
         for ds_name in settings.datasets:
             ds = build_dataset(
                 full_ds_name=ds_name,
@@ -92,6 +182,12 @@ def main():
 
     if settings.model_name is not None and (settings.is_train_model or
                                             settings.is_running_amia_attack):
+        mode: str = None
+        if settings.is_train_model:
+            mode = "model_train"
+        else:
+            mode = "model_attack"
+
         param_filepath = os.path.join(
             result_path,
             settings.model_name,
@@ -105,7 +201,8 @@ def main():
         print(f"Execution took: {elapsed_time_str}")
 
         settings.execution_time = elapsed_time_str
-        settings.save_settings_as_json(param_filepath)
+        settings.save_settings_as_json(param_filepath,
+                                       file_name_extension=mode)
 
 
 def handle_single_dataset(
@@ -378,9 +475,9 @@ def run_args_parameter_check(settings: RunSettings):
 
     if (settings.is_train_model or settings.is_evaluating_model
             or settings.is_running_amia_attack):
-        if settings.run_number is None:
+        if settings.run_number is None and settings.run_name is None:
             print(
-                "No run number specified! A run number is required when training/ attacking/ testing models!"
+                "No run number and no run name specified! A run number is required when training/ attacking/ testing models! See help for more info."
             )
             sys.exit(1)
 
@@ -390,9 +487,9 @@ def run_args_parameter_check(settings: RunSettings):
             )
             sys.exit(1)
 
-        if settings.datasets is None:
+        if settings.datasets is None and settings.run_name is None:
             print(
-                "No datasets specified! A datasets is required when training/ attacking/ testing models!"
+                "No datasets specified and no run name specified! A datasets is required when training/ attacking/ testing models! See help for more info."
             )
             sys.exit(1)
 

@@ -12,22 +12,9 @@ import pandas as pd
 from attack_result_store import AttackResultStore, AttackType
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings
-from util import save_dataframe
+from util import get_run_numbers, save_dataframe
 
 pd.options.mode.chained_assignment = None
-
-
-def get_run_numbers(run_result_folder: str) -> List[int]:
-    """Scan run result folder for available run numbers."""
-    run_numbers: List[int] = []
-    folders = os.scandir(run_result_folder)
-    for entry in folders:
-        if entry.is_dir():
-            if entry.name.isnumeric():
-                run_numbers.append(int(entry.name))
-
-    run_numbers.sort()
-    return run_numbers
 
 
 class AttackAnalyser:
