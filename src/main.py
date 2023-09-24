@@ -61,8 +61,8 @@ def main():
     print("=========================================")
 
     # if no datasets were specified, then load them from paramter.json files for each run from a 'run name' folder
-    if (settings.datasets is None and settings.is_train_model
-            or settings.is_evaluating_model):
+    if (settings.datasets is None and (settings.is_train_model
+            or settings.is_evaluating_model)):
         run_result_folder = os.path.join(result_path, settings.model_name,
                                          settings.run_name)
 
@@ -287,6 +287,10 @@ def handle_single_dataset(
             settings=settings,
             shadow_model_save_path=shadow_model_save_path,
         )
+
+    # avoid OOM
+    tf.keras.backend.clear_session()
+    gc.collect()
 
     return result_df, ds_info_df
 
