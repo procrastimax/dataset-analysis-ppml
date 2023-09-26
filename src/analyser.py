@@ -16,7 +16,6 @@ from util import get_run_numbers, save_dataframe
 
 pd.options.mode.chained_assignment = None
 
-
 class AttackAnalyser:
 
     def __init__(
@@ -35,10 +34,12 @@ class AttackAnalyser:
         self.run_result_folder = os.path.join(result_path, settings.model_name,
                                               settings.run_name)
 
-        self.analysis_combined_runs = os.path.join(result_path,
-                                                   settings.model_name,
-                                                   settings.run_name,
-                                                   "combined-runs")
+        self.analysis_combined_runs = os.path.join(
+            result_path,
+            settings.model_name,
+            settings.run_name,
+            "attack-analysis-combined-runs",
+        )
 
     def get_combined_ds_analysis_folder(self, run_number: int) -> str:
         return os.path.join(
@@ -349,11 +350,12 @@ class AttackAnalyser:
         for ds_name, store_list in avg_run_dict.items():
             self.create_combined_averaged_roc_curve_from_list(attack_type,
                                                               store_list,
+                                                              runs=run_numbers,
                                                               ds_name=ds_name)
-            self.create_combined_average_class_rocs(attack_type,
-                                                    store_list,
-                                                    run_numbers,
-                                                    ds_name=ds_name)
+            # self.create_combined_average_class_rocs(attack_type,
+            #                                        store_list,
+            #                                        run_numbers,
+            #                                        ds_name=ds_name)
 
     def create_combined_average_class_rocs(
         self,
@@ -400,7 +402,7 @@ class AttackAnalyser:
 
         plt_name = os.path.join(
             self.analysis_combined_runs,
-            f"roc_combined_average_{ds_name}_results_class_wise.png",
+            f"roc_combined_average_{ds_name}_results_class_wise_r{''.join(map(str,runs))}.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
@@ -411,6 +413,7 @@ class AttackAnalyser:
         self,
         attack_type: AttackType,
         attack_store: List[AttackResultStore],
+        runs: List[int],
         ds_name: Optional[str] = None,
     ):
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
@@ -449,7 +452,7 @@ class AttackAnalyser:
 
         plt_name = os.path.join(
             self.analysis_combined_runs,
-            f"roc_combined_average_{ds_name}_results_entire_dataset.png",
+            f"roc_combined_average_{ds_name}_results_entire_dataset_r{''.join(map(str,runs))}.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
@@ -465,6 +468,11 @@ class UtilityAnalyser:
         self.result_path = result_path
         self.run_result_folder = os.path.join(self.result_path,
                                               self.model_name, self.run_name)
+
+        self.combined_result_folder = os.path.join(
+            self.run_result_folder, "utility-analysis-combined")
+        check_create_folder(self.combined_result_folder)
+
         self.run_numbers = get_run_numbers(self.run_result_folder)
 
     def load_run_utility_df(self, run_number: int) -> pd.DataFrame:
@@ -489,9 +497,11 @@ class UtilityAnalyser:
         ###
         # Accuracy
         ###
-        acc_vis_filename: str = os.path.join(self.run_result_folder,
-                                             "run_accuracy_comparison.png")
-        acc_df_filename = os.path.join(self.run_result_folder,
+        acc_vis_filename: str = os.path.join(
+            self.combined_result_folder,
+            f"run_accuracy_comparison.png",
+        )
+        acc_df_filename = os.path.join(self.combined_result_folder,
                                        "accuracy_model_comparison.csv")
         acc_fig = self._visualize_df(
             acc_df,
@@ -506,10 +516,12 @@ class UtilityAnalyser:
         ###
         # F1-Score
         ###
-        f1score_df_filename = os.path.join(self.run_result_folder,
+        f1score_df_filename = os.path.join(self.combined_result_folder,
                                            "f1score_model_comparison.csv")
-        f1score_vis_filename: str = os.path.join(self.run_result_folder,
-                                                 "run_f1score_comparison.png")
+        f1score_vis_filename: str = os.path.join(
+            self.combined_result_folder,
+            f"run_f1score_comparison.png",
+        )
         f1_fig = self._visualize_df(
             f1_df,
             yLabel="f1-score",
@@ -523,10 +535,12 @@ class UtilityAnalyser:
         ###
         # Loss
         ###
-        loss_df_filename = os.path.join(self.run_result_folder,
+        loss_df_filename = os.path.join(self.combined_result_folder,
                                         "loss_model_comparison.csv")
-        loss_vis_filename: str = os.path.join(self.run_result_folder,
-                                              "run_loss_comparison.png")
+        loss_vis_filename: str = os.path.join(
+            self.combined_result_folder,
+            "run_loss_comparison.png",
+        )
         loss_fig = self._visualize_df(
             loss_df,
             yLabel="loss",

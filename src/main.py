@@ -555,6 +555,7 @@ def compile_model_evaluation(settings: RunSettings):
     analyser = UtilityAnalyser(result_path=res_path,
                                run_name=settings.run_name,
                                model_name=settings.model_name)
+
     analyser.analyse_utility()
 
 
