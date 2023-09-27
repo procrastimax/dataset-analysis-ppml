@@ -67,7 +67,10 @@ def main():
         run_result_folder = os.path.join(result_path, settings.model_name,
                                          settings.run_name)
 
-        runs = get_run_numbers(run_result_folder)
+        if settings.analysis_run_numbers is None:
+            runs = get_run_numbers(run_result_folder)
+        else:
+            runs = settings.analysis_run_numbers
         print(f"Found the following runs for {settings.run_name}: {runs}")
         for run in runs:
             parameter_file_path = os.path.join(run_result_folder, str(run),
