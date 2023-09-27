@@ -16,6 +16,7 @@ from util import get_run_numbers, save_dataframe
 
 pd.options.mode.chained_assignment = None
 
+
 class AttackAnalyser:
 
     def __init__(
@@ -38,7 +39,7 @@ class AttackAnalyser:
             result_path,
             settings.model_name,
             settings.run_name,
-            "attack-analysis-combined-runs",
+            "attack-analysis-combined",
         )
 
     def get_combined_ds_analysis_folder(self, run_number: int) -> str:
@@ -352,10 +353,10 @@ class AttackAnalyser:
                                                               store_list,
                                                               runs=run_numbers,
                                                               ds_name=ds_name)
-            # self.create_combined_average_class_rocs(attack_type,
-            #                                        store_list,
-            #                                        run_numbers,
-            #                                        ds_name=ds_name)
+            self.create_combined_average_class_rocs(attack_type,
+                                                    store_list,
+                                                    runs=run_numbers,
+                                                    ds_name=ds_name)
 
     def create_combined_average_class_rocs(
         self,
