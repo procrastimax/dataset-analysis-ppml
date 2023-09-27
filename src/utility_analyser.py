@@ -1,12 +1,11 @@
 import os
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from attack_result_store import AttackResultStore, AttackType
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings
 from util import get_run_numbers, save_dataframe
@@ -52,6 +51,10 @@ class UtilityAnalyser:
     def analyse_utility(self):
         acc_df, f1_df, loss_df = self.build_combined_model_utility_dfs()
 
+        acc_df = acc_df.loc[self.run_numbers]
+        f1_df = f1_df.loc[self.run_numbers]
+        loss_df = loss_df.loc[self.run_numbers]
+
         ###
         # Accuracy
         ###
@@ -65,6 +68,7 @@ class UtilityAnalyser:
         )
         acc_fig = self._visualize_df(
             acc_df,
+            run_range=self.run_numbers,
             yLabel="accuracy",
             xLabel="run number",
             title="Model accuracy comparison between mutliple runs",
@@ -86,6 +90,7 @@ class UtilityAnalyser:
         )
         f1_fig = self._visualize_df(
             f1_df,
+            run_range=self.run_numbers,
             yLabel="f1-score",
             xLabel="run number",
             title="Model f1-score comparison between mutliple runs",
@@ -107,6 +112,7 @@ class UtilityAnalyser:
         )
         loss_fig = self._visualize_df(
             loss_df,
+            run_range=self.run_numbers,
             yLabel="loss",
             xLabel="run number",
             title="Model loss comparison between mutliple runs",
@@ -170,6 +176,7 @@ class UtilityAnalyser:
     def _visualize_df(
         self,
         df: pd.DataFrame,
+        run_range: List[int],
         xLabel: str,
         yLabel: str,
         title: str,
@@ -181,14 +188,14 @@ class UtilityAnalyser:
             # dont include the average values in the graph
             if name.startswith("avg"):
                 ax.plot(
-                    range(len(values)),
+                    run_range,
                     values,
                     label=name,
                     linestyle="dotted",
                     linewidth=2,
                 )
             else:
-                ax.plot(range(len(values)), values, label=name)
+                ax.plot(run_range, values, label=name)
 
         ax.set(xlabel=xLabel, ylabel=yLabel, title=title)
         ax.legend()

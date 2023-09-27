@@ -135,7 +135,7 @@ class AttackResultStore:
         max_df["attack type"] = self.attack_type.value
 
         attack_result_df = pd.concat([attack_result_frame, mean_df, max_df],
-                                     ignore_index=False).round(decimals=4)
+                                     ignore_index=False).round(decimals=5)
 
         df_filename = os.path.join(
             self.get_analysis_folder(),
@@ -167,7 +167,6 @@ class AttackResultStore:
 
     def create_entire_dataset_combined_roc_curve(self):
         """Print the attack results on Entire Dataset Slice of every shadow model into a single figure."""
-
         entire_ds_attack_list = self.get_single_entire_ds_attack_results()
         entire_ds_attack_list.sort(key=lambda x: x.get_auc(), reverse=True)
 
