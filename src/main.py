@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple
 import pandas as pd
 import tensorflow as tf
 
-from analyser import AttackAnalyser, AttackType, UtilityAnalyser
+from attack_analyser import AttackAnalyser, AttackType
 from attacks import AmiaAttack
 from model import CNNModel, Model, PrivateCNNModel
 from ppml_datasets.abstract_dataset_handler import AbstractDataset
@@ -22,6 +22,7 @@ from util import (
     get_run_numbers,
     save_dataframe,
 )
+from utility_analyser import UtilityAnalyser
 
 data_path: str = "data"
 model_path: str = "models"
