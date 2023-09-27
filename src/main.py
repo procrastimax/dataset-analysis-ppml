@@ -61,8 +61,8 @@ def main():
     print("=========================================")
 
     # if no datasets were specified, then load them from paramter.json files for each run from a 'run name' folder
-    if (settings.datasets is None and (settings.is_train_model
-            or settings.is_evaluating_model)):
+    if settings.datasets is None and (settings.is_train_model
+                                      or settings.is_evaluating_model):
         run_result_folder = os.path.join(result_path, settings.model_name,
                                          settings.run_name)
 
@@ -82,7 +82,8 @@ def main():
                 settings.delta = parameter_dict["delta"]
                 settings.l2_norm_clip = parameter_dict["l2_norm_clip"]
                 settings.privacy_epsilon = parameter_dict["privacy_epsilon"]
-                settings.num_shadow_models = parameter_dict["num_shadow_models"]
+                settings.num_shadow_models = parameter_dict[
+                    "num_shadow_models"]
                 settings.adam_epsilon = parameter_dict["adam_epsilon"]
                 settings.random_seed = parameter_dict["random_seed"]
                 settings.datasets = parameter_dict["datasets"]
@@ -93,7 +94,9 @@ def main():
                 )
                 sys.exit(1)
 
-            print(f"Loading the following datasets for run {run}: {settings.datasets}")
+            print(
+                f"Loading the following datasets for run {run}: {settings.datasets}"
+            )
 
             # update settings' run number for this iteration
             settings.run_number = int(run)
@@ -552,9 +555,7 @@ def compile_model_evaluation(settings: RunSettings):
     print("---------------------")
     cwd = os.getcwd()
     res_path = os.path.join(cwd, result_path)
-    analyser = UtilityAnalyser(result_path=res_path,
-                               run_name=settings.run_name,
-                               model_name=settings.model_name)
+    analyser = UtilityAnalyser(result_path=res_path, settings=settings)
 
     analyser.analyse_utility()
 

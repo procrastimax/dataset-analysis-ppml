@@ -463,9 +463,10 @@ class AttackAnalyser:
 
 class UtilityAnalyser:
 
-    def __init__(self, result_path: str, run_name: str, model_name: str):
-        self.run_name = run_name
-        self.model_name = model_name
+    def __init__(self, result_path: str, settings: RunSettings):
+        self.settings = settings
+        self.run_name = self.settings.run_name
+        self.model_name = self.settings.model_name
         self.result_path = result_path
         self.run_result_folder = os.path.join(self.result_path,
                                               self.model_name, self.run_name)
@@ -474,7 +475,10 @@ class UtilityAnalyser:
             self.run_result_folder, "utility-analysis-combined")
         check_create_folder(self.combined_result_folder)
 
-        self.run_numbers = get_run_numbers(self.run_result_folder)
+        if self.settings.analysis_run_numbers:
+            self.run_numbers = self.settings.analysis_run_numbers
+        else:
+            self.run_numbers = get_run_numbers(self.run_result_folder)
 
     def load_run_utility_df(self, run_number: int) -> pd.DataFrame:
         df_folder = os.path.join(self.run_result_folder, str(run_number),
@@ -500,10 +504,10 @@ class UtilityAnalyser:
         ###
         acc_vis_filename: str = os.path.join(
             self.combined_result_folder,
-            f"run_accuracy_comparison.png",
+            f"run_accuracy_comparison_r{''.join(map(str,self.run_numbers))}.png",
         )
         acc_df_filename = os.path.join(self.combined_result_folder,
-                                       "accuracy_model_comparison.csv")
+                                       f"accuracy_model_comparison_r{''.join(map(str,self.run_numbers))}")
         acc_fig = self._visualize_df(
             acc_df,
             yLabel="accuracy",
@@ -518,10 +522,10 @@ class UtilityAnalyser:
         # F1-Score
         ###
         f1score_df_filename = os.path.join(self.combined_result_folder,
-                                           "f1score_model_comparison.csv")
+                                           f"f1score_model_comparison_r{''.join(map(str,self.run_numbers))}.csv")
         f1score_vis_filename: str = os.path.join(
             self.combined_result_folder,
-            f"run_f1score_comparison.png",
+            f"run_f1score_comparison_r{''.join(map(str,self.run_numbers))}.png",
         )
         f1_fig = self._visualize_df(
             f1_df,
@@ -537,10 +541,10 @@ class UtilityAnalyser:
         # Loss
         ###
         loss_df_filename = os.path.join(self.combined_result_folder,
-                                        "loss_model_comparison.csv")
+                                        f"loss_model_comparison_r{''.join(map(str,self.run_numbers))}.csv")
         loss_vis_filename: str = os.path.join(
             self.combined_result_folder,
-            "run_loss_comparison.png",
+            f"run_loss_comparison_r{''.join(map(str,self.run_numbers))}.png",
         )
         loss_fig = self._visualize_df(
             loss_df,
