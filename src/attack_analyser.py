@@ -359,15 +359,128 @@ class AttackAnalyser:
             runs=run_numbers,
         )
 
+        self.create_compiled_auc_metric_graph(attack_type=attack_type,
+                                              avg_run_dict=avg_run_dict,
+                                              runs=run_numbers)
+        self.create_compiled_fpr01_metric_graph(attack_type=attack_type,
+                                                avg_run_dict=avg_run_dict,
+                                                runs=run_numbers)
+        self.create_compiled_fpr0001_metric_graph(attack_type=attack_type,
+                                                  avg_run_dict=avg_run_dict,
+                                                  runs=run_numbers)
+
         for ds_name, store_list in avg_run_dict.items():
             self.create_combined_averaged_roc_curve_from_list(attack_type,
                                                               store_list,
                                                               runs=run_numbers,
                                                               ds_name=ds_name)
-            #self.create_combined_average_class_rocs(attack_type,
+            # self.create_combined_average_class_rocs(attack_type,
             #                                        store_list,
             #                                        runs=run_numbers,
             #                                        ds_name=ds_name)
+
+    def create_compiled_auc_metric_graph(
+        self,
+        avg_run_dict: Dict[str, List[AttackResultStore]],
+        attack_type: AttackType,
+        runs: List[int],
+    ):
+        """Create graph with AUC for every dataset in every run."""
+        _, ax_auc = plt.subplots(1, 1, figsize=(10, 10))
+        for ds_name, attack_store_list in avg_run_dict.items():
+            auc_list: List[float] = []
+
+            for store in attack_store_list:
+                auc_list.append(
+                    store.attack_result_df.loc["mean Entire dataset"]["AUC"])
+
+            ax_auc.plot(
+                runs,
+                auc_list,
+                label=f"{ds_name}",
+            )
+
+        ax_auc.set(xlabel="Run", ylabel="AUC")
+        ax_auc.title.set_text("AUC over Runs")
+        plt.legend()
+        plt_name = os.path.join(
+            self.analysis_combined_runs,
+            f"auc_over_runs_r{''.join(map(str,runs))}.png",
+        )
+        os.makedirs(os.path.dirname(plt_name), exist_ok=True)
+        plt.savefig(plt_name)
+        print(f"Saved compiled AUC over all runs graph {plt_name}")
+        plt.close()
+
+    def create_compiled_fpr01_metric_graph(
+        self,
+        avg_run_dict: Dict[str, List[AttackResultStore]],
+        attack_type: AttackType,
+        runs: List[int],
+    ):
+        """Create graph with fpr@0.01 for every dataset in every run."""
+        _, ax_fpr01 = plt.subplots(1, 1, figsize=(10, 10))
+
+        for ds_name, attack_store_list in avg_run_dict.items():
+            fpr01_list: List[float] = []
+
+            for store in attack_store_list:
+                fpr01_list.append(
+                    store.attack_result_df.loc["mean Entire dataset"]
+                    ["fpr@0.1"])
+
+            ax_fpr01.plot(
+                runs,
+                fpr01_list,
+                label=f"{ds_name}",
+            )
+
+        ax_fpr01.set(xlabel="Run", ylabel="fpr@0.1")
+        ax_fpr01.title.set_text("fpr@0.1 over Runs")
+        ax_fpr01.legend()
+        plt_name = os.path.join(
+            self.analysis_combined_runs,
+            f"fpr01_over_runs_r{''.join(map(str,runs))}.png",
+        )
+        os.makedirs(os.path.dirname(plt_name), exist_ok=True)
+        plt.savefig(plt_name)
+        print(f"Saved compiled fpr@0.1 over all runs graph {plt_name}")
+        plt.close()
+
+    def create_compiled_fpr0001_metric_graph(
+        self,
+        avg_run_dict: Dict[str, List[AttackResultStore]],
+        attack_type: AttackType,
+        runs: List[int],
+    ):
+        """Create graph with fpr@0.001 for every dataset in every run."""
+        _, ax_fpr0001 = plt.subplots(1, 1, figsize=(10, 10))
+
+        for ds_name, attack_store_list in avg_run_dict.items():
+            fpr0001_list: List[float] = []
+
+            for store in attack_store_list:
+                fpr0001_list.append(
+                    store.attack_result_df.loc["mean Entire dataset"]
+                    ["fpr@0.001"])
+
+            ax_fpr0001.plot(
+                runs,
+                fpr0001_list,
+                label=f"{ds_name}",
+            )
+
+        ax_fpr0001.set(xlabel="Run", ylabel="fpr@0.001")
+        ax_fpr0001.title.set_text("fpr@0.001 over Runs")
+        plt.legend()
+        plt_name = os.path.join(
+            self.analysis_combined_runs,
+            f"fpr0001_over_runs_r{''.join(map(str,runs))}.png",
+        )
+        os.makedirs(os.path.dirname(plt_name), exist_ok=True)
+        plt.savefig(plt_name)
+        print(f"Saved compiled fpr@0.001 over all runs graph {plt_name}")
+        plt.close()
 
     def create_compiled_averaged_run_roc_curves(
         self,
@@ -444,7 +557,7 @@ class AttackAnalyser:
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
-        print(f"Saved test ROC curve {plt_name}")
+        print(f"Saved all DS averaged ROC curve {plt_name}")
         plt.close()
 
     def create_combined_average_class_rocs(
