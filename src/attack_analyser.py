@@ -387,6 +387,9 @@ class AttackAnalyser:
     ):
         """Create graph with AUC for every dataset in every run."""
         _, ax_auc = plt.subplots(1, 1, figsize=(10, 10))
+
+        mean_list: List[List[float]] = []
+
         for ds_name, attack_store_list in avg_run_dict.items():
             auc_list: List[float] = []
 
@@ -394,11 +397,21 @@ class AttackAnalyser:
                 auc_list.append(
                     store.attack_result_df.loc["mean Entire dataset"]["AUC"])
 
+            mean_list.append(auc_list)
             ax_auc.plot(
                 runs,
                 auc_list,
                 label=f"{ds_name}",
             )
+
+        np_mean = np.vstack(mean_list)
+        np_mean = np.mean(np_mean, axis=0)
+        ax_auc.plot(
+            runs,
+            np_mean,
+            linestyle="dotted",
+            label="mean",
+        )
 
         ax_auc.set(xlabel="Run", ylabel="AUC")
         ax_auc.title.set_text("AUC over Runs")
@@ -420,6 +433,7 @@ class AttackAnalyser:
     ):
         """Create graph with fpr@0.01 for every dataset in every run."""
         _, ax_fpr01 = plt.subplots(1, 1, figsize=(10, 10))
+        mean_list: List[List[float]] = []
 
         for ds_name, attack_store_list in avg_run_dict.items():
             fpr01_list: List[float] = []
@@ -429,11 +443,21 @@ class AttackAnalyser:
                     store.attack_result_df.loc["mean Entire dataset"]
                     ["fpr@0.1"])
 
+            mean_list.append(fpr01_list)
             ax_fpr01.plot(
                 runs,
                 fpr01_list,
                 label=f"{ds_name}",
             )
+
+        np_mean = np.vstack(mean_list)
+        np_mean = np.mean(np_mean, axis=0)
+        ax_fpr01.plot(
+            runs,
+            np_mean,
+            linestyle="dotted",
+            label="mean",
+        )
 
         ax_fpr01.set(xlabel="Run", ylabel="fpr@0.1")
         ax_fpr01.title.set_text("fpr@0.1 over Runs")
@@ -455,6 +479,7 @@ class AttackAnalyser:
     ):
         """Create graph with fpr@0.001 for every dataset in every run."""
         _, ax_fpr0001 = plt.subplots(1, 1, figsize=(10, 10))
+        mean_list: List[List[float]] = []
 
         for ds_name, attack_store_list in avg_run_dict.items():
             fpr0001_list: List[float] = []
@@ -464,11 +489,22 @@ class AttackAnalyser:
                     store.attack_result_df.loc["mean Entire dataset"]
                     ["fpr@0.001"])
 
+            mean_list.append(fpr0001_list)
+
             ax_fpr0001.plot(
                 runs,
                 fpr0001_list,
                 label=f"{ds_name}",
             )
+
+        np_mean = np.vstack(mean_list)
+        np_mean = np.mean(np_mean, axis=0)
+        ax_fpr0001.plot(
+            runs,
+            np_mean,
+            linestyle="dotted",
+            label="mean",
+        )
 
         ax_fpr0001.set(xlabel="Run", ylabel="fpr@0.001")
         ax_fpr0001.title.set_text("fpr@0.001 over Runs")
