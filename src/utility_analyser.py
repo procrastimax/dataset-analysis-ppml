@@ -1,4 +1,5 @@
 import os
+import sys
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
@@ -8,7 +9,7 @@ import pandas as pd
 
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings
-from util import get_run_numbers, save_dataframe
+from util import save_dataframe
 
 pd.options.mode.chained_assignment = None
 
@@ -30,7 +31,8 @@ class UtilityAnalyser:
         if self.settings.analysis_run_numbers:
             self.run_numbers = self.settings.analysis_run_numbers
         else:
-            self.run_numbers = get_run_numbers(self.run_result_folder)
+            print("Error: No analysis run number range specified!")
+            sys.exit(1)
 
     def load_run_utility_df(self, run_number: int) -> pd.DataFrame:
         df_folder = os.path.join(self.run_result_folder, str(run_number),
@@ -144,20 +146,20 @@ class UtilityAnalyser:
 
         for i in run_df.iterrows():
             ds_name = i[1]["name"]
-            if "_" in ds_name:
-                ds_base_name = ds_name.split("_")[0]
-                if i[1]["type"] == "train":
-                    run_dict_accuracy[ds_base_name + "_train"].append(
-                        i[1]["accuracy"])
-                    run_dict_f1score[ds_base_name + "_train"].append(
-                        i[1]["f1-score"])
-                    run_dict_loss[ds_base_name + "_train"].append(i[1]["loss"])
-                elif i[1]["type"] == "test":
-                    run_dict_accuracy[ds_base_name + "_test"].append(
-                        i[1]["accuracy"])
-                    run_dict_f1score[ds_base_name + "_test"].append(
-                        i[1]["f1-score"])
-                    run_dict_loss[ds_base_name + "_test"].append(i[1]["loss"])
+
+            if "_gray" in ds_name:
+                ds_name = ds_name.split("_")[0] + "_gray"
+            elif "_" in ds_name:
+                ds_name = ds_name.split("_")[0]
+
+            if i[1]["type"] == "train":
+                run_dict_accuracy[ds_name + "_train"].append(i[1]["accuracy"])
+                run_dict_f1score[ds_name + "_train"].append(i[1]["f1-score"])
+                run_dict_loss[ds_name + "_train"].append(i[1]["loss"])
+            elif i[1]["type"] == "test":
+                run_dict_accuracy[ds_name + "_test"].append(i[1]["accuracy"])
+                run_dict_f1score[ds_name + "_test"].append(i[1]["f1-score"])
+                run_dict_loss[ds_name + "_test"].append(i[1]["loss"])
 
         df_acc = pd.DataFrame.from_dict(run_dict_accuracy)
         df_acc["avg_train"] = df_acc.filter(like="_train").mean(axis=1)
