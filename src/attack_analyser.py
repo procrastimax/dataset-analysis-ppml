@@ -11,7 +11,7 @@ import pandas as pd
 from attack_result_store import AttackResultStore, AttackType
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings
-from util import get_run_numbers, save_dataframe
+from util import save_dataframe
 
 pd.options.mode.chained_assignment = None
 
@@ -76,9 +76,10 @@ class AttackAnalyser:
     def compile_attack_results(self, attack_type: AttackType):
         # only use all existant run numbers (by scanning the run name folder), when the anaylsis run parameter is unset
         if self.settings.analysis_run_numbers is None:
-            runs = get_run_numbers(self.run_result_folder)
-        else:
-            runs = self.settings.analysis_run_numbers
+            print("No analysis run number range specified! Aborting...")
+            sys.exit(1)
+
+        runs = self.settings.analysis_run_numbers
 
         run_ds_name_dict: Dict[int, List[str]] = {}
 
@@ -346,10 +347,13 @@ class AttackAnalyser:
 
             for ds_name, store in result_dict.items():
                 # remove modifications from ds_name
-                if "_" in ds_name:
+                if "_gray" in ds_name:
+                    ds_name = ds_name.split("_")[0] + "_gray"
+                elif "_" in ds_name:
                     ds_name = ds_name.split("_")[0]
 
                 avg_run_dict[ds_name].append(store)
+                print(ds_name)
 
         # create an average ROC curve, where all datasets are averaged for a specific run
         # this ROC curve shall compare the average of all datasets between the runs
@@ -529,8 +533,11 @@ class AttackAnalyser:
         # a dict holding the list of attackresult stores for all datasets of this specific run
         run_dict: Dict[int, List[AttackResultStore]] = defaultdict(list)
 
-        for k, attack_store_list in avg_run_dict.items():
-            for i in range(len(attack_store_list)):
+        for k, v in avg_run_dict.items():
+            print(k, len(v))
+
+        for ds_name, attack_store_list in avg_run_dict.items():
+            for i in self.settings.analysis_run_numbers:
                 run_dict[i].append(attack_store_list[i])
 
         _, ax = plt.subplots(1, 1, figsize=(10, 10))
