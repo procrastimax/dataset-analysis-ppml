@@ -136,6 +136,10 @@ def main():
             if settings.is_compiling_evalulation:
                 compile_model_evaluation(settings)
 
+            # avoid OOM
+            tf.keras.backend.clear_session()
+            gc.collect()
+
             print("---")
             print(f"Done training/evaluating models from run {run}")
             print("---")
