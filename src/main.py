@@ -54,7 +54,6 @@ def main():
         settings.datasets.sort(
         )  # sort ds name list to create deterministic filenames
 
-    single_model_test_df: Optional[pd.DataFrame] = None
     ds_info_df_all: Optional[pd.DataFrame] = None
 
     print("=========================================")
@@ -105,6 +104,8 @@ def main():
             # update settings' run number for this iteration
             settings.run_number = int(run)
 
+            single_model_test_df: Optional[pd.DataFrame] = None
+
             for ds_name in settings.datasets:
                 settings.run_number = int(run)
                 ds = build_dataset(
@@ -135,7 +136,6 @@ def main():
 
             if settings.is_compiling_evalulation:
                 compile_model_evaluation(settings)
-
             # avoid OOM
             tf.keras.backend.clear_session()
             gc.collect()

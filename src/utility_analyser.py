@@ -51,7 +51,8 @@ class UtilityAnalyser:
         return df
 
     def analyse_utility(self):
-        acc_df, f1_df, loss_df = self.build_combined_model_utility_dfs()
+        acc_df, f1_df, loss_df = self.build_combined_model_utility_dfs(
+            self.settings.analysis_run_numbers)
 
         acc_df = acc_df.loc[self.run_numbers]
         f1_df = f1_df.loc[self.run_numbers]
@@ -123,7 +124,8 @@ class UtilityAnalyser:
         loss_fig.savefig(loss_vis_filename)
         save_dataframe(loss_df, loss_df_filename)
 
-    def build_combined_model_utility_dfs(self) -> Tuple[pd.DataFrame]:
+    def build_combined_model_utility_dfs(
+            self, runs: List[int]) -> Tuple[pd.DataFrame]:
         """Return a tuple of 3 dataframes. Each dataframes represents one utility anaylsis from the evaluated model.
 
         The dataframes have the following order in the tuple:
@@ -131,11 +133,16 @@ class UtilityAnalyser:
             2 -> F1-Score
             3 -> Loss
         """
-        # here we have a bug in the program
-        # every utility df from the '-em' cli parameter saves the complete utility values from all previous runs
-        # so loading only the last run's utility df is enough to get all utility data
-        last_run = self.run_numbers[-1]
-        run_df: pd.DataFrame = self.load_run_utility_df(last_run)
+        combined_utility_df: pd.DataFrame = None
+
+        for run in runs:
+            run_df: pd.DataFrame = self.load_run_utility_df(run)
+            run_df["run"] = run
+
+            if combined_utility_df is None:
+                combined_utility_df = run_df
+            else:
+                combined_utility_df = pd.concat([combined_utility_df, run_df])
 
         # this dict holds the name of the dataset as keys (cifar10_c52 and cifar10_30 are just cifar10)
         # to the keys the dict holds a list, one list entry is a tuple of (train value, test value)
@@ -144,7 +151,7 @@ class UtilityAnalyser:
         run_dict_f1score: Dict[str, List[float]] = defaultdict(list)
         run_dict_loss: Dict[str, List[float]] = defaultdict(list)
 
-        for i in run_df.iterrows():
+        for i in combined_utility_df.iterrows():
             ds_name = i[1]["name"]
 
             if "_gray" in ds_name:
@@ -164,14 +171,17 @@ class UtilityAnalyser:
         df_acc = pd.DataFrame.from_dict(run_dict_accuracy)
         df_acc["avg_train"] = df_acc.filter(like="_train").mean(axis=1)
         df_acc["avg_test"] = df_acc.filter(like="_test").mean(axis=1)
+        df_acc = df_acc.set_axis(runs)
 
         df_f1 = pd.DataFrame.from_dict(run_dict_f1score)
         df_f1["avg_train"] = df_f1.filter(like="_train").mean(axis=1)
         df_f1["avg_test"] = df_f1.filter(like="_test").mean(axis=1)
+        df_f1 = df_f1.set_axis(runs)
 
         df_loss = pd.DataFrame.from_dict(run_dict_loss)
         df_loss["avg_train"] = df_loss.filter(like="_train").mean(axis=1)
         df_loss["avg_test"] = df_loss.filter(like="_test").mean(axis=1)
+        df_loss = df_loss.set_axis(runs)
 
         return (df_acc, df_f1, df_loss)
 
