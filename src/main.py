@@ -152,6 +152,7 @@ def main():
 
     # normal case of user specified run number, run name, model and dataset
     elif settings.datasets is not None:
+        single_model_test_df: Optional[pd.DataFrame] = None
         for ds_name in settings.datasets:
             ds = build_dataset(
                 full_ds_name=ds_name,
