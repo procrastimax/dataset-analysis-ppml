@@ -2,11 +2,12 @@ import itertools
 import math
 import os
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from io import BytesIO
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import PIL
@@ -823,6 +824,20 @@ class AbstractDataset:
 
         std_dict["all"] = np.asarray(all_values).std()
         return std_dict
+
+    def visualize_dataset_sample_count(self):
+        class_number, _, class_dist = self.get_class_distribution()
+
+        counter = Counter(class_dist)
+
+        plt.figure(figsize=(10, 5))
+        plt.xticks(class_number)
+        plt.bar(counter.keys(), counter.values(), width=0.8)
+        plt.title(f"Class Sample Histogram - {self.dataset_name}")
+        plt.ylabel("Sample count")
+        plt.xlabel("Class label")
+        plt.savefig(f"{self.dataset_name}_sample_hist.png")
+        plt.close()
 
     def build_ds_info(
         self,
