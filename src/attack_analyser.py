@@ -353,7 +353,6 @@ class AttackAnalyser:
                     ds_name = ds_name.split("_")[0]
 
                 avg_run_dict[ds_name].append(store)
-                print(ds_name)
 
         # create an average ROC curve, where all datasets are averaged for a specific run
         # this ROC curve shall compare the average of all datasets between the runs
