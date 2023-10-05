@@ -211,6 +211,7 @@ class UtilityAnalyser:
 
         ax.set(xlabel=xLabel, ylabel=yLabel, title=title)
         ax.legend()
+        plt.xticks(run_range)
         plt.legend(loc=(1.04, 0))
         plt.subplots_adjust(right=0.72)
         ax.grid()
