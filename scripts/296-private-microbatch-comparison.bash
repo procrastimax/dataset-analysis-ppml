@@ -11,35 +11,32 @@
 
 ds='mnist fmnist cifar10 svhn'
 model="private_cnn"
-batch=512
+batch=256
 run_name="private-microbatch-comparison"
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in
-        0)
-            microbatch=1
-                ;;
-        1)
-            microbatch=8
-                ;;
-        2)
-            microbatch=16
-                ;;
-        3)
-            microbatch=32
-                ;;
-        4)
-            microbatch=64
-                ;;
-        5)
-            microbatch=128
-                ;;
-        6)
-            microbatch=256
-                ;;
-        7)
-            microbatch=512
-                ;;
+    0)
+        microbatch=1
+        ;;
+    1)
+        microbatch=8
+        ;;
+    2)
+        microbatch=16
+        ;;
+    3)
+        microbatch=32
+        ;;
+    4)
+        microbatch=64
+        ;;
+    5)
+        microbatch=128
+        ;;
+    6)
+        microbatch=256
+        ;;
 esac
 
 echo $run_name "$SLURM_ARRAY_TASK_ID" "-" "$ds" - "$model"
