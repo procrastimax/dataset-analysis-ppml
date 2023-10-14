@@ -89,7 +89,8 @@ class AttackAnalyser:
             )
             # load pararmeter.json and ds_name_list
             parameter_file_path = os.path.join(self.run_result_folder,
-                                               str(run), "parameter.json")
+                                               str(run),
+                                               "parameter_model_attack.json")
             ds_list: List[str] = None
             with open(parameter_file_path) as parameter_file:
                 parameter_dict = json.load(parameter_file)
@@ -98,7 +99,7 @@ class AttackAnalyser:
 
             if ds_list is None:
                 print(
-                    "Cannot load attack results, since the parameter.json file does not contain used dataset names for the runs!"
+                    "Cannot load attack results, since the parameter_model_attack.json file does not contain used dataset names for the runs!"
                 )
                 sys.exit(1)
 
@@ -170,7 +171,7 @@ class AttackAnalyser:
 
         plt_name = os.path.join(
             self.get_combined_ds_analysis_folder(run_number),
-            f"roc_combined_best_run_auc_{'-'.join(ds_name_list)}_results.png",
+            f"roc_combined_best_run_auc_{'-'.join(ds_name_list)}_results_{attack_type.value}.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
@@ -280,7 +281,7 @@ class AttackAnalyser:
 
         file_name = os.path.join(
             self.get_combined_ds_analysis_folder(run_number),
-            f"combined_df_{'_'.join(ds_names)}.csv",
+            f"combined_df_{'_'.join(ds_names)}_{attack_type.value}.csv",
         )
         os.makedirs(os.path.dirname(file_name), exist_ok=True)
         save_dataframe(combined_df.round(decimals=5), filename=file_name)
@@ -319,7 +320,7 @@ class AttackAnalyser:
 
         plt_name = os.path.join(
             self.get_combined_ds_analysis_folder(run_number),
-            f"roc_combined_average_{'-'.join(name_list)}_results.png",
+            f"roc_combined_average_{'-'.join(name_list)}_results_{attack_type.value}.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
@@ -418,6 +419,7 @@ class AttackAnalyser:
 
         ax_auc.set(xlabel="Run", ylabel="AUC")
         ax_auc.title.set_text("AUC over Runs")
+        plt.xticks(runs)
         plt.legend()
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -464,6 +466,7 @@ class AttackAnalyser:
 
         ax_fpr01.set(xlabel="Run", ylabel="fpr@0.1")
         ax_fpr01.title.set_text("fpr@0.1 over Runs")
+        plt.xticks(runs)
         ax_fpr01.legend()
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -511,6 +514,7 @@ class AttackAnalyser:
 
         ax_fpr0001.set(xlabel="Run", ylabel="fpr@0.001")
         ax_fpr0001.title.set_text("fpr@0.001 over Runs")
+        plt.xticks(runs)
         plt.legend()
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -531,9 +535,6 @@ class AttackAnalyser:
 
         # a dict holding the list of attackresult stores for all datasets of this specific run
         run_dict: Dict[int, List[AttackResultStore]] = defaultdict(list)
-
-        for k, v in avg_run_dict.items():
-            print(k, len(v))
 
         for ds_name, attack_store_list in avg_run_dict.items():
             for i in self.settings.analysis_run_numbers:
@@ -647,7 +648,7 @@ class AttackAnalyser:
 
         plt_name = os.path.join(
             self.analysis_combined_runs,
-            f"roc_combined_average_{ds_name}_results_class_wise_r{''.join(map(str,runs))}.png",
+            f"roc_combined_average_{ds_name}_results_class_wise_r{''.join(map(str,runs))}_{attack_type.value}.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
@@ -697,7 +698,7 @@ class AttackAnalyser:
 
         plt_name = os.path.join(
             self.analysis_combined_runs,
-            f"roc_combined_average_{ds_name}_results_entire_dataset_r{''.join(map(str,runs))}.png",
+            f"roc_combined_average_{ds_name}_results_entire_dataset_r{''.join(map(str,runs))}_{attack_type.value}.png",
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
