@@ -27,7 +27,7 @@ class RunSettings:
     privacy_epsilon: float = 1.0
     num_microbatches: int = None
     num_shadow_models: int = 32
-    adam_epsilon: float = 1e-7
+    adam_epsilon: float = 1e-5
 
     model_input_shape: Tuple[int, int, int] = (32, 32, 3)
     random_seed: int = 42

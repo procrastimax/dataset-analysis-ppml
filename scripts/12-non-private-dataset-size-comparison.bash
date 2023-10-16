@@ -35,7 +35,7 @@ case $SLURM_ARRAY_TASK_ID in
         ds='mnist_c100 cifar10_c100 fmnist_c100 svhn_c100'
         ;;
     7)
-        ds='mnist_c52 cifar10_c52 fmnist_c52 svhn_c52'
+        ds='mnist_c50 cifar10_c50 fmnist_c50 svhn_c50'
         ;;
 esac
 
