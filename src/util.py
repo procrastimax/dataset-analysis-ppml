@@ -123,7 +123,13 @@ def save_dataframe(
     header: bool = True,
 ):
     print(f"Saving dataframe as csv: {filename}")
-    df.to_csv(path_or_buf=filename, header=header, index=use_index, sep=sep)
+    df.to_csv(
+        path_or_buf=filename,
+        header=header,
+        index=use_index,
+        sep=sep,
+        float_format="%.4f",
+    )
 
 
 def plot_curve_with_area(x, y, xlabel, ylabel, ax, label, title: str,
