@@ -321,8 +321,8 @@ class AttackAnalyser:
             ax.plot(
                 store.fpr_grid,
                 store.mean_tpr,
-                label=
-                f"{store.ds_name} AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
+                label=f"{store.ds_name} AUC={avg_auc:.3f}",
+                # f"{store.ds_name} AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
             )
 
         ax.set(xlabel="FPR", ylabel="TPR")
@@ -598,8 +598,8 @@ class AttackAnalyser:
             ax.plot(
                 main_fpr_grid,
                 np_global_mean_tpr,
-                label=
-                f"Run {runs[k]} - AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
+                label=f"Run {runs[k]} - AUC={avg_auc:.3f}",
+                # f"Run {runs[k]} - AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
             )
 
         ax.set(xlabel="FPR", ylabel="TPR")
@@ -693,8 +693,8 @@ class AttackAnalyser:
             ax.plot(
                 fpr_grid,
                 tpr_mean,
-                label=
-                f"Run {store.run_number} AUC={avg_auc:.3f} FPR@0.1={fpr01:.3f} FPR@0.001={fpr0001:.3f}",
+                label=f"Run {store.run_number} AUC={avg_auc:.3f}",
+                # f"Run {store.run_number} AUC={avg_auc:.3f} FPR@0.1={fpr01:.3f} FPR@0.001={fpr0001:.3f}",
             )
 
         ax.set(xlabel="FPR", ylabel="TPR")

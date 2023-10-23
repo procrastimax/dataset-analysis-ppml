@@ -13,6 +13,8 @@ from util import save_dataframe
 
 pd.options.mode.chained_assignment = None
 
+FIGSIZE = (5, 5)
+
 
 class UtilityAnalyser:
 
@@ -195,7 +197,7 @@ class UtilityAnalyser:
         use_grid: bool = True,
         use_legend: bool = True,
     ) -> matplotlib.figure.Figure:
-        fig, ax = plt.subplots(figsize=(10, 10))
+        fig, ax = plt.subplots(figsize=FIGSIZE)
         for name, values in df.items():
             # dont include the average values in the graph
             if name.startswith("avg"):
