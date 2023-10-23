@@ -67,7 +67,7 @@ class UtilityAnalyser:
         )
         acc_df_filename = os.path.join(
             self.combined_result_folder,
-            f"accuracy_model_comparison_r{''.join(map(str,self.run_numbers))}",
+            f"accuracy_model_comparison_r{''.join(map(str,self.run_numbers))}.csv",
         )
         acc_fig = self._visualize_df(
             acc_df,
