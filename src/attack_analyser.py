@@ -94,14 +94,26 @@ class AttackAnalyser:
                                                str(run),
                                                "parameter_model_attack.json")
             ds_list: List[str] = None
-            with open(parameter_file_path) as parameter_file:
-                parameter_dict = json.load(parameter_file)
-                ds_list = parameter_dict["datasets"]
-                run_ds_name_dict[run] = ds_list
+            try:
+                with open(parameter_file_path) as parameter_file:
+                    parameter_dict = json.load(parameter_file)
+                    ds_list = parameter_dict["datasets"]
+                    run_ds_name_dict[run] = ds_list
+            except FileNotFoundError:
+                parameter_file_path_2 = os.path.join(self.run_result_folder,
+                                                     str(run),
+                                                     "parameter.json")
+                print(
+                    f"Could not find file: {parameter_file_path}. Trying other file: {parameter_file_path_2}"
+                )
+                with open(parameter_file_path_2) as parameter_file:
+                    parameter_dict = json.load(parameter_file)
+                    ds_list = parameter_dict["datasets"]
+                    run_ds_name_dict[run] = ds_list
 
             if ds_list is None:
                 print(
-                    "Cannot load attack results, since the parameter_model_attack.json file does not contain used dataset names for the runs!"
+                    "Cannot load attack results, since the parameter_model_attack.json/ parameter.json file does not contain used dataset names for the runs!"
                 )
                 sys.exit(1)
 
