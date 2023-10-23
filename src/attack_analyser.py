@@ -15,6 +15,8 @@ from util import save_dataframe
 
 pd.options.mode.chained_assignment = None
 
+FIGSIZE = (5, 5)
+
 
 class AttackAnalyser:
 
@@ -148,7 +150,7 @@ class AttackAnalyser:
         attack_stores: List[AttackResultStore],
         run_number: int,
     ):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         ds_name_list = []
@@ -184,7 +186,7 @@ class AttackAnalyser:
         attack_stores: List[AttackResultStore],
         run_number: int,
     ):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         ds_name_list = []
@@ -223,7 +225,7 @@ class AttackAnalyser:
         attack_stores: List[AttackResultStore],
         run_number: int,
     ):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         ds_name_list = []
@@ -292,7 +294,7 @@ class AttackAnalyser:
         attack_store: List[AttackResultStore],
         run_number: int,
     ):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         name_list = []
@@ -390,7 +392,7 @@ class AttackAnalyser:
         runs: List[int],
     ):
         """Create graph with AUC for every dataset in every run."""
-        _, ax_auc = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax_auc = plt.subplots(1, 1, figsize=FIGSIZE)
 
         mean_list: List[List[float]] = []
 
@@ -437,7 +439,7 @@ class AttackAnalyser:
         runs: List[int],
     ):
         """Create graph with fpr@0.01 for every dataset in every run."""
-        _, ax_fpr01 = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax_fpr01 = plt.subplots(1, 1, figsize=FIGSIZE)
         mean_list: List[List[float]] = []
 
         for ds_name, attack_store_list in avg_run_dict.items():
@@ -484,7 +486,7 @@ class AttackAnalyser:
         runs: List[int],
     ):
         """Create graph with fpr@0.001 for every dataset in every run."""
-        _, ax_fpr0001 = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax_fpr0001 = plt.subplots(1, 1, figsize=FIGSIZE)
         mean_list: List[List[float]] = []
 
         for ds_name, attack_store_list in avg_run_dict.items():
@@ -540,7 +542,7 @@ class AttackAnalyser:
             for i in self.settings.analysis_run_numbers:
                 run_dict[i].append(attack_store_list[i])
 
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         main_fpr_grid = None
@@ -662,7 +664,7 @@ class AttackAnalyser:
         runs: List[int],
         ds_name: Optional[str] = None,
     ):
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         for store in attack_store:
