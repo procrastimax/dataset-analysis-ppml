@@ -128,7 +128,7 @@ def save_dataframe(
         header=header,
         index=use_index,
         sep=sep,
-        float_format="%.4f",
+        float_format="%.3f",
     )
 
 
