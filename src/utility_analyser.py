@@ -199,23 +199,24 @@ class UtilityAnalyser:
     ) -> matplotlib.figure.Figure:
         fig, ax = plt.subplots(figsize=FIGSIZE)
         for name, values in df.items():
-            # dont include the average values in the graph
-            if name.startswith("avg"):
-                ax.plot(
-                    run_range,
-                    values,
-                    label=name,
-                    linestyle="dotted",
-                    linewidth=2,
-                )
-            else:
-                ax.plot(run_range, values, label=name)
+            if name.endswith("_test"):
+                name = name.removesuffix("_test")
+                if name.startswith("avg"):
+                    ax.plot(
+                        run_range,
+                        values,
+                        label=name,
+                        linestyle="dotted",
+                        linewidth=2,
+                    )
+                else:
+                    ax.plot(run_range, values, label=name)
 
         ax.set(xlabel=xLabel, ylabel=yLabel, title=title)
         ax.legend()
         plt.xticks(run_range)
-        #plt.legend(loc=(1.04, 0))
+        # plt.legend(loc=(1.04, 0))
         plt.legend()
-        #plt.subplots_adjust(right=0.72)
+        # plt.subplots_adjust(right=0.72)
         ax.grid()
         return fig
