@@ -73,7 +73,7 @@ def main():
         print(f"Found the following runs for {settings.run_name}: {runs}")
         for run in runs:
             parameter_file_path = os.path.join(run_result_folder, str(run),
-                                               "parameter.json")
+                                               "parameter_model_train.json")
             with open(parameter_file_path) as parameter_file:
                 parameter_dict = json.load(parameter_file)
                 # load and set run parameter from parameter.json file
@@ -93,7 +93,7 @@ def main():
 
             if settings.datasets is None:
                 print(
-                    "Cannot load attack results, since the parameter.json file does not contain used dataset names for the runs!"
+                    "Cannot load attack results, since the parameter_model_train.json file does not contain used dataset names for the runs!"
                 )
                 sys.exit(1)
 
