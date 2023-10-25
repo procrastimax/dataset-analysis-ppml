@@ -444,8 +444,16 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
 
     df = pd.DataFrame.from_dict(merged_dicts)
     df = df[[
-        "name", "type", "accuracy", "f1-score", "precision", "recall", "loss"
+        "name",
+        "type",
+        "accuracy",
+        "f1-score",
+        "precision",
+        "recall",
+        "loss",
+        "class-wise",
     ]]
+
     return df
 
 

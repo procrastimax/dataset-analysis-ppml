@@ -1,7 +1,7 @@
 import os
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 import numpy as np
 import tensorflow as tf
@@ -207,12 +207,12 @@ class Model(ABC):
         visualize_training(history=self.history,
                            img_name=os.path.join(folder_name, image_name))
 
-    def test_model(self, x: np.array, y: np.array) -> Dict[str, float]:
+    def test_model(self, x: np.array, y: np.array) -> Dict[str, Any]:
         """Run the model's prediction function on the given tf.data.Dataset.
 
         Return:
         ------
-        Tuple[float, float] -> (loss, accuracy)
+        Dict[str, Any]
 
         """
         loss, acc = self.model.evaluate(x,
@@ -221,6 +221,8 @@ class Model(ABC):
                                         verbose=2)
 
         performance_results = {"loss": loss, "accuracy": acc}
+        # F1-Scores of every class
+        class_performance_results: Dict[str, float] = {}
 
         pred = self.model.predict(x, batch_size=self.batch_size, verbose=2)
         # find likeliest class
@@ -245,6 +247,13 @@ class Model(ABC):
             "f1-score":
             report_dict["macro avg"]["f1-score"],
         })
+
+        for k, v in report_dict.items():
+            # all class performances start with the class number
+            if k.isdigit():
+                class_performance_results[k] = float(v["f1-score"])
+
+        performance_results["class-wise"] = class_performance_results
 
         return performance_results
 
