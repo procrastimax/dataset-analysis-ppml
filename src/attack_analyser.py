@@ -179,8 +179,8 @@ class AttackAnalyser:
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
         ax.title.set_text("Receiver Operator Characteristics - Best Run AUC")
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
+        plt.xlim([0.0001, 1])
+        plt.ylim([0.0001, 1])
         plt.legend()
 
         plt_name = os.path.join(
@@ -218,8 +218,8 @@ class AttackAnalyser:
         ax.set(aspect=1, xscale="log", yscale="log")
         ax.title.set_text(
             "Receiver Operator Characteristics - Best Run FPR@0.001")
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
+        plt.xlim([0.0001, 1])
+        plt.ylim([0.0001, 1])
         plt.legend()
 
         plt_name = os.path.join(
@@ -255,8 +255,8 @@ class AttackAnalyser:
         ax.set(aspect=1, xscale="log", yscale="log")
         ax.title.set_text(
             "Receiver Operator Characteristics - Best Run FPR@0.1")
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
+        plt.xlim([0.0001, 1])
+        plt.ylim([0.0001, 1])
         plt.legend()
 
         plt_name = os.path.join(
@@ -328,8 +328,8 @@ class AttackAnalyser:
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
         ax.title.set_text("Receiver Operator Characteristics - Averaged")
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
+        plt.xlim([0.0001, 1])
+        plt.ylim([0.0001, 1])
         plt.legend()
 
         plt_name = os.path.join(
@@ -605,8 +605,8 @@ class AttackAnalyser:
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
         ax.title.set_text("Receiver Operator Characteristics - Run Averaged")
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
+        plt.xlim([0.0001, 1])
+        plt.ylim([0.0001, 1])
         plt.legend()
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -657,8 +657,8 @@ class AttackAnalyser:
                 axs[run_number].set(aspect=1, xscale="log", yscale="log")
                 axs[run_number].title.set_text(f"Run {run_number}")
                 axs[run_number].legend(loc="lower right")
-                axs[run_number].set_xlim([0.00001, 1])
-                axs[run_number].set_ylim([0.00001, 1])
+                axs[run_number].set_xlim([0.0001, 1])
+                axs[run_number].set_ylim([0.0001, 1])
 
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -706,8 +706,8 @@ class AttackAnalyser:
         ax.title.set_text(
             f"Receiver Operator Characteristics - All Runs ({attack_type.value}, {ds_name})"
         )
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
+        plt.xlim([0.0001, 1])
+        plt.ylim([0.0001, 1])
         plt.legend()
 
         plt_name = os.path.join(
