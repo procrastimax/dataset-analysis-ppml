@@ -53,12 +53,13 @@ class UtilityAnalyser:
         return df
 
     def analyse_utility(self):
-        acc_df, f1_df, loss_df = self.build_combined_model_utility_dfs(
+        acc_df, f1_df, loss_df, gap_df = self.build_combined_model_utility_dfs(
             self.settings.analysis_run_numbers)
 
         acc_df = acc_df.loc[self.run_numbers]
         f1_df = f1_df.loc[self.run_numbers]
         loss_df = loss_df.loc[self.run_numbers]
+        gap_df = gap_df.loc[self.run_numbers]
 
         ###
         # Accuracy
@@ -74,9 +75,9 @@ class UtilityAnalyser:
         acc_fig = self._visualize_df(
             acc_df,
             run_range=self.run_numbers,
-            yLabel="accuracy",
-            xLabel="run number",
-            title="Model accuracy comparison between mutliple runs",
+            yLabel="Accuracy",
+            xLabel="Run Number",
+            title="Model Accuracy Comparison - Mutliple Runs",
         )
         print(f"Saving accuracy comparison figure to {acc_vis_filename}")
         acc_fig.savefig(acc_vis_filename)
@@ -96,9 +97,9 @@ class UtilityAnalyser:
         f1_fig = self._visualize_df(
             f1_df,
             run_range=self.run_numbers,
-            yLabel="f1-score",
-            xLabel="run number",
-            title="Model f1-score comparison between mutliple runs",
+            yLabel="F1-Score",
+            xLabel="Run Number",
+            title="Model F1-Score Comparison - Mutliple Runs",
         )
         print(f"Saving f1-score comparison figure to {f1score_vis_filename}")
         f1_fig.savefig(f1score_vis_filename)
@@ -118,13 +119,35 @@ class UtilityAnalyser:
         loss_fig = self._visualize_df(
             loss_df,
             run_range=self.run_numbers,
-            yLabel="loss",
-            xLabel="run number",
-            title="Model loss comparison between mutliple runs",
+            yLabel="Loss",
+            xLabel="Run Number",
+            title="Model Loss Comparison - Mutliple Runs",
         )
         print(f"Saving loss comparison figure to {f1score_vis_filename}")
         loss_fig.savefig(loss_vis_filename)
         save_dataframe(loss_df, loss_df_filename)
+
+        ###
+        # Train/Test Gap
+        ###
+        gap_df_filename = os.path.join(
+            self.combined_result_folder,
+            f"gap_model_comparison_r{''.join(map(str,self.run_numbers))}.csv",
+        )
+        gap_vis_filename: str = os.path.join(
+            self.combined_result_folder,
+            f"run_gap_comparison_r{''.join(map(str,self.run_numbers))}.png",
+        )
+        gap_fig = self._visualize_df(
+            gap_df,
+            run_range=self.run_numbers,
+            yLabel="Train/Test Gap",
+            xLabel="Run Number",
+            title="Model Train/ Test Gap Comparison - Mutliple Runs",
+        )
+        print(f"Saving train/test gap comparison figure to {gap_vis_filename}")
+        gap_fig.savefig(gap_vis_filename)
+        save_dataframe(gap_df, gap_df_filename)
 
     def build_combined_model_utility_dfs(
             self, runs: List[int]) -> Tuple[pd.DataFrame]:
@@ -134,6 +157,7 @@ class UtilityAnalyser:
             1 -> Accuracy
             2 -> F1-Score
             3 -> Loss
+            4 -> Train/Test Gap
         """
         combined_utility_df: pd.DataFrame = None
 
@@ -152,6 +176,7 @@ class UtilityAnalyser:
         run_dict_accuracy: Dict[str, List[float]] = defaultdict(list)
         run_dict_f1score: Dict[str, List[float]] = defaultdict(list)
         run_dict_loss: Dict[str, List[float]] = defaultdict(list)
+        run_dict_gap: Dict[str, List[float]] = defaultdict(list)
 
         for i in combined_utility_df.iterrows():
             ds_name = i[1]["name"]
@@ -170,6 +195,8 @@ class UtilityAnalyser:
                 run_dict_f1score[ds_name + "_test"].append(i[1]["f1-score"])
                 run_dict_loss[ds_name + "_test"].append(i[1]["loss"])
 
+            run_dict_gap[ds_name + "_test"].append(i[1]["accuracy"])
+
         df_acc = pd.DataFrame.from_dict(run_dict_accuracy)
         df_acc["avg_train"] = df_acc.filter(like="_train").mean(axis=1)
         df_acc["avg_test"] = df_acc.filter(like="_test").mean(axis=1)
@@ -185,7 +212,17 @@ class UtilityAnalyser:
         df_loss["avg_test"] = df_loss.filter(like="_test").mean(axis=1)
         df_loss = df_loss.set_axis(runs)
 
-        return (df_acc, df_f1, df_loss)
+        for k, acc_list in run_dict_gap.items():
+            diff_acc_list = []
+            for i in range(0, len(acc_list) - 1, 2):
+                diff_acc_list.append(acc_list[i] - acc_list[i + 1])
+            run_dict_gap[k] = diff_acc_list
+
+        df_gap = pd.DataFrame.from_dict(run_dict_gap)
+        df_gap["avg_test"] = df_gap.filter(like="_test").mean(axis=1)
+        df_gap = df_gap.set_axis(runs)
+
+        return (df_acc, df_f1, df_loss, df_gap)
 
     def _visualize_df(
         self,
