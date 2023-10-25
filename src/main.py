@@ -74,22 +74,47 @@ def main():
         for run in runs:
             parameter_file_path = os.path.join(run_result_folder, str(run),
                                                "parameter_model_train.json")
-            with open(parameter_file_path) as parameter_file:
-                parameter_dict = json.load(parameter_file)
-                # load and set run parameter from parameter.json file
-                settings.epochs = parameter_dict["epochs"]
-                settings.batch = parameter_dict["batch"]
-                settings.learning_rate = parameter_dict["learning_rate"]
-                settings.ema_momentum = parameter_dict["ema_momentum"]
-                settings.weight_decay = parameter_dict["weight_decay"]
-                settings.delta = parameter_dict["delta"]
-                settings.l2_norm_clip = parameter_dict["l2_norm_clip"]
-                settings.privacy_epsilon = parameter_dict["privacy_epsilon"]
-                settings.num_shadow_models = parameter_dict[
-                    "num_shadow_models"]
-                settings.adam_epsilon = parameter_dict["adam_epsilon"]
-                settings.random_seed = parameter_dict["random_seed"]
-                settings.datasets = parameter_dict["datasets"]
+            parameter_file_path_old = os.path.join(run_result_folder, str(run),
+                                                   "parameter.json")
+            try:
+                with open(parameter_file_path) as parameter_file:
+                    parameter_dict = json.load(parameter_file)
+                    # load and set run parameter from parameter.json file
+                    settings.epochs = parameter_dict["epochs"]
+                    settings.batch = parameter_dict["batch"]
+                    settings.learning_rate = parameter_dict["learning_rate"]
+                    settings.ema_momentum = parameter_dict["ema_momentum"]
+                    settings.weight_decay = parameter_dict["weight_decay"]
+                    settings.delta = parameter_dict["delta"]
+                    settings.l2_norm_clip = parameter_dict["l2_norm_clip"]
+                    settings.privacy_epsilon = parameter_dict[
+                        "privacy_epsilon"]
+                    settings.num_shadow_models = parameter_dict[
+                        "num_shadow_models"]
+                    settings.adam_epsilon = parameter_dict["adam_epsilon"]
+                    settings.random_seed = parameter_dict["random_seed"]
+                    settings.datasets = parameter_dict["datasets"]
+            except FileNotFoundError:
+                print(
+                    f"Could not find file {parameter_file_path} - trying older file name {parameter_file_path_old}"
+                )
+                with open(parameter_file_path_old) as parameter_file:
+                    parameter_dict = json.load(parameter_file)
+                    # load and set run parameter from parameter.json file
+                    settings.epochs = parameter_dict["epochs"]
+                    settings.batch = parameter_dict["batch"]
+                    settings.learning_rate = parameter_dict["learning_rate"]
+                    settings.ema_momentum = parameter_dict["ema_momentum"]
+                    settings.weight_decay = parameter_dict["weight_decay"]
+                    settings.delta = parameter_dict["delta"]
+                    settings.l2_norm_clip = parameter_dict["l2_norm_clip"]
+                    settings.privacy_epsilon = parameter_dict[
+                        "privacy_epsilon"]
+                    settings.num_shadow_models = parameter_dict[
+                        "num_shadow_models"]
+                    settings.adam_epsilon = parameter_dict["adam_epsilon"]
+                    settings.random_seed = parameter_dict["random_seed"]
+                    settings.datasets = parameter_dict["datasets"]
 
             if settings.datasets is None:
                 print(
