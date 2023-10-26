@@ -293,6 +293,16 @@ class AttackAnalyser:
             combined_df = pd.concat([combined_df, ds_attack_result_df])
             ds_names.append(store.ds_name)
 
+        # create average attack values
+        avg_auc = combined_df.loc["mean Entire dataset"]["AUC"].mean(axis=0)
+        avg_fpr01 = combined_df.loc["mean Entire dataset"]["fpr@0.1"].mean(
+            axis=0)
+        avg_fpr0001 = combined_df.loc["mean Entire dataset"]["fpr@0.001"].mean(
+            axis=0)
+
+        average_row = ["average", "", avg_auc, avg_fpr01, avg_fpr0001]
+        combined_df.loc["average"] = average_row
+
         file_name = os.path.join(
             self.get_combined_ds_analysis_folder(run_number),
             f"combined_df_{'_'.join(ds_names)}_{attack_type.value}.csv",
