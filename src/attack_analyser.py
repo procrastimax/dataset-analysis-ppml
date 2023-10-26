@@ -88,6 +88,7 @@ class AttackAnalyser:
 
         run_ds_name_dict: Dict[int, List[str]] = {}
 
+        run_combined_df = None
         for run in runs:
             print(
                 f" --- Creating attack analysis for run: {self.settings.run_name} -> {run} ---"
@@ -123,7 +124,16 @@ class AttackAnalyser:
             result_dict = self.load_attack_results(attack_type=attack_type,
                                                    run_number=run,
                                                    ds_name_list=ds_list)
-            self._compile_attack_results(attack_type, result_dict, run)
+            df = self._compile_attack_results(attack_type, result_dict, run)
+            df = df.loc[["mean Entire dataset", "average"]]
+            if run_combined_df is None:
+                run_combined_df = df
+            else:
+                run_combined_df = pd.concat([run_combined_df, df])
+
+        run_combined_df_filepath = os.path.join(self.analysis_combined_runs,
+                                                "attack_metrics_combined.csv")
+        save_dataframe(run_combined_df, filename=run_combined_df_filepath)
 
         # only combine multiple runs if there are any
         if len(runs) > 1:
@@ -136,7 +146,7 @@ class AttackAnalyser:
         attack_type: AttackType,
         attack_result_dict: Dict[str, AttackResultStore],
         run_number: int,
-    ):
+    ) -> pd.DataFrame:
         """Create an overview of compiled attack results for a single run."""
         for ds_name, store in attack_result_dict.items():
             store.create_entire_dataset_combined_roc_curve()
@@ -148,7 +158,7 @@ class AttackAnalyser:
 
         # create figures to compare the best runs of each dataset with each other
         attack_stores = list(attack_result_dict.values())
-        self.create_combined_df(attack_type, attack_stores, run_number)
+        df = self.create_combined_df(attack_type, attack_stores, run_number)
 
         # dont currently create the best run graphics
         # self.create_combined_best_run_fpr0001(attack_type, attack_stores,
@@ -160,6 +170,8 @@ class AttackAnalyser:
 
         self.create_combined_averaged_roc_curve(attack_type, attack_stores,
                                                 run_number)
+
+        return df
 
     def create_combined_best_run_auc(
         self,
@@ -273,7 +285,7 @@ class AttackAnalyser:
         attack_type: AttackType,
         attack_stores: List[AttackResultStore],
         run_number: int,
-    ):
+    ) -> pd.DataFrame:
         combined_df = pd.DataFrame()
 
         ds_names = []
@@ -309,6 +321,8 @@ class AttackAnalyser:
         )
         os.makedirs(os.path.dirname(file_name), exist_ok=True)
         save_dataframe(combined_df.round(decimals=3), filename=file_name)
+
+        return combined_df
 
     def create_combined_averaged_roc_curve(
         self,
