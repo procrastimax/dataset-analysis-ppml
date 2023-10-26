@@ -284,8 +284,8 @@ class AttackAnalyser:
             ds_attack_result_df = ds_attack_result_df[[
                 "dataset",
                 "attack type",
-                "Attacker advantage",
-                "Positive predictive value",
+                # "Attacker advantage",
+                # "Positive predictive value",
                 "AUC",
                 "fpr@0.1",
                 "fpr@0.001",
@@ -298,7 +298,7 @@ class AttackAnalyser:
             f"combined_df_{'_'.join(ds_names)}_{attack_type.value}.csv",
         )
         os.makedirs(os.path.dirname(file_name), exist_ok=True)
-        save_dataframe(combined_df.round(decimals=5), filename=file_name)
+        save_dataframe(combined_df.round(decimals=3), filename=file_name)
 
     def create_combined_averaged_roc_curve(
         self,
