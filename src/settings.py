@@ -36,6 +36,9 @@ class RunSettings:
 
     analysis_run_numbers: Optional[int] = None
 
+    x_axis_name: Optional[str] = None
+    x_axis_values: Optional[List[Any]] = None
+
     is_train_model: bool = False
     is_evaluating_model: bool = False
     is_compiling_evalulation: bool = False
@@ -50,9 +53,8 @@ class RunSettings:
 
     def __post_init__(self):
         """Post init function to restore the field's default values when initialized with None."""
-
         # TODO: unterschied zwischen num_microbatches 0 and 256?
-        #if self.num_microbatches is None:
+        # if self.num_microbatches is None:
         #    self.num_microbatches = self.batch
 
         # if the passed field was None, then apply the dataclasses' default field value
@@ -88,11 +90,13 @@ class RunSettings:
 
 
 def convert_str_range_to_int_list(run_numbers_str: str) -> List[int]:
-    """convert analysis run format to list of ints
+    """Convert analysis run format to list of ints.
+
     format for analysis run numbers can be:
     - list = 1,2,3,4
     - range = 1-5
-    - list + range = 1,2,3,5-9"""
+    - list + range = 1,2,3,5-9
+    """
 
     def convert_str_to_int(num_str: str) -> int:
         try:
@@ -173,6 +177,8 @@ def create_settings_from_args(args):
         is_forcing_ds_info_regeneration=args.force_ds_info_regeneration,
         is_generating_privacy_report=args.generate_privacy_report,
         analysis_run_numbers=analysis_run_numbers,
+        x_axis_name=args.xName,
+        x_axis_values=args.xValues,
     )
 
 
@@ -366,4 +372,11 @@ def create_arg_parse_instance() -> ArgumentParser:
         "Dont train/load anything, just generate a privacy report for the given values.",
         action="store_true",
     )
+
+    parser.add_argument("--xName",
+                        help="Name of the X axis for graph generation",
+                        type=str)
+    parser.add_argument("--xValues",
+                        help="X axis values for graph generation",
+                        nargs="+")
     return parser

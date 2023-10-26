@@ -26,6 +26,9 @@ class UtilityAnalyser:
         self.run_result_folder = os.path.join(self.result_path,
                                               self.model_name, self.run_name)
 
+        self.x_axis_name = settings.x_axis_name
+        self.x_axis_values = settings.x_axis_values
+
         self.combined_result_folder = os.path.join(
             self.run_result_folder, "utility-analysis-combined")
         check_create_folder(self.combined_result_folder)
@@ -239,6 +242,9 @@ class UtilityAnalyser:
             if name.endswith("_test"):
                 name = name.removesuffix("_test")
                 if name.startswith("avg"):
+                    if self.x_axis_values is not None:
+                        run_range = self.x_axis_values
+
                     ax.plot(
                         run_range,
                         values,
@@ -249,7 +255,10 @@ class UtilityAnalyser:
                 else:
                     ax.plot(run_range, values, label=name)
 
-        ax.set(xlabel=xLabel, ylabel=yLabel, title=title)
+        if self.x_axis_name is not None:
+            ax.set(xlabel=self.x_axis_name, ylabel=yLabel, title=title)
+        else:
+            ax.set(xlabel=xLabel, ylabel=yLabel, title=title)
         ax.legend()
         plt.xticks(run_range)
         # plt.legend(loc=(1.04, 0))
