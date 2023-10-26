@@ -144,7 +144,7 @@ class UtilityAnalyser:
         gap_fig = self._visualize_df(
             gap_df,
             run_range=self.run_numbers,
-            yLabel="Train/Test Gap",
+            yLabel="Train/ Test Gap",
             xLabel="Run Number",
             title="Model Train/ Test Gap Comparison - Mutliple Runs",
         )
@@ -242,6 +242,7 @@ class UtilityAnalyser:
             if name.endswith("_test"):
                 name = name.removesuffix("_test")
                 if name.startswith("avg"):
+                    name = name.replace("avg", "average")
                     if self.x_axis_values is not None:
                         run_range = self.x_axis_values
 
@@ -249,20 +250,18 @@ class UtilityAnalyser:
                         run_range,
                         values,
                         label=name,
-                        linestyle="dotted",
-                        linewidth=2,
+                        linestyle="dashed",
+                        linewidth=3,
                     )
                 else:
                     ax.plot(run_range, values, label=name)
 
         if self.x_axis_name is not None:
-            ax.set(xlabel=self.x_axis_name, ylabel=yLabel, title=title)
+            ax.set(xlabel=self.x_axis_name, ylabel=yLabel)
         else:
-            ax.set(xlabel=xLabel, ylabel=yLabel, title=title)
+            ax.set(xlabel=xLabel, ylabel=yLabel)
         ax.legend()
         plt.xticks(run_range)
-        # plt.legend(loc=(1.04, 0))
         plt.legend()
-        # plt.subplots_adjust(right=0.72)
         ax.grid()
         return fig

@@ -23,6 +23,9 @@ class AttackType(Enum):
     MIA = "mia"
 
 
+FIGSIZE = (5, 5)
+
+
 @dataclass
 class AttackResultStore:
     """Stores all attack result data for an attack."""
@@ -171,7 +174,7 @@ class AttackResultStore:
         entire_ds_attack_list.sort(key=lambda x: x.get_auc(), reverse=True)
 
         print("Generating all in one ROC curve plot")
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         for res, title in zip(entire_ds_attack_list,
                               range(len(self.attack_result_list))):
             label = f"Model #{title} auc={res.get_auc():.3f}"
@@ -182,8 +185,7 @@ class AttackResultStore:
                     ax=ax,
                     label=label,
                     use_log_scale=True,
-                    title=
-                    f"All Shadow Model ROC Curves ({self.attack_type.value}, {self.ds_name})",
+                    title=None,
                 ),
             )
         plt.legend()
@@ -233,7 +235,7 @@ class AttackResultStore:
                 v, fpr_grid=fpr_grid)
             class_wise_mean_tpr_dict[k] = mean_tpr
 
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         for k, v in class_wise_mean_tpr_dict.items():
@@ -241,12 +243,8 @@ class AttackResultStore:
 
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text(
-            f"Class-wise Attack ROC Curve ({self.attack_type.value}, {self.ds_name})"
-        )
-
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
+        plt.xlim([0.0001, 1])
+        plt.ylim([0.0001, 1])
         plt.legend()
 
         plt_name = os.path.join(
@@ -301,7 +299,7 @@ class AttackResultStore:
         fpr0001 = self.attack_result_df.loc["mean Entire dataset"]["fpr@0.001"]
         fpr01 = self.attack_result_df.loc["mean Entire dataset"]["fpr@0.1"]
 
-        _, ax = plt.subplots(1, 1, figsize=(10, 10))
+        _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         if generate_std_area:
             std_tpr = tpr_int.std(axis=0)
             tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
@@ -319,16 +317,13 @@ class AttackResultStore:
             "b",
             lw=2,
             label=
-            f"Average ROC - AUC={avg_auc:.3f} FPR@0.001={fpr0001:.3f} FPR@0.1={fpr01:.3f}",
+            f"Average - AUC={avg_auc:.3f} FPR@0.001={fpr0001:.3f} FPR@0.1={fpr01:.3f}",
         )
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text(
-            f"Entire Dataset Attack ROC Curve ({self.attack_type.value}, {self.ds_name})"
-        )
 
-        plt.xlim([0.00001, 1])
-        plt.ylim([0.00001, 1])
+        plt.xlim([0.0001, 1])
+        plt.ylim([0.0001, 1])
         plt.legend()
 
         options: str = ""

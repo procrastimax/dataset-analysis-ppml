@@ -32,6 +32,9 @@ class AttackAnalyser:
         self.settings: RunSettings = settings
         self.model_path: str = model_path
 
+        self.x_axis_name = settings.x_axis_name
+        self.x_axis_values = settings.x_axis_values
+
         # base folder where all individual runs are saved
         self.run_result_folder = os.path.join(result_path, settings.model_name,
                                               settings.run_name)
@@ -146,12 +149,14 @@ class AttackAnalyser:
         # create figures to compare the best runs of each dataset with each other
         attack_stores = list(attack_result_dict.values())
         self.create_combined_df(attack_type, attack_stores, run_number)
-        self.create_combined_best_run_fpr0001(attack_type, attack_stores,
-                                              run_number)
-        self.create_combined_best_run_fpr01(attack_type, attack_stores,
-                                            run_number)
-        self.create_combined_best_run_auc(attack_type, attack_stores,
-                                          run_number)
+
+        # dont currently create the best run graphics
+        # self.create_combined_best_run_fpr0001(attack_type, attack_stores,
+        #                                      run_number)
+        # self.create_combined_best_run_fpr01(attack_type, attack_stores,
+        #                                    run_number)
+        # self.create_combined_best_run_auc(attack_type, attack_stores,
+        #                                  run_number)
 
         self.create_combined_averaged_roc_curve(attack_type, attack_stores,
                                                 run_number)
@@ -178,7 +183,6 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("Receiver Operator Characteristics - Best Run AUC")
         plt.xlim([0.0001, 1])
         plt.ylim([0.0001, 1])
         plt.legend()
@@ -216,8 +220,6 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text(
-            "Receiver Operator Characteristics - Best Run FPR@0.001")
         plt.xlim([0.0001, 1])
         plt.ylim([0.0001, 1])
         plt.legend()
@@ -253,8 +255,6 @@ class AttackAnalyser:
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text(
-            "Receiver Operator Characteristics - Best Run FPR@0.1")
         plt.xlim([0.0001, 1])
         plt.ylim([0.0001, 1])
         plt.legend()
@@ -312,22 +312,26 @@ class AttackAnalyser:
         name_list = []
 
         for store in attack_store:
-            name_list.append(store.ds_name)
+            name = store.ds_name
+            if "" in name:
+                name = name.split("_")[0]
+
+            name_list.append(name)
             avg_auc = store.attack_result_df.loc["mean Entire dataset"]["AUC"]
-            avg_fpr01 = store.attack_result_df.loc["mean Entire dataset"][
-                "fpr@0.1"]
-            avg_fpr0001 = store.attack_result_df.loc["mean Entire dataset"][
-                "fpr@0.001"]
+            # avg_fpr01 = store.attack_result_df.loc["mean Entire dataset"][
+            #    "fpr@0.1"]
+            # avg_fpr0001 = store.attack_result_df.loc["mean Entire dataset"][
+            #    "fpr@0.001"]
+
             ax.plot(
                 store.fpr_grid,
                 store.mean_tpr,
-                label=f"{store.ds_name} AUC={avg_auc:.3f}",
+                label=f"{name} AUC={avg_auc:.3f}",
                 # f"{store.ds_name} AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
             )
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("Receiver Operator Characteristics - Averaged")
         plt.xlim([0.0001, 1])
         plt.ylim([0.0001, 1])
         plt.legend()
@@ -408,6 +412,10 @@ class AttackAnalyser:
 
         mean_list: List[List[float]] = []
 
+        x_values = runs
+        if self.x_axis_values is not None:
+            x_values = self.x_axis_values
+
         for ds_name, attack_store_list in avg_run_dict.items():
             auc_list: List[float] = []
 
@@ -417,24 +425,30 @@ class AttackAnalyser:
 
             mean_list.append(auc_list)
             ax_auc.plot(
-                runs,
+                x_values,
                 auc_list,
                 label=f"{ds_name}",
             )
 
         np_mean = np.vstack(mean_list)
         np_mean = np.mean(np_mean, axis=0)
+
         ax_auc.plot(
-            runs,
+            x_values,
             np_mean,
-            linestyle="dotted",
-            label="mean",
+            linestyle="dashed",
+            linewidth=3,
+            label="average",
         )
 
-        ax_auc.set(xlabel="Run", ylabel="AUC")
-        ax_auc.title.set_text("AUC over Runs")
-        plt.xticks(runs)
+        x_name = "Run"
+        if self.x_axis_name is not None:
+            x_name = self.x_axis_name
+
+        ax_auc.set(xlabel=x_name, ylabel="AUC")
+        plt.xticks(x_values)
         plt.legend()
+        plt.grid(True)
         plt_name = os.path.join(
             self.analysis_combined_runs,
             f"auc_over_runs_r{''.join(map(str,runs))}.png",
@@ -454,6 +468,10 @@ class AttackAnalyser:
         _, ax_fpr01 = plt.subplots(1, 1, figsize=FIGSIZE)
         mean_list: List[List[float]] = []
 
+        x_values = runs
+        if self.x_axis_values is not None:
+            x_values = self.x_axis_values
+
         for ds_name, attack_store_list in avg_run_dict.items():
             fpr01_list: List[float] = []
 
@@ -464,7 +482,7 @@ class AttackAnalyser:
 
             mean_list.append(fpr01_list)
             ax_fpr01.plot(
-                runs,
+                x_values,
                 fpr01_list,
                 label=f"{ds_name}",
             )
@@ -472,15 +490,19 @@ class AttackAnalyser:
         np_mean = np.vstack(mean_list)
         np_mean = np.mean(np_mean, axis=0)
         ax_fpr01.plot(
-            runs,
+            x_values,
             np_mean,
-            linestyle="dotted",
-            label="mean",
+            linestyle="dashed",
+            linewidth=3,
+            label="average",
         )
 
-        ax_fpr01.set(xlabel="Run", ylabel="fpr@0.1")
-        ax_fpr01.title.set_text("fpr@0.1 over Runs")
-        plt.xticks(runs)
+        x_name = "Run"
+        if self.x_axis_name is not None:
+            x_name = self.x_axis_name
+        ax_fpr01.set(xlabel=x_name, ylabel="FPR@0.1")
+        plt.xticks(x_values)
+        plt.grid(True)
         ax_fpr01.legend()
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -501,6 +523,10 @@ class AttackAnalyser:
         _, ax_fpr0001 = plt.subplots(1, 1, figsize=FIGSIZE)
         mean_list: List[List[float]] = []
 
+        x_values = runs
+        if self.x_axis_values is not None:
+            x_values = self.x_axis_values
+
         for ds_name, attack_store_list in avg_run_dict.items():
             fpr0001_list: List[float] = []
 
@@ -512,7 +538,7 @@ class AttackAnalyser:
             mean_list.append(fpr0001_list)
 
             ax_fpr0001.plot(
-                runs,
+                x_values,
                 fpr0001_list,
                 label=f"{ds_name}",
             )
@@ -520,15 +546,19 @@ class AttackAnalyser:
         np_mean = np.vstack(mean_list)
         np_mean = np.mean(np_mean, axis=0)
         ax_fpr0001.plot(
-            runs,
+            x_values,
             np_mean,
-            linestyle="dotted",
-            label="mean",
+            linestyle="dashed",
+            linewidth=3,
+            label="average",
         )
 
-        ax_fpr0001.set(xlabel="Run", ylabel="fpr@0.001")
-        ax_fpr0001.title.set_text("fpr@0.001 over Runs")
-        plt.xticks(runs)
+        x_name = "Run"
+        if self.x_axis_name is not None:
+            x_name = self.x_axis_name
+        ax_fpr0001.set(xlabel=x_name, ylabel="FPR@0.001")
+        plt.xticks(x_values)
+        plt.grid(True)
         plt.legend()
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -549,6 +579,10 @@ class AttackAnalyser:
 
         # a dict holding the list of attackresult stores for all datasets of this specific run
         run_dict: Dict[int, List[AttackResultStore]] = defaultdict(list)
+
+        x_values = runs
+        if self.x_axis_values is not None:
+            x_values = self.x_axis_values
 
         for ds_name, attack_store_list in avg_run_dict.items():
             for i in self.settings.analysis_run_numbers:
@@ -592,22 +626,27 @@ class AttackAnalyser:
             np_global_mean_tpr = np.mean(mean_tpr_list, axis=0)
 
             avg_auc = sum(mean_auc_list) / len(mean_auc_list)
-            avg_fpr01 = sum(mean_fpr01_list) / len(mean_fpr01_list)
-            avg_fpr0001 = sum(mean_fpr0001_list) / len(mean_fpr0001_list)
+            # avg_fpr01 = sum(mean_fpr01_list) / len(mean_fpr01_list)
+            # avg_fpr0001 = sum(mean_fpr0001_list) / len(mean_fpr0001_list)
 
             ax.plot(
                 main_fpr_grid,
                 np_global_mean_tpr,
-                label=f"Run {runs[k]} - AUC={avg_auc:.3f}",
+                label=f"{x_values[k]} AUC={avg_auc:.3f}",
                 # f"Run {runs[k]} - AUC={avg_auc:.3f} FPR@0.1={avg_fpr01:.3f} FPR@0.001={avg_fpr0001:.3f}",
             )
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
-        ax.title.set_text("Receiver Operator Characteristics - Run Averaged")
         plt.xlim([0.0001, 1])
         plt.ylim([0.0001, 1])
-        plt.legend()
+
+        title = None
+        if self.x_axis_name is not None:
+            title = self.x_axis_name
+
+        # plt.legend(title=title, fontsize="small", title_fontsize="small")
+        plt.legend(title=title)
         plt_name = os.path.join(
             self.analysis_combined_runs,
             f"roc_run_averaged_all_datasets_r{''.join(map(str,runs))}.png",
@@ -679,6 +718,10 @@ class AttackAnalyser:
         _, ax = plt.subplots(1, 1, figsize=FIGSIZE)
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
+        x_values = runs
+        if self.x_axis_values is not None:
+            x_values = self.x_axis_values
+
         for store in attack_store:
             entire_dataset_result_list = store.get_single_entire_ds_attack_results(
             )
@@ -686,15 +729,14 @@ class AttackAnalyser:
                 entire_dataset_result_list)
 
             avg_auc = store.attack_result_df.loc["mean Entire dataset"]["AUC"]
-            fpr0001 = store.attack_result_df.loc["mean Entire dataset"][
-                "fpr@0.001"]
-            fpr01 = store.attack_result_df.loc["mean Entire dataset"][
-                "fpr@0.1"]
+            # fpr0001 = store.attack_result_df.loc["mean Entire dataset"][
+            #    "fpr@0.001"]
+            # fpr01 = store.attack_result_df.loc["mean Entire dataset"][
+            #    "fpr@0.1"]
             ax.plot(
                 fpr_grid,
                 tpr_mean,
-                label=f"Run {store.run_number} AUC={avg_auc:.3f}",
-                # f"Run {store.run_number} AUC={avg_auc:.3f} FPR@0.1={fpr01:.3f} FPR@0.001={fpr0001:.3f}",
+                label=f"{x_values[store.run_number]} AUC={avg_auc:.3f}",
             )
 
         ax.set(xlabel="FPR", ylabel="TPR")
@@ -703,12 +745,14 @@ class AttackAnalyser:
         if ds_name is None:
             ds_name = attack_store[0].ds_name
 
-        ax.title.set_text(
-            f"Receiver Operator Characteristics - All Runs ({attack_type.value}, {ds_name})"
-        )
         plt.xlim([0.0001, 1])
         plt.ylim([0.0001, 1])
-        plt.legend()
+
+        title = None
+        if self.x_axis_name is not None:
+            title = self.x_axis_name
+
+        plt.legend(title=title)
 
         plt_name = os.path.join(
             self.analysis_combined_runs,
