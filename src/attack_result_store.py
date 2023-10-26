@@ -126,6 +126,7 @@ class AttackResultStore:
         ]]
         mean_df = group.mean(numeric_only=True)
         max_df = group.max(numeric_only=True)
+        std_df = group.std(numeric_only=True)
 
         # set nice index values
         idx_mean = pd.Index([f"mean {spec}" for spec in slice_spec_list])
@@ -134,11 +135,15 @@ class AttackResultStore:
         idx_max = pd.Index([f"max {spec}" for spec in slice_spec_list])
         max_df.set_index(idx_max, inplace=True)
 
+        idx_std = pd.Index([f"std {spec}" for spec in slice_spec_list])
+        std_df.set_index(idx_std, inplace=True)
+
         mean_df["attack type"] = self.attack_type.value
         max_df["attack type"] = self.attack_type.value
+        std_df["attack type"] = self.attack_type.value
 
-        attack_result_df = pd.concat([attack_result_frame, mean_df, max_df],
-                                     ignore_index=False).round(decimals=5)
+        attack_result_df = pd.concat([attack_result_frame, mean_df, std_df, max_df],
+                                     ignore_index=False).round(decimals=3)
 
         df_filename = os.path.join(
             self.get_analysis_folder(),
@@ -317,7 +322,7 @@ class AttackResultStore:
             "b",
             lw=2,
             label=
-            f"Average - AUC={avg_auc:.3f} FPR@0.001={fpr0001:.3f} FPR@0.1={fpr01:.3f}",
+            f"AUC={avg_auc:.3f}\nFPR@0.001={fpr0001:.3f}\nFPR@0.1={fpr01:.3f}",
         )
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale="log", yscale="log")
