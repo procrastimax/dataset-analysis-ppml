@@ -162,7 +162,6 @@ class EMNISTDigitsManyBalancedDataset(AbstractDataset):
 
 
 class EMNISTMediumBalancedDatasetClassSize(AbstractDatasetClassSize):
-
     def __init__(self, ds: EMNISTMediumBalancedDataset, class_size: int):
         self.class_size = class_size
         self.ds_train = ds.ds_train
@@ -185,7 +184,6 @@ class EMNISTMediumBalancedDatasetClassSize(AbstractDatasetClassSize):
 
 
 class EMNISTMediumBalancedDatasetCustomClasses(AbstractDatasetCustomClasses):
-
     def __init__(self, ds: EMNISTMediumBalancedDataset, new_num_classes: int):
         self.new_num_classes = new_num_classes
         self.ds_train = ds.ds_train
@@ -246,18 +244,17 @@ def build_emnist(
     ds.load_dataset()
 
     # the dataset is inverted and rotated
-    ds.ds_train = ds.ds_train.map(lambda x, y:
-                                  (tf.image.flip_left_right(x), y))
+    ds.ds_train = ds.ds_train.map(lambda x, y: (tf.image.flip_left_right(x), y))
     ds.ds_train = ds.ds_train.map(lambda x, y: (rotate(x), y))
 
-    ds.ds_test = ds.ds_test.map(lambda x, y:
-                                  (tf.image.flip_left_right(x), y))
+    ds.ds_test = ds.ds_test.map(lambda x, y: (tf.image.flip_left_right(x), y))
     ds.ds_test = ds.ds_test.map(lambda x, y: (rotate(x), y))
 
     if "n" in mods:
         num_new_classes = mods["n"][0]
         ds = EMNISTMediumBalancedDatasetCustomClasses(
-            ds, new_num_classes=num_new_classes)
+            ds, new_num_classes=num_new_classes
+        )
         ds.load_dataset()
 
     if "c" in mods:

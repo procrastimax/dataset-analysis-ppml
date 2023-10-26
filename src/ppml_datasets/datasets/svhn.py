@@ -12,7 +12,6 @@ from ppml_datasets.abstract_dataset_handler import (
 
 
 class SVHNDataset(AbstractDataset):
-
     def __init__(
         self,
         model_img_shape: Tuple[int, int, int],
@@ -41,7 +40,6 @@ class SVHNDataset(AbstractDataset):
 
 
 class SVHNDatasetClassSize(AbstractDatasetClassSize):
-
     def __init__(self, ds: SVHNDataset, class_size: int):
         self.class_size = class_size
         self.ds_train = ds.ds_train
@@ -64,9 +62,7 @@ class SVHNDatasetClassSize(AbstractDatasetClassSize):
 
 
 class SVHNDatasetClassImbalance(AbstractDatasetClassImbalance):
-
-    def __init__(self, ds: SVHNDataset, imbalance_mode: str,
-                 imbalance_ratio: float):
+    def __init__(self, ds: SVHNDataset, imbalance_mode: str, imbalance_ratio: float):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
         self.ds_train = ds.ds_train
@@ -75,8 +71,7 @@ class SVHNDatasetClassImbalance(AbstractDatasetClassImbalance):
         super().__init__(
             tfds_name=ds.tfds_name,
             num_classes=ds.num_classes,
-            dataset_name=
-            f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+            dataset_name=f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
             dataset_path=ds.dataset_path,
             dataset_img_shape=ds.dataset_img_shape,
             model_img_shape=ds.model_img_shape,
@@ -90,7 +85,6 @@ class SVHNDatasetClassImbalance(AbstractDatasetClassImbalance):
 
 
 class SVHNDatsetGray(AbstractDatasetGray):
-
     def __init__(self, ds: SVHNDataset):
         self.ds_train = ds.ds_train
         self.ds_test = ds.ds_test
@@ -112,7 +106,6 @@ class SVHNDatsetGray(AbstractDatasetGray):
 
 
 class SVHNDatasetCustomClasses(AbstractDatasetCustomClasses):
-
     def __init__(self, ds: SVHNDataset, new_num_classes: int):
         self.new_num_classes = new_num_classes
         self.ds_train = ds.ds_train
@@ -161,9 +154,9 @@ def build_svhn(
 
     if "i" in mods:
         (imbalance_mode, imbalance_ratio) = mods["i"]
-        ds = SVHNDatasetClassImbalance(ds=ds,
-                                       imbalance_mode=imbalance_mode,
-                                       imbalance_ratio=imbalance_ratio)
+        ds = SVHNDatasetClassImbalance(
+            ds=ds, imbalance_mode=imbalance_mode, imbalance_ratio=imbalance_ratio
+        )
         ds.load_dataset()
 
     if "gray" in mods:

@@ -59,8 +59,10 @@ class RunSettings:
 
         # if the passed field was None, then apply the dataclasses' default field value
         for f in fields(self):
-            if (not isinstance(f.default, dataclasses._MISSING_TYPE)
-                    and getattr(self, f.name) is None):
+            if (
+                not isinstance(f.default, dataclasses._MISSING_TYPE)
+                and getattr(self, f.name) is None
+            ):
                 setattr(self, f.name, f.default)
 
         # TODO: unterschied zwischen num_microbatches 0 and 256?
@@ -71,13 +73,10 @@ class RunSettings:
         """Convert all dataclass fields to a dict."""
         return asdict(self)
 
-    def save_settings_as_json(self,
-                              filepath: str,
-                              file_name_extension: str = None):
+    def save_settings_as_json(self, filepath: str, file_name_extension: str = None):
         check_create_folder(filepath)
         if file_name_extension is not None:
-            filename = os.path.join(filepath,
-                                    f"parameter_{file_name_extension}.json")
+            filename = os.path.join(filepath, f"parameter_{file_name_extension}.json")
         else:
             filename = os.path.join(filepath, "parameter.json")
 
@@ -144,8 +143,7 @@ def convert_str_range_to_int_list(run_numbers_str: str) -> List[int]:
 
 def create_settings_from_args(args):
     if args.analysis_run_numbers is not None:
-        analysis_run_numbers = convert_str_range_to_int_list(
-            args.analysis_run_numbers)
+        analysis_run_numbers = convert_str_range_to_int_list(args.analysis_run_numbers)
     else:
         analysis_run_numbers = None
 
@@ -185,8 +183,7 @@ def create_settings_from_args(args):
 def create_arg_parse_instance() -> ArgumentParser:
     parser = ArgumentParser(
         prog="Dataset Analysis for Privacy-Preserving-Machine-Learning",
-        description=
-        "A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.",
+        description="A toolbox to analyse the influence of dataset characteristics on the performance of algorithm pertubation in PPML.",
     )
 
     parser.add_argument(
@@ -194,8 +191,7 @@ def create_arg_parse_instance() -> ArgumentParser:
         "--datasets",
         nargs="+",
         type=str,
-        help=
-        "Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, fmnist, cifar10, cifar100, svhn, emnist-(large|medium|letters|digits|mnist)-(unbalanced|balanced). With modifications _cX (class size), _i[L/N]Y (imbalance), _nX (number of classes), _gray.",
+        help="Which datasets to load before running the other steps. Multiple datasets can be specified, but at least one needs to be passed here. Available datasets are: mnist, fmnist, cifar10, cifar100, svhn, emnist-(large|medium|letters|digits|mnist)-(unbalanced|balanced). With modifications _cX (class size), _i[L/N]Y (imbalance), _nX (number of classes), _gray.",
         metavar="D",
     )
     parser.add_argument(
@@ -203,24 +199,21 @@ def create_arg_parse_instance() -> ArgumentParser:
         "--model",
         type=str,
         choices=["cnn", "private_cnn"],
-        help=
-        "Specify which model should be used for training/ attacking. Only one can be selected!",
+        help="Specify which model should be used for training/ attacking. Only one can be selected!",
         metavar="M",
     )
     parser.add_argument(
         "-r",
         "--run-number",
         type=int,
-        help=
-        "The run number to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results.",
+        help="The run number to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results.",
         metavar="R",
     )
     parser.add_argument(
         "-n",
         "--run-name",
         type=str,
-        help=
-        "The run name to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results. The naming hierarchy here is: model_name/run_name/run_number.",
+        help="The run name to be used for training models, loading or saving results. This flag is theoretically not needed if you only want to generate ds-info results. The naming hierarchy here is: model_name/run_name/run_number.",
         metavar="N",
     )
 
@@ -247,8 +240,7 @@ def create_arg_parse_instance() -> ArgumentParser:
         "-e",
         "--epsilon",
         type=float,
-        help=
-        "The desired epsilon value for DP-SGD learning. Can be any value: 0.1, 1, 10, ...",
+        help="The desired epsilon value for DP-SGD learning. Can be any value: 0.1, 1, 10, ...",
         metavar="E",
     )
     parser.add_argument(
@@ -257,9 +249,9 @@ def create_arg_parse_instance() -> ArgumentParser:
         type=float,
         help="The epsilon hat value for the Adam optimizer.",
     )
-    parser.add_argument("--batch-size",
-                        type=int,
-                        help="Size of batch used for training.")
+    parser.add_argument(
+        "--batch-size", type=int, help="Size of batch used for training."
+    )
     parser.add_argument(
         "-wd",
         "--weight-decay",
@@ -270,8 +262,7 @@ def create_arg_parse_instance() -> ArgumentParser:
         "-ema",
         "--momentum",
         type=float,
-        help=
-        "Momentum value used for Adam's EMA when training the models. If set, EMA in Adam is activated.",
+        help="Momentum value used for Adam's EMA when training the models. If set, EMA in Adam is activated.",
     )
     parser.add_argument(
         "-c",
@@ -298,55 +289,47 @@ def create_arg_parse_instance() -> ArgumentParser:
         "-tm",
         "--train-model",
         action="store_true",
-        help=
-        "If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number. If no dataset name and no run number but the run name is given, it is assumed that a single model from a series of attacks shall get trained by parsing the datasets from 'parameter.json' files in each runs. In this scenario, all runs are included.",
+        help="If this flag is set, a single model is trained on the given datasets (respecting train_ds, val_ds & test_ds). This always overrides a previously trained model on the same dataset name and run number. If no dataset name and no run number but the run name is given, it is assumed that a single model from a series of attacks shall get trained by parsing the datasets from 'parameter.json' files in each runs. In this scenario, all runs are included.",
     )
     parser.add_argument(
         "-em",
         "--evaluate-model",
         action="store_true",
-        help=
-        "If this flag is set, a single model is loaded based on run number, run name, model name and dataset name. Then predictions are run on the test and train dataset to evaluate the model. If no dataset name and no run number but the run name is given, models trained from the 'parameter.json' file are evaluated.",
+        help="If this flag is set, a single model is loaded based on run number, run name, model name and dataset name. Then predictions are run on the test and train dataset to evaluate the model. If no dataset name and no run number but the run name is given, models trained from the 'parameter.json' file are evaluated.",
     )
     parser.add_argument(
         "-ce",
         "--compile-evaluation",
-        help=
-        "If this flag is set, the program compiles all single model evaluations from different run numbers to a single file.",
+        help="If this flag is set, the program compiles all single model evaluations from different run numbers to a single file.",
         action="store_true",
     )
     parser.add_argument(
         "--run-amia-attack",
         action="store_true",
-        help=
-        "If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved.",
+        help="If this flag is set, an Advanced MIA attack is run on the trained shadow models and the results are saved.",
     )
     parser.add_argument(
         "-ca",
         "--compile-attack-results",
         action="store_true",
-        help=
-        "If this flag is set, all saved attack results are compiled and compared with each other, allowing dataset comparison.",
+        help="If this flag is set, all saved attack results are compiled and compared with each other, allowing dataset comparison.",
     )
     parser.add_argument(
         "-ar",
         "--analysis-run-numbers",
         type=str,
-        help=
-        "The run numbers (1,2,3,4) or range of run numbers (1-4) or a combination of both (1,2,3-5) to be used for result compilation.",
+        help="The run numbers (1,2,3,4) or range of run numbers (1-4) or a combination of both (1,2,3-5) to be used for result compilation.",
         metavar="AR",
     )
     parser.add_argument(
         "--force-model-retrain",
         action="store_true",
-        help=
-        "If this flag is set, the shadow models, even if they already exist.",
+        help="If this flag is set, the shadow models, even if they already exist.",
     )
     parser.add_argument(
         "--force-stat-recalculation",
         action="store_true",
-        help=
-        "If this flag is set, the statistics are recalucated on the shadow models.",
+        help="If this flag is set, the statistics are recalucated on the shadow models.",
     )
     parser.add_argument(
         "--generate-ds-info",
@@ -356,27 +339,24 @@ def create_arg_parse_instance() -> ArgumentParser:
     parser.add_argument(
         "--force-ds-info-regeneration",
         action="store_true",
-        help=
-        "If this flag is set, the whole ds-info dict is not loaded from a json file but regenerated from scratch.",
+        help="If this flag is set, the whole ds-info dict is not loaded from a json file but regenerated from scratch.",
     )
     parser.add_argument(
         "--include-mia",
         action="store_true",
-        help=
-        "If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.",
+        help="If this flag is set, then the mia attack is also used during attacking and mia related results/ graphics are produced during result generation.",
     )
     parser.add_argument(
         "-p",
         "--generate-privacy-report",
-        help=
-        "Dont train/load anything, just generate a privacy report for the given values.",
+        help="Dont train/load anything, just generate a privacy report for the given values.",
         action="store_true",
     )
 
-    parser.add_argument("--xName",
-                        help="Name of the X axis for graph generation",
-                        type=str)
-    parser.add_argument("--xValues",
-                        help="X axis values for graph generation",
-                        nargs="+")
+    parser.add_argument(
+        "--xName", help="Name of the X axis for graph generation", type=str
+    )
+    parser.add_argument(
+        "--xValues", help="X axis values for graph generation", nargs="+"
+    )
     return parser

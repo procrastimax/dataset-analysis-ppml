@@ -7,9 +7,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow_privacy.privacy.privacy_tests import utils
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import (
-    advanced_mia as amia, )
+    advanced_mia as amia,
+)
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack import (
-    membership_inference_attack as mia, )
+    membership_inference_attack as mia,
+)
 from tensorflow_privacy.privacy.privacy_tests.membership_inference_attack.data_structures import (
     AttackInputData,
     SlicingSpec,
@@ -68,7 +70,8 @@ class AmiaAttack:
         self.num_shadow_models = num_shadow_models
 
         self.in_indices: Optional[
-            list] = None  # a list of in-training indices for all models
+            list
+        ] = None  # a list of in-training indices for all models
         self.stat: Optional[list] = None  # a list of statistics for all models
         self.losses: Optional[list] = None  # a list of losses for all models
         self.attack_lira_result_list: Optional[list] = None
@@ -80,13 +83,13 @@ class AmiaAttack:
         self.numpy_path = os.path.join(self.models_dir, "data")
         check_create_folder(self.numpy_path)
 
-        self.in_indices_filename = os.path.join(self.numpy_path,
-                                                "in_indices.pckl")
+        self.in_indices_filename = os.path.join(self.numpy_path, "in_indices.pckl")
         self.stat_filename = os.path.join(self.numpy_path, "model_stat.pckl")
         self.loss_filename = os.path.join(self.numpy_path, "model_loss.pckl")
 
         self.attack_statistics_folder: str = os.path.join(
-            self.result_path, "attack-statistics")
+            self.result_path, "attack-statistics"
+        )
         check_create_folder(self.attack_statistics_folder)
 
         self.attack_lira_result_list_filename = os.path.join(
@@ -115,8 +118,7 @@ class AmiaAttack:
         test_labels = tf.one_hot(test_labels, depth=self.ds.num_classes)
 
         # convert to one-hot encoding
-        train_labels = tf.one_hot(train_labels,
-                                  depth=self.ds.num_classes).numpy()
+        train_labels = tf.one_hot(train_labels, depth=self.ds.num_classes).numpy()
 
         self.num_training_samples = len(train_samples)
 
@@ -137,10 +139,12 @@ class AmiaAttack:
             self.stat = []
             self.losses = []
 
-        if (self.in_indices is not None and self.stat is not None
-                and self.losses is not None):
-            if len(self.in_indices) > 0 and len(self.stat) > 0 and len(
-                    self.losses) > 0:
+        if (
+            self.in_indices is not None
+            and self.stat is not None
+            and self.losses is not None
+        ):
+            if len(self.in_indices) > 0 and len(self.stat) > 0 and len(self.losses) > 0:
                 print(
                     "Loaded in_indices file, stat file and loss file, do not need to load models."
                 )
@@ -163,7 +167,8 @@ class AmiaAttack:
                 keep = self.in_indices[i]
             else:
                 keep = self.ds.generate_class_dependent_in_indices(
-                    train_samples, train_labels, reduction_factor=0.5)
+                    train_samples, train_labels, reduction_factor=0.5
+                )
                 self.in_indices.append(keep)
 
             # prepare model for new train iteration
@@ -187,9 +192,9 @@ class AmiaAttack:
                 print(f"Trained and saved model: {model_path}")
 
                 print("Saving shadow model train history as figure")
-                history_fig_path = os.path.join(self.result_path,
-                                                "sm-training",
-                                                self.ds.dataset_name)
+                history_fig_path = os.path.join(
+                    self.result_path, "sm-training", self.ds.dataset_name
+                )
                 self.cnn_model.save_train_history(
                     history_fig_path,
                     f"{i}_{self.ds.dataset_name}_shadow_model_training_history.png",
@@ -208,7 +213,8 @@ class AmiaAttack:
                 )
 
             stat_temp, loss_temp = self.get_stat_and_loss_hinge(
-                cnn_model=self.cnn_model, x=train_samples, y=train_labels)
+                cnn_model=self.cnn_model, x=train_samples, y=train_labels
+            )
             self.stat.append(stat_temp)
             self.losses.append(loss_temp)
 
@@ -245,19 +251,20 @@ class AmiaAttack:
         # we currently use the shadow and training models
         for idx in range(self.num_shadow_models + 1):
             print(f"Target model is #{idx}")
-            stat_target = self.stat[
-                idx]  # statistics of target model, shape(n,k)
+            stat_target = self.stat[idx]  # statistics of target model, shape(n,k)
             in_indices_target = self.in_indices[
-                idx]  # ground truth membership, shape(n,)
+                idx
+            ]  # ground truth membership, shape(n,)
 
             # `stat_shadow` contains statistics of the shadow models, with shape
             # (num_shadows, n, k).
-            stat_shadow = np.array(self.stat[:idx] + self.stat[idx + 1:])
+            stat_shadow = np.array(self.stat[:idx] + self.stat[idx + 1 :])
 
             # `in_indices_shadow` contains membership of the shadow
             # models, with shape (num_shadows, n). We will use them to get a list
-            in_indices_shadow = np.array(self.in_indices[:idx] +
-                                         self.in_indices[idx + 1:])
+            in_indices_shadow = np.array(
+                self.in_indices[:idx] + self.in_indices[idx + 1 :]
+            )
 
             # `stat_in` and a list `stat_out`, where stat_in[j] (resp. stat_out[j]) is a
             # (m, k) array, for m being the number of shadow models trained with
@@ -273,10 +280,9 @@ class AmiaAttack:
             ]
 
             # compute the scores and use them for  MIA
-            scores = amia.compute_score_lira(stat_target,
-                                             stat_in,
-                                             stat_out,
-                                             fix_variance=True)
+            scores = amia.compute_score_lira(
+                stat_target, stat_in, stat_out, fix_variance=True
+            )
 
             attack_input = AttackInputData(
                 loss_train=scores[in_indices_target],
@@ -285,8 +291,9 @@ class AmiaAttack:
                 labels_test=train_labels[~in_indices_target],
             )
 
-            result_lira = mia.run_attacks(attack_input=attack_input,
-                                          slicing_spec=slicing_spec)
+            result_lira = mia.run_attacks(
+                attack_input=attack_input, slicing_spec=slicing_spec
+            )
             self.attack_lira_result_list.append(result_lira)
 
             print("Advanced MIA Attack Results:")
@@ -302,57 +309,52 @@ class AmiaAttack:
                     labels_test=train_labels[~in_indices_target],
                 )
 
-                result_mia = mia.run_attacks(attack_input=attack_input,
-                                             slicing_spec=slicing_spec)
+                result_mia = mia.run_attacks(
+                    attack_input=attack_input, slicing_spec=slicing_spec
+                )
 
                 self.attack_mia_result_list.append(result_mia)
                 print("MIA Attack Results:")
                 print(result_mia.calculate_pd_dataframe())
 
         # pickle attack result list for LiRA and MIA
-        pickle_object(self.attack_lira_result_list_filename,
-                      self.attack_lira_result_list)
-        pickle_object(self.attack_mia_result_list_filename,
-                      self.attack_mia_result_list)
+        pickle_object(
+            self.attack_lira_result_list_filename, self.attack_lira_result_list
+        )
+        pickle_object(self.attack_mia_result_list_filename, self.attack_mia_result_list)
 
-    def get_stat_and_loss_hinge(self, cnn_model: Model, x: np.ndarray,
-                                y: np.ndarray):
+    def get_stat_and_loss_hinge(self, cnn_model: Model, x: np.ndarray, y: np.ndarray):
         # convert labels to integer indexing
         y = tf.argmax(y, axis=1).numpy()
 
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
-            logits = cnn_model.model.predict(x=data,
-                                             batch_size=cnn_model.batch_size)
-            losses.append(
-                utils.log_loss(labels=y, pred=logits, from_logits=True))
+            logits = cnn_model.model.predict(x=data, batch_size=cnn_model.batch_size)
+            losses.append(utils.log_loss(labels=y, pred=logits, from_logits=True))
             stat.append(
-                amia.calculate_statistic(pred=logits,
-                                         labels=y,
-                                         is_logits=True,
-                                         option="hinge"))
+                amia.calculate_statistic(
+                    pred=logits, labels=y, is_logits=True, option="hinge"
+                )
+            )
 
-        return np.vstack(stat).transpose(1,
-                                         0), np.vstack(losses).transpose(1, 0)
+        return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)
 
-    def get_stat_and_loss_aug_logits(self, cnn_model: Model, x: np.ndarray,
-                                     y: np.ndarray):
+    def get_stat_and_loss_aug_logits(
+        self, cnn_model: Model, x: np.ndarray, y: np.ndarray
+    ):
         # convert labels to integer indexing
         y = tf.argmax(y, axis=1).numpy()
 
         losses, stat = [], []
         for data in [x, x[:, :, ::-1, :]]:
             prob = amia.convert_logit_to_prob(
-                cnn_model.model.predict(x=data,
-                                        batch_size=cnn_model.batch_size))
-            losses.append(
-                utils.log_loss(labels=y, pred=prob, from_logits=False))
+                cnn_model.model.predict(x=data, batch_size=cnn_model.batch_size)
+            )
+            losses.append(utils.log_loss(labels=y, pred=prob, from_logits=False))
             stat.append(
-                amia.calculate_statistic(pred=prob,
-                                         labels=y,
-                                         option="logit",
-                                         is_logits=False))
+                amia.calculate_statistic(
+                    pred=prob, labels=y, option="logit", is_logits=False
+                )
+            )
 
-        return np.vstack(stat).transpose(1,
-                                         0), np.vstack(losses).transpose(1, 0)
-
+        return np.vstack(stat).transpose(1, 0), np.vstack(losses).transpose(1, 0)

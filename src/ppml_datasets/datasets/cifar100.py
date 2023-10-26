@@ -10,7 +10,6 @@ from ppml_datasets.abstract_dataset_handler import (
 
 
 class Cifar100Dataset(AbstractDataset):
-
     def __init__(
         self,
         model_img_shape: Tuple[int, int, int],
@@ -39,7 +38,6 @@ class Cifar100Dataset(AbstractDataset):
 
 
 class Cifar100DatasetCustomClasses(AbstractDatasetCustomClasses):
-
     def __init__(self, ds: Cifar100Dataset, new_num_classes: int):
         self.new_num_classes = new_num_classes
         self.ds_train = ds.ds_train
@@ -62,7 +60,6 @@ class Cifar100DatasetCustomClasses(AbstractDatasetCustomClasses):
 
 
 class Cifar100DatasetClassSize(AbstractDatasetClassSize):
-
     def __init__(self, ds: Cifar100Dataset, class_size: int):
         self.class_size = class_size
         self.ds_train = ds.ds_train
@@ -101,8 +98,7 @@ def build_cifar100(
 
     if "n" in mods:
         num_new_classes = mods["n"][0]
-        ds = Cifar100DatasetCustomClasses(ds=ds,
-                                          new_num_classes=num_new_classes)
+        ds = Cifar100DatasetCustomClasses(ds=ds, new_num_classes=num_new_classes)
         ds.load_dataset()
 
     if "c" in mods:

@@ -6,12 +6,11 @@ from ppml_datasets.abstract_dataset_handler import (
     AbstractDataset,
     AbstractDatasetClassImbalance,
     AbstractDatasetClassSize,
-    AbstractDatasetCustomClasses
+    AbstractDatasetCustomClasses,
 )
 
 
 class FashionMnistDataset(AbstractDataset):
-
     def __init__(
         self,
         model_img_shape: Tuple[int, int, int],
@@ -40,7 +39,6 @@ class FashionMnistDataset(AbstractDataset):
 
 
 class FashionMnistDatasetClassSize(AbstractDatasetClassSize):
-
     def __init__(self, ds: FashionMnistDataset, class_size: int):
         self.class_size = class_size
         self.ds_train = ds.ds_train
@@ -63,9 +61,9 @@ class FashionMnistDatasetClassSize(AbstractDatasetClassSize):
 
 
 class FashionMnistDatasetClassImbalance(AbstractDatasetClassImbalance):
-
-    def __init__(self, ds: FashionMnistDataset, imbalance_mode: str,
-                 imbalance_ratio: float):
+    def __init__(
+        self, ds: FashionMnistDataset, imbalance_mode: str, imbalance_ratio: float
+    ):
         self.imbalance_mode = imbalance_mode
         self.imbalance_ratio = imbalance_ratio
         self.ds_train = ds.ds_train
@@ -74,8 +72,7 @@ class FashionMnistDatasetClassImbalance(AbstractDatasetClassImbalance):
         super().__init__(
             tfds_name=ds.tfds_name,
             num_classes=ds.num_classes,
-            dataset_name=
-            f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
+            dataset_name=f"{ds.dataset_name}_i{self.imbalance_mode}{self.imbalance_ratio}",
             dataset_path=ds.dataset_path,
             model_img_shape=ds.model_img_shape,
             dataset_img_shape=ds.dataset_img_shape,
@@ -89,7 +86,6 @@ class FashionMnistDatasetClassImbalance(AbstractDatasetClassImbalance):
 
 
 class FashionMnistDatasetCustomClasses(AbstractDatasetCustomClasses):
-
     def __init__(self, ds: FashionMnistDataset, new_num_classes: int):
         self.new_num_classes = new_num_classes
         self.ds_train = ds.ds_train
@@ -138,9 +134,9 @@ def build_fmnist(
 
     if "i" in mods:
         (imbalance_mode, imbalance_ratio) = mods["i"]
-        ds = FashionMnistDatasetClassImbalance(ds=ds,
-                                               imbalance_mode=imbalance_mode,
-                                               imbalance_ratio=imbalance_ratio)
+        ds = FashionMnistDatasetClassImbalance(
+            ds=ds, imbalance_mode=imbalance_mode, imbalance_ratio=imbalance_ratio
+        )
         ds.load_dataset()
 
     return ds

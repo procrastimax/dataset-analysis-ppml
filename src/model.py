@@ -53,8 +53,7 @@ class Model(ABC):
     delta: float = field(init=False, default=None)
 
     model: Optional[tf.keras.Sequential] = field(init=False, default=None)
-    history: Optional[tf.keras.callbacks.History] = field(init=False,
-                                                          default=None)
+    history: Optional[tf.keras.callbacks.History] = field(init=False, default=None)
 
     @abstractmethod
     def compile_model(self):
@@ -133,8 +132,8 @@ class Model(ABC):
         self.model.summary()
 
     def train_model_from_ds(
-            self, train_ds: tf.data.Dataset,
-            val_ds: tf.data.Dataset) -> tf.keras.callbacks.History:
+        self, train_ds: tf.data.Dataset, val_ds: tf.data.Dataset
+    ) -> tf.keras.callbacks.History:
         callback_list = []
         if self.use_early_stopping:
             es = EarlyStopping(
@@ -165,8 +164,8 @@ class Model(ABC):
         return self.history
 
     def train_model_from_numpy(
-            self, x: np.ndarray, y: np.ndarray, val_x: np.ndarray,
-            val_y: np.ndarray) -> tf.keras.callbacks.History:
+        self, x: np.ndarray, y: np.ndarray, val_x: np.ndarray, val_y: np.ndarray
+    ) -> tf.keras.callbacks.History:
         callback_list = []
         if self.use_early_stopping:
             es = EarlyStopping(
@@ -182,8 +181,8 @@ class Model(ABC):
         steps_per_epoch = len(x) // self.batch_size
 
         # create new numpy array and cut off the samples that did not fit into a batch
-        x = x[:self.batch_size * steps_per_epoch]
-        y = y[:self.batch_size * steps_per_epoch]
+        x = x[: self.batch_size * steps_per_epoch]
+        y = y[: self.batch_size * steps_per_epoch]
 
         self.history = self.model.fit(
             x=x,
@@ -204,8 +203,9 @@ class Model(ABC):
         """
         print("Saving shadow model train history as figure")
         check_create_folder(folder_name)
-        visualize_training(history=self.history,
-                           img_name=os.path.join(folder_name, image_name))
+        visualize_training(
+            history=self.history, img_name=os.path.join(folder_name, image_name)
+        )
 
     def test_model(self, x: np.array, y: np.array) -> Dict[str, Any]:
         """Run the model's prediction function on the given tf.data.Dataset.
@@ -215,10 +215,7 @@ class Model(ABC):
         Dict[str, Any]
 
         """
-        loss, acc = self.model.evaluate(x,
-                                        y,
-                                        batch_size=self.batch_size,
-                                        verbose=2)
+        loss, acc = self.model.evaluate(x, y, batch_size=self.batch_size, verbose=2)
 
         performance_results = {"loss": loss, "accuracy": acc}
         # F1-Scores of every class
@@ -230,23 +227,16 @@ class Model(ABC):
         # convert to one-hot encoding
         pred = tf.one_hot(pred, depth=self.num_classes)
 
-        report_dict = classification_report(y_true=y,
-                                            y_pred=pred,
-                                            output_dict=True)
-        print(
-            classification_report(y_true=y,
-                                  y_pred=pred,
-                                  output_dict=False,
-                                  digits=3))
+        report_dict = classification_report(y_true=y, y_pred=pred, output_dict=True)
+        print(classification_report(y_true=y, y_pred=pred, output_dict=False, digits=3))
 
-        performance_results.update({
-            "precision":
-            report_dict["macro avg"]["precision"],
-            "recall":
-            report_dict["macro avg"]["recall"],
-            "f1-score":
-            report_dict["macro avg"]["f1-score"],
-        })
+        performance_results.update(
+            {
+                "precision": report_dict["macro avg"]["precision"],
+                "recall": report_dict["macro avg"]["recall"],
+                "f1-score": report_dict["macro avg"]["f1-score"],
+            }
+        )
 
         for k, v in report_dict.items():
             # all class performances start with the class number
@@ -259,9 +249,9 @@ class Model(ABC):
 
     def save_model(self):
         print(f"Saving {self.model_name} model to {self.model_path}")
-        self.model.save_weights(filepath=self.model_path,
-                                overwrite=True,
-                                save_format="tf")
+        self.model.save_weights(
+            filepath=self.model_path, overwrite=True, save_format="tf"
+        )
 
     def load_model(self):
         """Load from model filepath.
@@ -316,7 +306,6 @@ class Model(ABC):
 
 @dataclass
 class CNNModel(Model):
-
     def compile_model(self):
         print("Compiling model")
         optimizer = self.get_optimizer()
@@ -343,7 +332,6 @@ class CNNModel(Model):
 
 @dataclass
 class PrivateCNNModel(Model):
-
     def compile_model(self):
         print("Compiling model")
         optimizer = self.get_optimizer()
