@@ -6,6 +6,7 @@ from typing import Dict, List, Tuple
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings
@@ -13,7 +14,7 @@ from util import save_dataframe
 
 pd.options.mode.chained_assignment = None
 
-FIGSIZE = (5, 5)
+FIGSIZE = (4, 4)
 
 
 class UtilityAnalyser:
@@ -264,6 +265,7 @@ class UtilityAnalyser:
             ax.set(xlabel=xLabel, ylabel=yLabel)
         ax.legend()
         plt.xticks(run_range)
+        # plt.yticks(np.arange(0, 1, 0.1))
         plt.legend()
         ax.grid()
         return fig

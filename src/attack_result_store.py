@@ -145,7 +145,7 @@ class AttackResultStore:
 
         attack_result_df = pd.concat(
             [attack_result_frame, mean_df, std_df, max_df], ignore_index=False
-        ).round(decimals=3)
+        ).round(decimals=4)
 
         df_filename = os.path.join(
             self.get_analysis_folder(),

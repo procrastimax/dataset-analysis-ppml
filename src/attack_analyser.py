@@ -15,10 +15,11 @@ from util import save_dataframe
 
 pd.options.mode.chained_assignment = None
 
-FIGSIZE = (5, 5)
+FIGSIZE = (5, 4)
 
 
 class AttackAnalyser:
+
     def __init__(
         self,
         settings: RunSettings,
@@ -35,9 +36,8 @@ class AttackAnalyser:
         self.x_axis_values = settings.x_axis_values
 
         # base folder where all individual runs are saved
-        self.run_result_folder = os.path.join(
-            result_path, settings.model_name, settings.run_name
-        )
+        self.run_result_folder = os.path.join(result_path, settings.model_name,
+                                              settings.run_name)
 
         self.analysis_combined_runs = os.path.join(
             result_path,
@@ -95,9 +95,9 @@ class AttackAnalyser:
                 f" --- Creating attack analysis for run: {self.settings.run_name} -> {run} ---"
             )
             # load pararmeter.json and ds_name_list
-            parameter_file_path = os.path.join(
-                self.run_result_folder, str(run), "parameter_model_attack.json"
-            )
+            parameter_file_path = os.path.join(self.run_result_folder,
+                                               str(run),
+                                               "parameter_model_attack.json")
             ds_list: List[str] = None
             try:
                 with open(parameter_file_path) as parameter_file:
@@ -105,9 +105,9 @@ class AttackAnalyser:
                     ds_list = parameter_dict["datasets"]
                     run_ds_name_dict[run] = ds_list
             except FileNotFoundError:
-                parameter_file_path_2 = os.path.join(
-                    self.run_result_folder, str(run), "parameter.json"
-                )
+                parameter_file_path_2 = os.path.join(self.run_result_folder,
+                                                     str(run),
+                                                     "parameter.json")
                 print(
                     f"Could not find file: {parameter_file_path}. Trying other file: {parameter_file_path_2}"
                 )
@@ -122,9 +122,9 @@ class AttackAnalyser:
                 )
                 sys.exit(1)
 
-            result_dict = self.load_attack_results(
-                attack_type=attack_type, run_number=run, ds_name_list=ds_list
-            )
+            result_dict = self.load_attack_results(attack_type=attack_type,
+                                                   run_number=run,
+                                                   ds_name_list=ds_list)
             df = self._compile_attack_results(attack_type, result_dict, run)
             df = df.loc[["mean Entire dataset", "average"]]
             if run_combined_df is None:
@@ -132,15 +132,15 @@ class AttackAnalyser:
             else:
                 run_combined_df = pd.concat([run_combined_df, df])
 
-        run_combined_df_filepath = os.path.join(
-            self.analysis_combined_runs, "attack_metrics_combined.csv"
-        )
+        run_combined_df_filepath = os.path.join(self.analysis_combined_runs,
+                                                "attack_metrics_combined.csv")
         save_dataframe(run_combined_df, filename=run_combined_df_filepath)
 
         # only combine multiple runs if there are any
         if len(runs) > 1:
             print(" --- Creating combined runs graphics ---")
-            self.create_runs_combined_graphics(attack_type, runs, run_ds_name_dict)
+            self.create_runs_combined_graphics(attack_type, runs,
+                                               run_ds_name_dict)
 
     def _compile_attack_results(
         self,
@@ -150,11 +150,12 @@ class AttackAnalyser:
     ) -> pd.DataFrame:
         """Create an overview of compiled attack results for a single run."""
         for ds_name, store in attack_result_dict.items():
-            store.create_entire_dataset_combined_roc_curve()
+            #store.create_entire_dataset_combined_roc_curve()
 
             # this function sets the store's mean_tpr and fpr_grid
-            store.create_average_roc_curve_entire_dataset(generate_std_area=True)
-            store.create_average_class_attack_roc()
+            store.create_average_roc_curve_entire_dataset(
+                generate_std_area=True)
+            #store.create_average_class_attack_roc()
 
         # create figures to compare the best runs of each dataset with each other
         attack_stores = list(attack_result_dict.values())
@@ -168,7 +169,8 @@ class AttackAnalyser:
         # self.create_combined_best_run_auc(attack_type, attack_stores,
         #                                  run_number)
 
-        self.create_combined_averaged_roc_curve(attack_type, attack_stores, run_number)
+        self.create_combined_averaged_roc_curve(attack_type, attack_stores,
+                                                run_number)
 
         return df
 
@@ -178,7 +180,7 @@ class AttackAnalyser:
         attack_stores: List[AttackResultStore],
         run_number: int,
     ):
-        _, ax = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax = plt.subplots(1, 1, figsize=(5, 5), layout="constrained")
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         ds_name_list = []
@@ -213,7 +215,7 @@ class AttackAnalyser:
         attack_stores: List[AttackResultStore],
         run_number: int,
     ):
-        _, ax = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax = plt.subplots(1, 1, figsize=(5, 5), layout="constrained")
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         ds_name_list = []
@@ -225,7 +227,9 @@ class AttackAnalyser:
             _, fpr_0001 = store.get_fpr_at_fixed_tpr(best_attack)
             fpr = best_attack.roc_curve.fpr
             tpr = best_attack.roc_curve.tpr
-            ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.001={fpr_0001:.3f}")
+            ax.plot(fpr,
+                    tpr,
+                    label=f"{store.ds_name} FPR@0.001={fpr_0001:.3f}")
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
@@ -248,7 +252,7 @@ class AttackAnalyser:
         attack_stores: List[AttackResultStore],
         run_number: int,
     ):
-        _, ax = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax = plt.subplots(1, 1, figsize=(5, 5), layout="constrained")
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         ds_name_list = []
@@ -288,27 +292,26 @@ class AttackAnalyser:
         ds_names = []
         for store in attack_stores:
             ds_attack_result_df = store.attack_result_df[
-                store.attack_result_df["shadow model"].isnull()
-            ]
+                store.attack_result_df["shadow model"].isnull()]
             ds_attack_result_df["dataset"] = store.ds_name
-            ds_attack_result_df = ds_attack_result_df[
-                [
-                    "dataset",
-                    "attack type",
-                    # "Attacker advantage",
-                    # "Positive predictive value",
-                    "AUC",
-                    "fpr@0.1",
-                    "fpr@0.001",
-                ]
-            ]
+            ds_attack_result_df = ds_attack_result_df[[
+                "dataset",
+                "attack type",
+                # "Attacker advantage",
+                # "Positive predictive value",
+                "AUC",
+                "fpr@0.1",
+                "fpr@0.001",
+            ]]
             combined_df = pd.concat([combined_df, ds_attack_result_df])
             ds_names.append(store.ds_name)
 
         # create average attack values
         avg_auc = combined_df.loc["mean Entire dataset"]["AUC"].mean(axis=0)
-        avg_fpr01 = combined_df.loc["mean Entire dataset"]["fpr@0.1"].mean(axis=0)
-        avg_fpr0001 = combined_df.loc["mean Entire dataset"]["fpr@0.001"].mean(axis=0)
+        avg_fpr01 = combined_df.loc["mean Entire dataset"]["fpr@0.1"].mean(
+            axis=0)
+        avg_fpr0001 = combined_df.loc["mean Entire dataset"]["fpr@0.001"].mean(
+            axis=0)
 
         average_row = ["average", "", avg_auc, avg_fpr01, avg_fpr0001]
         combined_df.loc["average"] = average_row
@@ -318,7 +321,7 @@ class AttackAnalyser:
             f"combined_df_{'_'.join(ds_names)}_{attack_type.value}.csv",
         )
         os.makedirs(os.path.dirname(file_name), exist_ok=True)
-        save_dataframe(combined_df.round(decimals=3), filename=file_name)
+        save_dataframe(combined_df.round(decimals=4), filename=file_name)
 
         return combined_df
 
@@ -328,7 +331,7 @@ class AttackAnalyser:
         attack_store: List[AttackResultStore],
         run_number: int,
     ):
-        _, ax = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax = plt.subplots(1, 1, figsize=(5, 5), layout="constrained")
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         name_list = []
@@ -382,9 +385,9 @@ class AttackAnalyser:
         for run in run_numbers:
             ds_list = run_ds_name_dict[run]
 
-            result_dict = self.load_attack_results(
-                attack_type, run, ds_name_list=ds_list
-            )
+            result_dict = self.load_attack_results(attack_type,
+                                                   run,
+                                                   ds_name_list=ds_list)
 
             for ds_name, store in result_dict.items():
                 # remove modifications from ds_name
@@ -403,40 +406,43 @@ class AttackAnalyser:
             runs=run_numbers,
         )
 
-        self.create_compiled_auc_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
-        self.create_compiled_max_auc_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
-        self.create_compiled_std_auc_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
+        self.create_compiled_auc_metric_graph(attack_type=attack_type,
+                                              avg_run_dict=avg_run_dict,
+                                              runs=run_numbers)
+        #self.create_compiled_max_auc_metric_graph(attack_type=attack_type,
+        #                                          avg_run_dict=avg_run_dict,
+        #                                          runs=run_numbers)
+        #self.create_compiled_std_auc_metric_graph(attack_type=attack_type,
+        #                                          avg_run_dict=avg_run_dict,
+        #                                          runs=run_numbers)
 
-        self.create_compiled_fpr01_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
-        self.create_compiled_max_fpr01_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
-        self.create_compiled_std_fpr01_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
+        self.create_compiled_fpr01_metric_graph(attack_type=attack_type,
+                                                avg_run_dict=avg_run_dict,
+                                                runs=run_numbers)
+        #self.create_compiled_max_fpr01_metric_graph(attack_type=attack_type,
+        #                                            avg_run_dict=avg_run_dict,
+        #                                            runs=run_numbers)
+        #self.create_compiled_std_fpr01_metric_graph(attack_type=attack_type,
+        #                                            avg_run_dict=avg_run_dict,
+        #                                            runs=run_numbers)
 
-        self.create_compiled_fpr0001_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
-        self.create_compiled_max_fpr0001_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
-        self.create_compiled_std_fpr0001_metric_graph(
-            attack_type=attack_type, avg_run_dict=avg_run_dict, runs=run_numbers
-        )
+        self.create_compiled_fpr0001_metric_graph(attack_type=attack_type,
+                                                  avg_run_dict=avg_run_dict,
+                                                  runs=run_numbers)
+        #self.create_compiled_max_fpr0001_metric_graph(
+        #    attack_type=attack_type,
+        #    avg_run_dict=avg_run_dict,
+        #    runs=run_numbers)
+        #self.create_compiled_std_fpr0001_metric_graph(
+        #    attack_type=attack_type,
+        #    avg_run_dict=avg_run_dict,
+        #    runs=run_numbers)
 
         for ds_name, store_list in avg_run_dict.items():
-            self.create_combined_averaged_roc_curve_from_list(
-                attack_type, store_list, runs=run_numbers, ds_name=ds_name
-            )
+            self.create_combined_averaged_roc_curve_from_list(attack_type,
+                                                              store_list,
+                                                              runs=run_numbers,
+                                                              ds_name=ds_name)
             # self.create_combined_average_class_rocs(attack_type,
             #                                        store_list,
             #                                        runs=run_numbers,
@@ -462,8 +468,7 @@ class AttackAnalyser:
 
             for store in attack_store_list:
                 auc_list.append(
-                    store.attack_result_df.loc["mean Entire dataset"]["AUC"]
-                )
+                    store.attack_result_df.loc["mean Entire dataset"]["AUC"])
 
             mean_list.append(auc_list)
             ax_auc.plot(
@@ -489,6 +494,7 @@ class AttackAnalyser:
 
         ax_auc.set(xlabel=x_name, ylabel="AUC")
         plt.xticks(x_values)
+        #plt.yticks(np.arange(0.50, 0.9, 0.05))
         plt.legend()
         plt.grid(True)
         plt_name = os.path.join(
@@ -519,8 +525,8 @@ class AttackAnalyser:
 
             for store in attack_store_list:
                 fpr01_list.append(
-                    store.attack_result_df.loc["mean Entire dataset"]["fpr@0.1"]
-                )
+                    store.attack_result_df.loc["mean Entire dataset"]
+                    ["fpr@0.1"])
 
             mean_list.append(fpr01_list)
             ax_fpr01.plot(
@@ -544,6 +550,7 @@ class AttackAnalyser:
             x_name = self.x_axis_name
         ax_fpr01.set(xlabel=x_name, ylabel="FPR@0.1")
         plt.xticks(x_values)
+        #plt.yticks(np.arange(0.1, 0.6, 0.05))
         plt.grid(True)
         ax_fpr01.legend()
         plt_name = os.path.join(
@@ -574,8 +581,8 @@ class AttackAnalyser:
 
             for store in attack_store_list:
                 fpr01_list.append(
-                    store.attack_result_df.loc["max Entire dataset"]["fpr@0.1"]
-                )
+                    store.attack_result_df.loc["max Entire dataset"]
+                    ["fpr@0.1"])
 
             mean_list.append(fpr01_list)
             ax_fpr01.plot(
@@ -629,8 +636,8 @@ class AttackAnalyser:
 
             for store in attack_store_list:
                 fpr01_list.append(
-                    store.attack_result_df.loc["std Entire dataset"]["fpr@0.1"]
-                )
+                    store.attack_result_df.loc["std Entire dataset"]
+                    ["fpr@0.1"])
 
             mean_list.append(fpr01_list)
             ax_fpr01.plot(
@@ -672,7 +679,10 @@ class AttackAnalyser:
         runs: List[int],
     ):
         """Create graph with fpr@0.001 for every dataset in every run."""
-        _, ax_fpr0001 = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax_fpr0001 = plt.subplots(1,
+                                     1,
+                                     figsize=FIGSIZE,
+                                     layout="constrained")
         mean_list: List[List[float]] = []
 
         x_values = runs
@@ -684,8 +694,8 @@ class AttackAnalyser:
 
             for store in attack_store_list:
                 fpr0001_list.append(
-                    store.attack_result_df.loc["mean Entire dataset"]["fpr@0.001"]
-                )
+                    store.attack_result_df.loc["mean Entire dataset"]
+                    ["fpr@0.001"])
 
             mean_list.append(fpr0001_list)
 
@@ -710,6 +720,7 @@ class AttackAnalyser:
             x_name = self.x_axis_name
         ax_fpr0001.set(xlabel=x_name, ylabel="FPR@0.001")
         plt.xticks(x_values)
+        #plt.yticks(np.arange(0.00, 0.15, 0.02))
         plt.grid(True)
         plt.legend()
         plt_name = os.path.join(
@@ -728,7 +739,10 @@ class AttackAnalyser:
         runs: List[int],
     ):
         """Create graph with fpr@0.001 for every dataset in every run."""
-        _, ax_fpr0001 = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax_fpr0001 = plt.subplots(1,
+                                     1,
+                                     figsize=FIGSIZE,
+                                     layout="constrained")
         mean_list: List[List[float]] = []
 
         x_values = runs
@@ -740,8 +754,8 @@ class AttackAnalyser:
 
             for store in attack_store_list:
                 fpr0001_list.append(
-                    store.attack_result_df.loc["max Entire dataset"]["fpr@0.001"]
-                )
+                    store.attack_result_df.loc["max Entire dataset"]
+                    ["fpr@0.001"])
 
             mean_list.append(fpr0001_list)
 
@@ -784,7 +798,10 @@ class AttackAnalyser:
         runs: List[int],
     ):
         """Create graph with fpr@0.001 for every dataset in every run."""
-        _, ax_fpr0001 = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax_fpr0001 = plt.subplots(1,
+                                     1,
+                                     figsize=FIGSIZE,
+                                     layout="constrained")
         mean_list: List[List[float]] = []
 
         x_values = runs
@@ -796,8 +813,8 @@ class AttackAnalyser:
 
             for store in attack_store_list:
                 fpr0001_list.append(
-                    store.attack_result_df.loc["std Entire dataset"]["fpr@0.001"]
-                )
+                    store.attack_result_df.loc["std Entire dataset"]
+                    ["fpr@0.001"])
 
             mean_list.append(fpr0001_list)
 
@@ -852,7 +869,7 @@ class AttackAnalyser:
             for i in self.settings.analysis_run_numbers:
                 run_dict[i].append(attack_store_list[i])
 
-        _, ax = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax = plt.subplots(1, 1, figsize=(5, 5), layout="constrained")
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         main_fpr_grid = None
@@ -865,25 +882,23 @@ class AttackAnalyser:
 
             for store in attack_store_list:
                 mean_auc_list.append(
-                    store.attack_result_df.loc["mean Entire dataset"]["AUC"]
-                )
+                    store.attack_result_df.loc["mean Entire dataset"]["AUC"])
                 mean_fpr01_list.append(
-                    store.attack_result_df.loc["mean Entire dataset"]["fpr@0.1"]
-                )
+                    store.attack_result_df.loc["mean Entire dataset"]
+                    ["fpr@0.1"])
                 mean_fpr0001_list.append(
-                    store.attack_result_df.loc["mean Entire dataset"]["fpr@0.001"]
-                )
+                    store.attack_result_df.loc["mean Entire dataset"]
+                    ["fpr@0.001"])
 
-                entire_dataset_result_list = store.get_single_entire_ds_attack_results()
+                entire_dataset_result_list = store.get_single_entire_ds_attack_results(
+                )
 
                 if main_fpr_grid is None:
                     tpr_mean, _, main_fpr_grid = store.calculate_mean_tpr_and_fpr(
-                        entire_dataset_result_list
-                    )
+                        entire_dataset_result_list)
                 else:
                     tpr_mean, _, _ = store.calculate_mean_tpr_and_fpr(
-                        entire_dataset_result_list, main_fpr_grid
-                    )
+                        entire_dataset_result_list, main_fpr_grid)
 
                 mean_tpr_list.append(tpr_mean)
 
@@ -934,12 +949,12 @@ class AttackAnalyser:
         for store in attack_store:
             class_attack_dict = store.get_single_class_attack_result_dict()
 
-            class_wise_mean_tpr_dict: Dict[str, Tuple[np.ndarray, np.ndarray]] = {}
+            class_wise_mean_tpr_dict: Dict[str, Tuple[np.ndarray,
+                                                      np.ndarray]] = {}
 
             for class_number, single_result_list in class_attack_dict.items():
                 tpr_mean, _, fpr_grid = store.calculate_mean_tpr_and_fpr(
-                    single_result_list
-                )
+                    single_result_list)
                 class_wise_mean_tpr_dict[class_number] = (tpr_mean, fpr_grid)
 
             run_dict[store.run_number] = class_wise_mean_tpr_dict
@@ -955,9 +970,9 @@ class AttackAnalyser:
         for run_number, class_wise_dict in run_dict.items():
             axs[run_number].plot([0, 1], [0, 1], "k--", lw=1.0)
             for class_number, mean_values in class_wise_dict.items():
-                axs[run_number].plot(
-                    mean_values[1], mean_values[0], label=f"Class {class_number}"
-                )
+                axs[run_number].plot(mean_values[1],
+                                     mean_values[0],
+                                     label=f"Class {class_number}")
                 axs[run_number].set(xlabel="FPR", ylabel="TPR")
                 axs[run_number].set(aspect=1, xscale="log", yscale="log")
                 axs[run_number].title.set_text(f"Run {run_number}")
@@ -981,7 +996,7 @@ class AttackAnalyser:
         runs: List[int],
         ds_name: Optional[str] = None,
     ):
-        _, ax = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
+        _, ax = plt.subplots(1, 1, figsize=(5, 5), layout="constrained")
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
         x_values = runs
@@ -989,10 +1004,10 @@ class AttackAnalyser:
             x_values = self.x_axis_values
 
         for store in attack_store:
-            entire_dataset_result_list = store.get_single_entire_ds_attack_results()
-            tpr_mean, _, fpr_grid = store.calculate_mean_tpr_and_fpr(
-                entire_dataset_result_list
+            entire_dataset_result_list = store.get_single_entire_ds_attack_results(
             )
+            tpr_mean, _, fpr_grid = store.calculate_mean_tpr_and_fpr(
+                entire_dataset_result_list)
 
             avg_auc = store.attack_result_df.loc["mean Entire dataset"]["AUC"]
             # fpr0001 = store.attack_result_df.loc["mean Entire dataset"][
@@ -1048,7 +1063,8 @@ class AttackAnalyser:
             auc_list: List[float] = []
 
             for store in attack_store_list:
-                auc_list.append(store.attack_result_df.loc["max Entire dataset"]["AUC"])
+                auc_list.append(
+                    store.attack_result_df.loc["max Entire dataset"]["AUC"])
 
             mean_list.append(auc_list)
             ax_auc.plot(
@@ -1104,7 +1120,8 @@ class AttackAnalyser:
             auc_list: List[float] = []
 
             for store in attack_store_list:
-                auc_list.append(store.attack_result_df.loc["std Entire dataset"]["AUC"])
+                auc_list.append(
+                    store.attack_result_df.loc["std Entire dataset"]["AUC"])
 
             mean_list.append(auc_list)
             ax_auc.plot(
