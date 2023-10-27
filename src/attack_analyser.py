@@ -45,6 +45,7 @@ class AttackAnalyser:
             settings.run_name,
             "attack-analysis-combined",
         )
+        check_create_folder(self.analysis_combined_runs)
 
     def get_combined_ds_analysis_folder(self, run_number: int) -> str:
         return os.path.join(
