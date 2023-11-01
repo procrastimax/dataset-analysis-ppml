@@ -452,6 +452,10 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
         ]
     ]
 
+    # avoid OOM
+    tf.keras.backend.clear_session()
+    gc.collect()
+
     return df
 
 
