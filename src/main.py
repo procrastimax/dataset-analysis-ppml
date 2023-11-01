@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from datetime import datetime as dt
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import pandas as pd
 import tensorflow as tf
@@ -46,12 +46,11 @@ def main():
     if settings.is_generating_privacy_report:
         generate_privacy_report(settings, num_samples=60000)
 
-    loaded_ds_list: List[AbstractDataset] = []
-
     run_args_parameter_check(settings)
 
     if settings.datasets is not None:
-        settings.datasets.sort()  # sort ds name list to create deterministic filenames
+        settings.datasets.sort(
+        )  # sort ds name list to create deterministic filenames
 
     ds_info_df_all: Optional[pd.DataFrame] = None
 
@@ -60,25 +59,22 @@ def main():
     print("=========================================")
 
     # if no datasets were specified, then load them from paramter.json files for each run from a 'run name' folder
-    if settings.datasets is None and (
-        settings.is_train_model or settings.is_evaluating_model
-    ):
-        run_result_folder = os.path.join(
-            result_path, settings.model_name, settings.run_name
-        )
+    if settings.datasets is None and (settings.is_train_model
+                                      or settings.is_evaluating_model):
+        run_result_folder = os.path.join(result_path, settings.model_name,
+                                         settings.run_name)
 
         if settings.analysis_run_numbers is None:
             runs = get_run_numbers(run_result_folder)
         else:
             runs = settings.analysis_run_numbers
         print(f"Found the following runs for {settings.run_name}: {runs}")
+
         for run in runs:
-            parameter_file_path = os.path.join(
-                run_result_folder, str(run), "parameter_model_train.json"
-            )
-            parameter_file_path_old = os.path.join(
-                run_result_folder, str(run), "parameter.json"
-            )
+            parameter_file_path = os.path.join(run_result_folder, str(run),
+                                               "parameter_model_train.json")
+            parameter_file_path_old = os.path.join(run_result_folder, str(run),
+                                                   "parameter.json")
             try:
                 with open(parameter_file_path) as parameter_file:
                     parameter_dict = json.load(parameter_file)
@@ -90,8 +86,10 @@ def main():
                     settings.weight_decay = parameter_dict["weight_decay"]
                     settings.delta = parameter_dict["delta"]
                     settings.l2_norm_clip = parameter_dict["l2_norm_clip"]
-                    settings.privacy_epsilon = parameter_dict["privacy_epsilon"]
-                    settings.num_shadow_models = parameter_dict["num_shadow_models"]
+                    settings.privacy_epsilon = parameter_dict[
+                        "privacy_epsilon"]
+                    settings.num_shadow_models = parameter_dict[
+                        "num_shadow_models"]
                     settings.adam_epsilon = parameter_dict["adam_epsilon"]
                     settings.random_seed = parameter_dict["random_seed"]
                     settings.datasets = parameter_dict["datasets"]
@@ -109,8 +107,10 @@ def main():
                     settings.weight_decay = parameter_dict["weight_decay"]
                     settings.delta = parameter_dict["delta"]
                     settings.l2_norm_clip = parameter_dict["l2_norm_clip"]
-                    settings.privacy_epsilon = parameter_dict["privacy_epsilon"]
-                    settings.num_shadow_models = parameter_dict["num_shadow_models"]
+                    settings.privacy_epsilon = parameter_dict[
+                        "privacy_epsilon"]
+                    settings.num_shadow_models = parameter_dict[
+                        "num_shadow_models"]
                     settings.adam_epsilon = parameter_dict["adam_epsilon"]
                     settings.random_seed = parameter_dict["random_seed"]
                     settings.datasets = parameter_dict["datasets"]
@@ -121,7 +121,9 @@ def main():
                 )
                 sys.exit(1)
 
-            print(f"Loading the following datasets for run {run}: {settings.datasets}")
+            print(
+                f"Loading the following datasets for run {run}: {settings.datasets}"
+            )
 
             # update settings' run number for this iteration
             settings.run_number = int(run)
@@ -136,18 +138,14 @@ def main():
                     model_input_shape=settings.model_input_shape,
                 )
 
-                loaded_ds_list.append(ds)
-
-                (test_results_df, ds_info_df) = handle_single_dataset(
-                    ds=ds, settings=settings
-                )
+                (test_results_df,
+                 ds_info_df) = handle_single_dataset(ds=ds, settings=settings)
                 # combine single results with other results
                 if single_model_test_df is None:
                     single_model_test_df = test_results_df
                 else:
                     single_model_test_df = pd.concat(
-                        [single_model_test_df, test_results_df]
-                    )
+                        [single_model_test_df, test_results_df])
 
                 # combine single results with other results
                 if ds_info_df_all is None:
@@ -170,7 +168,8 @@ def main():
 
         # we cannot really recover from this state
         # so we have to end the program at this point
-        print("Done training and evaluating models loaded from parameter.json!")
+        print(
+            "Done training and evaluating models loaded from parameter.json!")
         sys.exit(0)
 
     # normal case of user specified run number, run name, model and dataset
@@ -183,18 +182,14 @@ def main():
                 model_input_shape=settings.model_input_shape,
             )
 
-            loaded_ds_list.append(ds)
-
-            (test_results_df, ds_info_df) = handle_single_dataset(
-                ds=ds, settings=settings
-            )
+            (test_results_df,
+             ds_info_df) = handle_single_dataset(ds=ds, settings=settings)
             # combine single results with other results
             if single_model_test_df is None:
                 single_model_test_df = test_results_df
             else:
                 single_model_test_df = pd.concat(
-                    [single_model_test_df, test_results_df]
-                )
+                    [single_model_test_df, test_results_df])
 
             # combine single results with other results
             if ds_info_df_all is None:
@@ -214,9 +209,8 @@ def main():
     if settings.is_compiling_evalulation:
         compile_model_evaluation(settings)
 
-    if settings.model_name is not None and (
-        settings.is_train_model or settings.is_running_amia_attack
-    ):
+    if settings.model_name is not None and (settings.is_train_model or
+                                            settings.is_running_amia_attack):
         mode: str = None
         if settings.is_train_model:
             mode = "model_train"
@@ -236,7 +230,8 @@ def main():
         print(f"Execution took: {elapsed_time_str}")
 
         settings.execution_time = elapsed_time_str
-        settings.save_settings_as_json(param_filepath, file_name_extension=mode)
+        settings.save_settings_as_json(param_filepath,
+                                       file_name_extension=mode)
 
 
 def handle_single_dataset(
@@ -258,11 +253,8 @@ def handle_single_dataset(
     # prepare dataset after generating ds_info!
     ds.prepare_datasets()
 
-    if (
-        settings.is_train_model
-        or settings.is_evaluating_model
-        or settings.is_running_amia_attack
-    ):
+    if (settings.is_train_model or settings.is_evaluating_model
+            or settings.is_running_amia_attack):
         model_save_path: str = os.path.join(
             model_path,
             settings.model_name,
@@ -271,10 +263,11 @@ def handle_single_dataset(
             ds.dataset_name,
         )
         check_create_folder(model_save_path)
-        model_save_file: str = os.path.join(model_save_path, f"{ds.dataset_name}.tf")
-        model = load_model(
-            model_path=model_save_file, num_classes=ds.num_classes, settings=settings
-        )
+        model_save_file: str = os.path.join(model_save_path,
+                                            f"{ds.dataset_name}.tf")
+        model = load_model(model_path=model_save_file,
+                           num_classes=ds.num_classes,
+                           settings=settings)
 
         # set values for private training
         if type(model) is PrivateCNNModel:
@@ -306,7 +299,9 @@ def handle_single_dataset(
 
     if settings.is_running_amia_attack:
         print("---------------------")
-        print("Running AMIA attack (train shadow models, calc statistics, run attack)")
+        print(
+            "Running AMIA attack (train shadow models, calc statistics, run attack)"
+        )
         print("---------------------")
         shadow_model_save_path: str = os.path.join(
             model_path,
@@ -332,7 +327,8 @@ def handle_single_dataset(
     return result_df, ds_info_df
 
 
-def generate_ds_info(ds: AbstractDataset, force_ds_info_regen: bool) -> pd.DataFrame:
+def generate_ds_info(ds: AbstractDataset,
+                     force_ds_info_regen: bool) -> pd.DataFrame:
     """Generate dataset info.
 
     Needs to be run before dataset preprocessing is called.
@@ -348,7 +344,8 @@ def generate_ds_info(ds: AbstractDataset, force_ds_info_regen: bool) -> pd.DataF
     return ds.get_ds_info_as_df()
 
 
-def load_model(model_path: str, num_classes: int, settings: RunSettings) -> Model:
+def load_model(model_path: str, num_classes: int,
+               settings: RunSettings) -> Model:
     model = None
 
     model_height = settings.model_input_shape[0]
@@ -395,7 +392,8 @@ def train_model(ds: AbstractDataset, model: Model, settings: RunSettings):
     model.print_summary()
 
     x, y = ds.convert_ds_to_one_hot_encoding(ds.ds_train, unbatch=True)
-    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test, unbatch=True)
+    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test,
+                                                       unbatch=True)
 
     model.train_model_from_numpy(x=x, y=y, val_x=test_x, val_y=test_y)
 
@@ -423,7 +421,8 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
     model.print_summary()
 
     x, y = ds.convert_ds_to_one_hot_encoding(ds.ds_train, unbatch=True)
-    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test, unbatch=True)
+    test_x, test_y = ds.convert_ds_to_one_hot_encoding(ds.ds_test,
+                                                       unbatch=True)
 
     train_eval_dict = model.test_model(x, y)
     test_eval_dict = model.test_model(test_x, test_y)
@@ -439,18 +438,16 @@ def load_and_test_model(ds: AbstractDataset, model: Model) -> pd.DataFrame:
         merged_dicts[k] = [v, test_eval_dict[k]]
 
     df = pd.DataFrame.from_dict(merged_dicts)
-    df = df[
-        [
-            "name",
-            "type",
-            "accuracy",
-            "f1-score",
-            "precision",
-            "recall",
-            "loss",
-            "class-wise",
-        ]
-    ]
+    df = df[[
+        "name",
+        "type",
+        "accuracy",
+        "f1-score",
+        "precision",
+        "recall",
+        "loss",
+        "class-wise",
+    ]]
 
     return df
 
@@ -461,9 +458,9 @@ def run_amia_attack(
     settings: RunSettings,
     shadow_model_save_path: str,
 ):
-    amia_result_path = os.path.join(
-        result_path, settings.model_name, settings.run_name, str(settings.run_number)
-    )
+    amia_result_path = os.path.join(result_path,
+                                    settings.model_name, settings.run_name,
+                                    str(settings.run_number))
     amia = AmiaAttack(
         model=model,
         ds=ds,
@@ -514,16 +511,13 @@ def generate_privacy_report(settings: RunSettings, num_samples: int = 60000):
 def run_args_parameter_check(settings: RunSettings):
     if settings.model_name is None:
         if not settings.is_generating_ds_info and (
-            not settings.is_train_model or not settings.is_evaluating_model
-        ):
+                not settings.is_train_model
+                or not settings.is_evaluating_model):
             print("No model was specified! Please provide a valid model name!")
             sys.exit(1)
 
-    if (
-        settings.is_train_model
-        or settings.is_evaluating_model
-        or settings.is_running_amia_attack
-    ):
+    if (settings.is_train_model or settings.is_evaluating_model
+            or settings.is_running_amia_attack):
         if settings.run_number is None and settings.run_name is None:
             print(
                 "No run number and no run name specified! A run number is required when training/ attacking/ testing models! See help for more info."
@@ -570,12 +564,12 @@ def save_bundled_ds_info_df(ds_info_df: pd.DataFrame, settings: RunSettings):
     print("---------------------")
     print(ds_info_df)
     ds_info_df_file = os.path.join(
-        ds_info_path, f'dataframe_{"-".join(settings.datasets)}_ds_info.csv'
-    )
+        ds_info_path, f'dataframe_{"-".join(settings.datasets)}_ds_info.csv')
     save_dataframe(ds_info_df, ds_info_df_file)
 
 
-def save_bundled_model_evaluation(model_test_df: pd.DataFrame, settings: RunSettings):
+def save_bundled_model_evaluation(model_test_df: pd.DataFrame,
+                                  settings: RunSettings):
     # save result_df with model's accuracy, loss, etc. gathered as csv
     result_df_filename = os.path.join(
         result_path,
@@ -587,7 +581,9 @@ def save_bundled_model_evaluation(model_test_df: pd.DataFrame, settings: RunSett
     )
     check_create_folder(os.path.dirname(result_df_filename))
 
-    save_dataframe(df=model_test_df, filename=result_df_filename, use_index=False)
+    save_dataframe(df=model_test_df,
+                   filename=result_df_filename,
+                   use_index=False)
 
 
 def compile_model_evaluation(settings: RunSettings):
