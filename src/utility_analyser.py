@@ -257,8 +257,8 @@ class UtilityAnalyser:
                         linewidth=3,
                     )
                 else:
-                    if "_" in name:
-                        name = name.split("_")[0]
+                    if "-" in name:
+                        name = name.split("-")[0]
                     ax.plot(run_range, values, label=name)
 
         if self.x_axis_name is not None:
