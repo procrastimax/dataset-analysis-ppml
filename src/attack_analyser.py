@@ -15,7 +15,7 @@ from util import save_dataframe
 
 pd.options.mode.chained_assignment = None
 
-FIGSIZE = (5, 4)
+FIGSIZE = (5, 3)
 
 
 class AttackAnalyser:
