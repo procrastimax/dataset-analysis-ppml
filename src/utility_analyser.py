@@ -6,7 +6,6 @@ from typing import Dict, List, Tuple
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
-import numpy as np
 
 from ppml_datasets.utils import check_create_folder
 from settings import RunSettings
@@ -14,25 +13,24 @@ from util import save_dataframe
 
 pd.options.mode.chained_assignment = None
 
-FIGSIZE = (4, 4)
+FIGSIZE = (5, 4)
 
 
 class UtilityAnalyser:
+
     def __init__(self, result_path: str, settings: RunSettings):
         self.settings = settings
         self.run_name = self.settings.run_name
         self.model_name = self.settings.model_name
         self.result_path = result_path
-        self.run_result_folder = os.path.join(
-            self.result_path, self.model_name, self.run_name
-        )
+        self.run_result_folder = os.path.join(self.result_path,
+                                              self.model_name, self.run_name)
 
         self.x_axis_name = settings.x_axis_name
         self.x_axis_values = settings.x_axis_values
 
         self.combined_result_folder = os.path.join(
-            self.run_result_folder, "utility-analysis-combined"
-        )
+            self.run_result_folder, "utility-analysis-combined")
         check_create_folder(self.combined_result_folder)
 
         if self.settings.analysis_run_numbers:
@@ -42,9 +40,8 @@ class UtilityAnalyser:
             sys.exit(1)
 
     def load_run_utility_df(self, run_number: int) -> pd.DataFrame:
-        df_folder = os.path.join(
-            self.run_result_folder, str(run_number), "single-model-train"
-        )
+        df_folder = os.path.join(self.run_result_folder, str(run_number),
+                                 "single-model-train")
 
         file_names: List[str] = []
         csv_files = os.scandir(df_folder)
@@ -60,8 +57,7 @@ class UtilityAnalyser:
 
     def analyse_utility(self):
         acc_df, f1_df, loss_df, gap_df = self.build_combined_model_utility_dfs(
-            self.settings.analysis_run_numbers
-        )
+            self.settings.analysis_run_numbers)
 
         acc_df = acc_df.loc[self.run_numbers]
         f1_df = f1_df.loc[self.run_numbers]
@@ -156,7 +152,8 @@ class UtilityAnalyser:
         gap_fig.savefig(gap_vis_filename)
         save_dataframe(gap_df, gap_df_filename)
 
-    def build_combined_model_utility_dfs(self, runs: List[int]) -> Tuple[pd.DataFrame]:
+    def build_combined_model_utility_dfs(
+            self, runs: List[int]) -> Tuple[pd.DataFrame]:
         """Return a tuple of 3 dataframes. Each dataframes represents one utility anaylsis from the evaluated model.
 
         The dataframes have the following order in the tuple:
