@@ -475,6 +475,7 @@ class AttackAnalyser:
                 x_values,
                 auc_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)
@@ -533,6 +534,7 @@ class AttackAnalyser:
                 x_values,
                 fpr01_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)
@@ -589,6 +591,7 @@ class AttackAnalyser:
                 x_values,
                 fpr01_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)
@@ -644,6 +647,7 @@ class AttackAnalyser:
                 x_values,
                 fpr01_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)
@@ -703,6 +707,7 @@ class AttackAnalyser:
                 x_values,
                 fpr0001_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)
@@ -763,6 +768,7 @@ class AttackAnalyser:
                 x_values,
                 fpr0001_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)
@@ -822,6 +828,7 @@ class AttackAnalyser:
                 x_values,
                 fpr0001_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)
@@ -1071,6 +1078,7 @@ class AttackAnalyser:
                 x_values,
                 auc_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)
@@ -1128,6 +1136,7 @@ class AttackAnalyser:
                 x_values,
                 auc_list,
                 label=f"{ds_name}",
+                marker="x",
             )
 
         np_mean = np.vstack(mean_list)

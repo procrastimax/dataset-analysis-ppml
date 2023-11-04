@@ -256,7 +256,7 @@ class UtilityAnalyser:
                 else:
                     if "-" in name:
                         name = name.split("-")[0]
-                    ax.plot(run_range, values, label=name)
+                    ax.plot(run_range, values, label=name, marker="x")
 
         if self.x_axis_name is not None:
             ax.set(xlabel=self.x_axis_name, ylabel=yLabel)
