@@ -150,12 +150,12 @@ class AttackAnalyser:
     ) -> pd.DataFrame:
         """Create an overview of compiled attack results for a single run."""
         for ds_name, store in attack_result_dict.items():
-            #store.create_entire_dataset_combined_roc_curve()
+            # store.create_entire_dataset_combined_roc_curve()
 
             # this function sets the store's mean_tpr and fpr_grid
             store.create_average_roc_curve_entire_dataset(
                 generate_std_area=True)
-            #store.create_average_class_attack_roc()
+            store.create_average_class_attack_roc()
 
         # create figures to compare the best runs of each dataset with each other
         attack_stores = list(attack_result_dict.values())
@@ -409,31 +409,31 @@ class AttackAnalyser:
         self.create_compiled_auc_metric_graph(attack_type=attack_type,
                                               avg_run_dict=avg_run_dict,
                                               runs=run_numbers)
-        #self.create_compiled_max_auc_metric_graph(attack_type=attack_type,
+        # self.create_compiled_max_auc_metric_graph(attack_type=attack_type,
         #                                          avg_run_dict=avg_run_dict,
         #                                          runs=run_numbers)
-        #self.create_compiled_std_auc_metric_graph(attack_type=attack_type,
+        # self.create_compiled_std_auc_metric_graph(attack_type=attack_type,
         #                                          avg_run_dict=avg_run_dict,
         #                                          runs=run_numbers)
 
         self.create_compiled_fpr01_metric_graph(attack_type=attack_type,
                                                 avg_run_dict=avg_run_dict,
                                                 runs=run_numbers)
-        #self.create_compiled_max_fpr01_metric_graph(attack_type=attack_type,
+        # self.create_compiled_max_fpr01_metric_graph(attack_type=attack_type,
         #                                            avg_run_dict=avg_run_dict,
         #                                            runs=run_numbers)
-        #self.create_compiled_std_fpr01_metric_graph(attack_type=attack_type,
+        # self.create_compiled_std_fpr01_metric_graph(attack_type=attack_type,
         #                                            avg_run_dict=avg_run_dict,
         #                                            runs=run_numbers)
 
         self.create_compiled_fpr0001_metric_graph(attack_type=attack_type,
                                                   avg_run_dict=avg_run_dict,
                                                   runs=run_numbers)
-        #self.create_compiled_max_fpr0001_metric_graph(
+        # self.create_compiled_max_fpr0001_metric_graph(
         #    attack_type=attack_type,
         #    avg_run_dict=avg_run_dict,
         #    runs=run_numbers)
-        #self.create_compiled_std_fpr0001_metric_graph(
+        # self.create_compiled_std_fpr0001_metric_graph(
         #    attack_type=attack_type,
         #    avg_run_dict=avg_run_dict,
         #    runs=run_numbers)
@@ -443,10 +443,10 @@ class AttackAnalyser:
                                                               store_list,
                                                               runs=run_numbers,
                                                               ds_name=ds_name)
-            # self.create_combined_average_class_rocs(attack_type,
-            #                                        store_list,
-            #                                        runs=run_numbers,
-            #                                        ds_name=ds_name)
+            self.create_combined_average_class_rocs(attack_type,
+                                                    store_list,
+                                                    runs=run_numbers,
+                                                    ds_name=ds_name)
 
     def create_compiled_auc_metric_graph(
         self,
@@ -495,7 +495,7 @@ class AttackAnalyser:
 
         ax_auc.set(xlabel=x_name, ylabel="AUC")
         plt.xticks(x_values)
-        #plt.yticks(np.arange(0.50, 0.9, 0.05))
+        # plt.yticks(np.arange(0.50, 0.9, 0.05))
         plt.legend()
         plt.grid(True)
         plt_name = os.path.join(
@@ -552,7 +552,7 @@ class AttackAnalyser:
             x_name = self.x_axis_name
         ax_fpr01.set(xlabel=x_name, ylabel="FPR@0.1")
         plt.xticks(x_values)
-        #plt.yticks(np.arange(0.1, 0.6, 0.05))
+        # plt.yticks(np.arange(0.1, 0.6, 0.05))
         plt.grid(True)
         ax_fpr01.legend()
         plt_name = os.path.join(
@@ -725,7 +725,7 @@ class AttackAnalyser:
             x_name = self.x_axis_name
         ax_fpr0001.set(xlabel=x_name, ylabel="FPR@0.001")
         plt.xticks(x_values)
-        #plt.yticks(np.arange(0.00, 0.15, 0.02))
+        # plt.yticks(np.arange(0.00, 0.15, 0.02))
         plt.grid(True)
         plt.legend()
         plt_name = os.path.join(
