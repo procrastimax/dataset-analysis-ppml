@@ -179,12 +179,12 @@ class UtilityAnalyser:
                 if class_num > 0:
                     class_wise_f1_dict[class_num - 1].append(j)
 
+        x_values = self.run_numbers
+        if self.settings.x_axis_values is not None:
+            x_values = self.settings.x_axis_values
         fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
         for class_num, f1scores in class_wise_f1_dict.items():
-            ax.plot(self.run_numbers,
-                    f1scores,
-                    label=f"Class {class_num}",
-                    marker="x")
+            ax.plot(x_values, f1scores, label=f"Class {class_num}", marker="x")
         ax.set(xlabel=self.x_axis_name, ylabel="F1-Score")
         plt.legend(
             loc="lower left",
