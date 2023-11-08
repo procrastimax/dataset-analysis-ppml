@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -403,6 +403,44 @@ class AttackAnalyser:
                                                 runs=run_numbers,
                                                 ds_name=ds_name)
 
+        self.create_compiled_auc_metric_graph(attack_type=attack_type,
+                                              avg_run_dict=avg_run_dict,
+                                              runs=run_numbers)
+        self.create_compiled_max_auc_metric_graph(attack_type=attack_type,
+                                                  avg_run_dict=avg_run_dict,
+                                                  runs=run_numbers)
+        self.create_compiled_std_auc_metric_graph(attack_type=attack_type,
+                                                  avg_run_dict=avg_run_dict,
+                                                  runs=run_numbers)
+
+        self.create_compiled_fpr01_metric_graph(attack_type=attack_type,
+                                                avg_run_dict=avg_run_dict,
+                                                runs=run_numbers)
+        self.create_compiled_max_fpr01_metric_graph(attack_type=attack_type,
+                                                    avg_run_dict=avg_run_dict,
+                                                    runs=run_numbers)
+        self.create_compiled_std_fpr01_metric_graph(attack_type=attack_type,
+                                                    avg_run_dict=avg_run_dict,
+                                                    runs=run_numbers)
+
+        self.create_compiled_fpr0001_metric_graph(attack_type=attack_type,
+                                                  avg_run_dict=avg_run_dict,
+                                                  runs=run_numbers)
+        self.create_compiled_max_fpr0001_metric_graph(
+            attack_type=attack_type,
+            avg_run_dict=avg_run_dict,
+            runs=run_numbers)
+        self.create_compiled_std_fpr0001_metric_graph(
+            attack_type=attack_type,
+            avg_run_dict=avg_run_dict,
+            runs=run_numbers)
+
+        for ds_name, store_list in avg_run_dict.items():
+            self.create_combined_averaged_roc_curve_from_list(attack_type,
+                                                              store_list,
+                                                              runs=run_numbers,
+                                                              ds_name=ds_name)
+
         # create an average ROC curve, where all datasets are averaged for a specific run
         # this ROC curve shall compare the average of all datasets between the runs
         self.create_compiled_averaged_run_roc_curves(
@@ -410,44 +448,6 @@ class AttackAnalyser:
             avg_run_dict=avg_run_dict,
             runs=run_numbers,
         )
-
-        self.create_compiled_auc_metric_graph(attack_type=attack_type,
-                                              avg_run_dict=avg_run_dict,
-                                              runs=run_numbers)
-        # self.create_compiled_max_auc_metric_graph(attack_type=attack_type,
-        #                                          avg_run_dict=avg_run_dict,
-        #                                          runs=run_numbers)
-        # self.create_compiled_std_auc_metric_graph(attack_type=attack_type,
-        #                                          avg_run_dict=avg_run_dict,
-        #                                          runs=run_numbers)
-
-        self.create_compiled_fpr01_metric_graph(attack_type=attack_type,
-                                                avg_run_dict=avg_run_dict,
-                                                runs=run_numbers)
-        # self.create_compiled_max_fpr01_metric_graph(attack_type=attack_type,
-        #                                            avg_run_dict=avg_run_dict,
-        #                                            runs=run_numbers)
-        # self.create_compiled_std_fpr01_metric_graph(attack_type=attack_type,
-        #                                            avg_run_dict=avg_run_dict,
-        #                                            runs=run_numbers)
-
-        self.create_compiled_fpr0001_metric_graph(attack_type=attack_type,
-                                                  avg_run_dict=avg_run_dict,
-                                                  runs=run_numbers)
-        # self.create_compiled_max_fpr0001_metric_graph(
-        #    attack_type=attack_type,
-        #    avg_run_dict=avg_run_dict,
-        #    runs=run_numbers)
-        # self.create_compiled_std_fpr0001_metric_graph(
-        #    attack_type=attack_type,
-        #    avg_run_dict=avg_run_dict,
-        #    runs=run_numbers)
-
-        for ds_name, store_list in avg_run_dict.items():
-            self.create_combined_averaged_roc_curve_from_list(attack_type,
-                                                              store_list,
-                                                              runs=run_numbers,
-                                                              ds_name=ds_name)
 
     def create_combined_average_class_rocs(
         self,
@@ -526,7 +526,12 @@ class AttackAnalyser:
             ax.plot([0, 1], [0, 1], "k--", lw=1.0)
 
             for class_number, avg_tpr in mean_class_tpr.items():
-                ax.plot(fpr_grid, avg_tpr, label=f"Class {class_number} AUC={avg_auc_dict[class_number][-1]:.3f}")
+                ax.plot(
+                    fpr_grid,
+                    avg_tpr,
+                    label=
+                    f"Class {class_number} AUC={avg_auc_dict[class_number][-1]:.3f}",
+                )
                 ax.set(xlabel="FPR", ylabel="TPR")
                 ax.set(aspect=1, xscale="log", yscale="log")
                 ax.legend()

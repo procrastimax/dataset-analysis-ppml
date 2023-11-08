@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 from collections import defaultdict
@@ -181,6 +182,9 @@ class UtilityAnalyser:
         run_dict_loss: Dict[str, List[float]] = defaultdict(list)
         run_dict_gap: Dict[str, List[float]] = defaultdict(list)
 
+        run_dict_class_f1: Dict[str, List[Dict[str,
+                                               float]]] = defaultdict(list)
+
         for i in combined_utility_df.iterrows():
             ds_name = i[1]["name"]
 
@@ -193,12 +197,40 @@ class UtilityAnalyser:
                 run_dict_accuracy[ds_name + "_train"].append(i[1]["accuracy"])
                 run_dict_f1score[ds_name + "_train"].append(i[1]["f1-score"])
                 run_dict_loss[ds_name + "_train"].append(i[1]["loss"])
+
+                # we have to replace the '' with "" in order to parse it with the json module
+                class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
+                run_dict_class_f1[ds_name + "_train"].append(
+                    json.loads(class_wise_str_dict))
+
             elif i[1]["type"] == "test":
                 run_dict_accuracy[ds_name + "_test"].append(i[1]["accuracy"])
                 run_dict_f1score[ds_name + "_test"].append(i[1]["f1-score"])
                 run_dict_loss[ds_name + "_test"].append(i[1]["loss"])
 
+                class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
+                run_dict_class_f1[ds_name + "_test"].append(
+                    json.loads(class_wise_str_dict))
+
+            # add all accuracy values either test or train to the list to later calculate the difference
             run_dict_gap[ds_name + "_test"].append(i[1]["accuracy"])
+
+        # parse dict of class wise f1 to dataframe
+        cols = list(list(run_dict_class_f1.values())[0][0].keys())
+        cols.insert(0, "Dataset")
+        cols.insert(0, "Run")
+        df_class_f1 = pd.DataFrame(columns=cols)
+        df_class_f1.set_index(["Dataset", "Run"], inplace=True)
+
+        print(df_class_f1)
+
+        for ds_name, class_wise_f1_list in run_dict_class_f1.items():
+            for i, class_wise_f1 in enumerate(class_wise_f1_list):
+                print(i, class_wise_f1)
+                for class_number, val in class_wise_f1.items():
+                    df_class_f1.loc[ds_name, class_number] = val
+
+        print(df_class_f1)
 
         df_acc = pd.DataFrame.from_dict(run_dict_accuracy)
         df_acc["avg_train"] = df_acc.filter(like="_train").mean(axis=1)
