@@ -343,10 +343,6 @@ class AttackAnalyser:
 
             name_list.append(name)
             avg_auc = store.attack_result_df.loc["mean Entire dataset"]["AUC"]
-            # avg_fpr01 = store.attack_result_df.loc["mean Entire dataset"][
-            #    "fpr@0.1"]
-            # avg_fpr0001 = store.attack_result_df.loc["mean Entire dataset"][
-            #    "fpr@0.001"]
 
             ax.plot(
                 store.fpr_grid,

@@ -57,7 +57,13 @@ class UtilityAnalyser:
         return df
 
     def analyse_utility(self):
-        acc_df, f1_df, loss_df, gap_df = self.build_combined_model_utility_dfs(
+        (
+            acc_df,
+            f1_df,
+            loss_df,
+            gap_df,
+            class_wise_f1_df,
+        ) = self.build_combined_model_utility_dfs(
             self.settings.analysis_run_numbers)
 
         acc_df = acc_df.loc[self.run_numbers]
@@ -153,6 +159,61 @@ class UtilityAnalyser:
         gap_fig.savefig(gap_vis_filename)
         save_dataframe(gap_df, gap_df_filename)
 
+        ###
+        # Class Wise F1
+        # calculate average f1 scores for every class and visalize these averages over the runs
+        ###
+        max_run = class_wise_f1_df["Run"].max()
+        # only use the _test datasets
+        class_wise_f1_df_test = class_wise_f1_df[
+            class_wise_f1_df["Dataset"].str.endswith("_test")]
+
+        # a dict to contain a series of f1-scores for every class
+        class_wise_f1_dict: Dict[int, List[float]] = defaultdict(list)
+
+        # iterate over all runs
+        for i in range(max_run + 1):
+            class_avg = class_wise_f1_df_test.loc[class_wise_f1_df["Run"] ==
+                                                  i].mean()
+            for class_num, j in enumerate(class_avg):
+                if class_num > 0:
+                    class_wise_f1_dict[class_num - 1].append(j)
+
+        fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
+        for class_num, f1scores in class_wise_f1_dict.items():
+            ax.plot(self.run_numbers,
+                    f1scores,
+                    label=f"Class {class_num}",
+                    marker="x")
+        ax.set(xlabel=self.x_axis_name, ylabel="F1-Score")
+        plt.legend(
+            loc="lower left",
+            labelspacing=0.4,
+            columnspacing=1,
+            framealpha=0.5,
+            handlelength=1.2,
+            handletextpad=0.3,
+            ncols=3,
+            fontsize="small",
+            markerscale=0.8,
+        )
+        ax.grid()
+        plt.xticks(self.run_numbers)
+        class_wise_f1_df_filename = os.path.join(
+            self.combined_result_folder,
+            f"class_wise_f1_r{''.join(map(str,self.run_numbers))}.csv",
+        )
+        class_wise_f1_vis_filename: str = os.path.join(
+            self.combined_result_folder,
+            f"class_wise_f1_r{''.join(map(str,self.run_numbers))}.png",
+        )
+        print(
+            f"Saving class wise f1-scoresfigure to {class_wise_f1_vis_filename}"
+        )
+        plt.savefig(class_wise_f1_vis_filename)
+        save_dataframe(class_wise_f1_df, class_wise_f1_df_filename)
+        plt.close()
+
     def build_combined_model_utility_dfs(
             self, runs: List[int]) -> Tuple[pd.DataFrame]:
         """Return a tuple of 3 dataframes. Each dataframes represents one utility anaylsis from the evaluated model.
@@ -162,6 +223,7 @@ class UtilityAnalyser:
             2 -> F1-Score
             3 -> Loss
             4 -> Train/Test Gap
+            5 -> Class Wise F1 Scores
         """
         combined_utility_df: pd.DataFrame = None
 
@@ -215,22 +277,31 @@ class UtilityAnalyser:
             # add all accuracy values either test or train to the list to later calculate the difference
             run_dict_gap[ds_name + "_test"].append(i[1]["accuracy"])
 
-        # parse dict of class wise f1 to dataframe
+        # parse dict of class wise f1 to dataframe -> the dataframe looks like this but for all runs
+        """
+            Dataset          Run    0         1         2         3         4         5         6         7         8         9
+        0  cifar10_train       4    0.9996  0.999667  0.998499  0.997999  0.998334  0.997798    0.9985  0.997667  0.997996  0.998997
+        1   cifar10_test       4  0.739949  0.777311  0.667954   0.56614  0.694988  0.606215  0.782974  0.741485  0.756571  0.598794
+        2   fmnist_train       4  0.998601  0.999889  0.995746  0.998572  0.994177    0.9998  0.992209       1.0       1.0       1.0
+        3    fmnist_test       4  0.865911  0.989495  0.867998  0.922388  0.861249  0.973645  0.746549  0.949466  0.978294  0.956208
+        4    mnist_train       4    0.9999       1.0  0.999875       1.0       1.0       1.0    0.9995       1.0       1.0       1.0
+        5     mnist_test       4  0.989879  0.992105  0.980373  0.987715  0.985405  0.977553  0.985248  0.983366  0.989158  0.972617
+        6     svhn_train       4       1.0  0.998701  0.999444  0.998122  0.998709   0.99799  0.998588   0.99924   0.99694  0.996778
+        7      svhn_test       4  0.861136  0.915769  0.877148  0.804523  0.871628  0.836205  0.783949  0.886783  0.804243  0.780851"
+        """
         cols = list(list(run_dict_class_f1.values())[0][0].keys())
-        cols.insert(0, "Dataset")
         cols.insert(0, "Run")
-        df_class_f1 = pd.DataFrame(columns=cols)
-        df_class_f1.set_index(["Dataset", "Run"], inplace=True)
+        cols.insert(0, "Dataset")
+        df_class_f1 = pd.DataFrame(columns=cols,
+                                   index=range(
+                                       len(runs) * len(run_dict_class_f1)))
 
-        print(df_class_f1)
-
+        num_idx = 0
         for ds_name, class_wise_f1_list in run_dict_class_f1.items():
             for i, class_wise_f1 in enumerate(class_wise_f1_list):
-                print(i, class_wise_f1)
-                for class_number, val in class_wise_f1.items():
-                    df_class_f1.loc[ds_name, class_number] = val
-
-        print(df_class_f1)
+                df_class_f1.iloc[num_idx] = [ds_name, i] + list(
+                    class_wise_f1.values())
+                num_idx += 1
 
         df_acc = pd.DataFrame.from_dict(run_dict_accuracy)
         df_acc["avg_train"] = df_acc.filter(like="_train").mean(axis=1)
@@ -257,7 +328,7 @@ class UtilityAnalyser:
         df_gap["avg_test"] = df_gap.filter(like="_test").mean(axis=1)
         df_gap = df_gap.set_axis(runs)
 
-        return (df_acc, df_f1, df_loss, df_gap)
+        return (df_acc, df_f1, df_loss, df_gap, df_class_f1)
 
     def _visualize_df(
         self,
