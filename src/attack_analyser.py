@@ -569,7 +569,7 @@ class AttackAnalyser:
             handlelength=1.2,
             handletextpad=0.3,
             ncols=3,
-            fontsize="x-small",
+            fontsize="small",
             markerscale=0.8,
         )
         plt.grid(True)
@@ -603,7 +603,7 @@ class AttackAnalyser:
             handlelength=1.2,
             handletextpad=0.3,
             ncols=3,
-            fontsize="x-small",
+            fontsize="small",
             markerscale=0.8,
         )
         plt.grid(True)
@@ -639,7 +639,7 @@ class AttackAnalyser:
             handlelength=1.2,
             handletextpad=0.3,
             ncols=3,
-            fontsize="x-small",
+            fontsize="small",
             markerscale=0.8,
         )
         plt.grid(True)
