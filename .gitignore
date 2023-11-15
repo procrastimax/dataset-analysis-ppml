@@ -1,6 +1,7 @@
 env/
 data/
 models/
+ds-info/
 src/__pycache__/
 src/ppml_datasets/__pycache__/
 src/ppml_datasets/datasets/__pycache__/
@@ -10,3 +11,4 @@ src/ppml_datasets/datasets/__pycache__/
 results/
 run.bash
 *.sif
+
