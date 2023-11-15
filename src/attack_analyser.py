@@ -339,7 +339,12 @@ class AttackAnalyser:
         for store in attack_store:
             name = store.ds_name
             if "" in name:
-                name = name.split("_")[0]
+                #name = name.split("_")[0]
+
+                if "_gray" in name:
+                    name = name.split("_")[0] + "_gray"
+                elif "_" in name:
+                    name = name.split("_")[0]
 
             name_list.append(name)
             avg_auc = store.attack_result_df.loc["mean Entire dataset"]["AUC"]
