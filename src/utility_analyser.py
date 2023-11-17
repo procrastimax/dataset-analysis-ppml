@@ -19,20 +19,21 @@ FIGSIZE = (5, 3)
 
 
 class UtilityAnalyser:
-
     def __init__(self, result_path: str, settings: RunSettings):
         self.settings = settings
         self.run_name = self.settings.run_name
         self.model_name = self.settings.model_name
         self.result_path = result_path
-        self.run_result_folder = os.path.join(self.result_path,
-                                              self.model_name, self.run_name)
+        self.run_result_folder = os.path.join(
+            self.result_path, self.model_name, self.run_name
+        )
 
         self.x_axis_name = settings.x_axis_name
         self.x_axis_values = settings.x_axis_values
 
         self.combined_result_folder = os.path.join(
-            self.run_result_folder, "utility-analysis-combined")
+            self.run_result_folder, "utility-analysis-combined"
+        )
         check_create_folder(self.combined_result_folder)
 
         if self.settings.analysis_run_numbers:
@@ -42,8 +43,9 @@ class UtilityAnalyser:
             sys.exit(1)
 
     def load_run_utility_df(self, run_number: int) -> pd.DataFrame:
-        df_folder = os.path.join(self.run_result_folder, str(run_number),
-                                 "single-model-train")
+        df_folder = os.path.join(
+            self.run_result_folder, str(run_number), "single-model-train"
+        )
 
         file_names: List[str] = []
         csv_files = os.scandir(df_folder)
@@ -64,8 +66,7 @@ class UtilityAnalyser:
             loss_df,
             gap_df,
             class_wise_f1_df,
-        ) = self.build_combined_model_utility_dfs(
-            self.settings.analysis_run_numbers)
+        ) = self.build_combined_model_utility_dfs(self.settings.analysis_run_numbers)
 
         acc_df = acc_df.loc[self.run_numbers]
         f1_df = f1_df.loc[self.run_numbers]
@@ -182,15 +183,15 @@ class UtilityAnalyser:
         max_run = class_wise_f1_df["Run"].max()
         # only use the _test datasets
         class_wise_f1_df_test = class_wise_f1_df[
-            class_wise_f1_df["Dataset"].str.endswith("_test")]
+            class_wise_f1_df["Dataset"].str.endswith("_test")
+        ]
 
         # a dict to contain a series of f1-scores for every class
         class_wise_f1_dict: Dict[int, List[float]] = defaultdict(list)
 
         # iterate over all runs
         for i in range(max_run + 1):
-            class_avg = class_wise_f1_df_test.loc[class_wise_f1_df["Run"] ==
-                                                  i].mean()
+            class_avg = class_wise_f1_df_test.loc[class_wise_f1_df["Run"] == i].mean()
             for class_num, j in enumerate(class_avg):
                 if class_num > 0:
                     class_wise_f1_dict[class_num - 1].append(j)
@@ -198,7 +199,9 @@ class UtilityAnalyser:
         x_values = self.run_numbers
         if self.settings.x_axis_values is not None:
             x_values = self.settings.x_axis_values
+
         fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
+
         for class_num, f1scores in class_wise_f1_dict.items():
             ax.plot(x_values, f1scores, label=f"Class {class_num}", marker="x")
         ax.set(xlabel=self.x_axis_name, ylabel="F1-Score")
@@ -223,15 +226,57 @@ class UtilityAnalyser:
             self.combined_result_folder,
             f"class_wise_f1_r{''.join(map(str,self.run_numbers))}.png",
         )
-        print(
-            f"Saving class wise f1-scoresfigure to {class_wise_f1_vis_filename}"
-        )
+        print(f"Saving class wise f1-scores figure to {class_wise_f1_vis_filename}")
         plt.savefig(class_wise_f1_vis_filename)
         save_dataframe(class_wise_f1_df, class_wise_f1_df_filename)
+
+        # --------
+        # create for every run a grouped bar chart to show the F1-scores of each class
+        # --------
+        fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
+        # iterate over all runs
+        for idx in range(max_run + 1):
+            run_f1_scores = class_wise_f1_df_test.loc[class_wise_f1_df["Run"] == idx]
+
+            class_wise_value_dict: Dict[str, List[float]] = defaultdict(list)
+
+            for i in run_f1_scores.iterrows():
+                ds_name = i[1]["Dataset"]
+                for j in i[1][2:]:
+                    class_wise_value_dict[ds_name].append(j)
+
+            x = np.arange(len(list(class_wise_value_dict.values())[0]))
+            width = 0.22
+            multiplier = 0
+
+            name_list = []
+
+            fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
+            for ds_name, values in class_wise_value_dict.items():
+                ds_name = ds_name.removesuffix("_test")
+                name_list.append(ds_name)
+
+                offset = width * multiplier
+                ax.bar(x + offset, values, width, label=ds_name)
+                multiplier += 1
+
+            ax.set_ylabel("F1-Score")
+            ax.set_xlabel(self.x_axis_name)
+            ax.set_xticks(x + width, x)
+            ax.legend(loc="lower right")
+
+            bar_chart_class_wise_f1_vis_filename: str = os.path.join(
+                self.combined_result_folder,
+                f"bar_chart_class_wise_f1_{''.join(name_list)}_r{idx}.png",
+            )
+            print(
+                f"Saving class wise bar chart f1-scores figure to {bar_chart_class_wise_f1_vis_filename}"
+            )
+            plt.savefig(bar_chart_class_wise_f1_vis_filename)
+
         plt.close()
 
-    def build_combined_model_utility_dfs(
-            self, runs: List[int]) -> Tuple[pd.DataFrame]:
+    def build_combined_model_utility_dfs(self, runs: List[int]) -> Tuple[pd.DataFrame]:
         """Return a tuple of 3 dataframes. Each dataframes represents one utility anaylsis from the evaluated model.
 
         The dataframes have the following order in the tuple:
@@ -260,8 +305,7 @@ class UtilityAnalyser:
         run_dict_loss: Dict[str, List[float]] = defaultdict(list)
         run_dict_gap: Dict[str, List[float]] = defaultdict(list)
 
-        run_dict_class_f1: Dict[str, List[Dict[str,
-                                               float]]] = defaultdict(list)
+        run_dict_class_f1: Dict[str, List[Dict[str, float]]] = defaultdict(list)
 
         for i in combined_utility_df.iterrows():
             ds_name = i[1]["name"]
@@ -279,7 +323,8 @@ class UtilityAnalyser:
                 # we have to replace the '' with "" in order to parse it with the json module
                 class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
                 run_dict_class_f1[ds_name + "_train"].append(
-                    json.loads(class_wise_str_dict))
+                    json.loads(class_wise_str_dict)
+                )
 
             elif i[1]["type"] == "test":
                 run_dict_accuracy[ds_name + "_test"].append(i[1]["accuracy"])
@@ -288,7 +333,8 @@ class UtilityAnalyser:
 
                 class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
                 run_dict_class_f1[ds_name + "_test"].append(
-                    json.loads(class_wise_str_dict))
+                    json.loads(class_wise_str_dict)
+                )
 
             # add all accuracy values either test or train to the list to later calculate the difference
             run_dict_gap[ds_name + "_test"].append(i[1]["accuracy"])
@@ -308,15 +354,14 @@ class UtilityAnalyser:
         cols = list(list(run_dict_class_f1.values())[0][0].keys())
         cols.insert(0, "Run")
         cols.insert(0, "Dataset")
-        df_class_f1 = pd.DataFrame(columns=cols,
-                                   index=range(
-                                       len(runs) * len(run_dict_class_f1)))
+        df_class_f1 = pd.DataFrame(
+            columns=cols, index=range(len(runs) * len(run_dict_class_f1))
+        )
 
         num_idx = 0
         for ds_name, class_wise_f1_list in run_dict_class_f1.items():
             for i, class_wise_f1 in enumerate(class_wise_f1_list):
-                df_class_f1.iloc[num_idx] = [ds_name, i] + list(
-                    class_wise_f1.values())
+                df_class_f1.iloc[num_idx] = [ds_name, i] + list(class_wise_f1.values())
                 num_idx += 1
 
         df_acc = pd.DataFrame.from_dict(run_dict_accuracy)
@@ -379,7 +424,7 @@ class UtilityAnalyser:
         else:
             ax.set_xlabel(xLabel)
         ax.set_xticks(x + width, run_range)
-        ax.legend()
+        ax.legend(loc="lower right")
         return fig
 
     def _visualize_df(
