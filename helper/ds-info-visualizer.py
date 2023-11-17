@@ -115,7 +115,7 @@ else:
 
     for ds_name, values in value_dict.items():
         offset = width * multiplier
-        rects = ax.bar(x + offset, values, width, label=ds_name)
+        ax.bar(x + offset, values, width, label=ds_name)
         multiplier += 1
 
     if y_name is None:

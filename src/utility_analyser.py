@@ -3,6 +3,7 @@ import os
 import sys
 from collections import defaultdict
 from typing import Dict, List, Tuple
+import numpy as np
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -114,6 +115,21 @@ class UtilityAnalyser:
         print(f"Saving f1-score comparison figure to {f1score_vis_filename}")
         f1_fig.savefig(f1score_vis_filename)
         save_dataframe(f1_df, f1score_df_filename)
+
+        f1score_bar_chart_vis_filename: str = os.path.join(
+            self.combined_result_folder,
+            f"bar_chart_f1score_comparison_r{''.join(map(str,self.run_numbers))}.png",
+        )
+        f1_bar_chart_fig = self.visualize_df_bar_chart(
+            f1_df,
+            run_range=self.run_numbers,
+            yLabel="F1-Score",
+            xLabel="Class",
+        )
+        print(
+            f"Saving f1-score bar chart comparison figure to {f1score_bar_chart_vis_filename}"
+        )
+        f1_bar_chart_fig.savefig(f1score_bar_chart_vis_filename)
 
         ###
         # Loss
@@ -329,6 +345,42 @@ class UtilityAnalyser:
         df_gap = df_gap.set_axis(runs)
 
         return (df_acc, df_f1, df_loss, df_gap, df_class_f1)
+
+    def visualize_df_bar_chart(
+        self,
+        df: pd.DataFrame,
+        run_range: List[int],
+        xLabel: str,
+        yLabel: str,
+        use_grid: bool = True,
+        use_legend: bool = True,
+    ) -> matplotlib.figure.Figure:
+        x = np.arange(len(run_range))
+        width = 0.22
+        multiplier = 0
+
+        if self.x_axis_values is not None:
+            run_range = self.x_axis_values
+
+        fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
+        for name, values in df.items():
+            if name.endswith("_test"):
+                name = name.removesuffix("_test")
+                if name.startswith("avg"):
+                    continue
+
+                offset = width * multiplier
+                ax.bar(x + offset, values, width, label=name)
+                multiplier += 1
+
+        ax.set_ylabel(yLabel)
+        if self.x_axis_name is not None:
+            ax.set_xlabel(self.x_axis_name)
+        else:
+            ax.set_xlabel(xLabel)
+        ax.set_xticks(x + width, run_range)
+        ax.legend()
+        return fig
 
     def _visualize_df(
         self,
