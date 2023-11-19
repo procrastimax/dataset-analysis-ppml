@@ -22,7 +22,7 @@ case $SLURM_ARRAY_TASK_ID in
         eps=1
         ;;
     2)
-        ds='emnist cifar100'
+        ds='emnist cifar100_n47'
         eps=1
         ;;
     3)
@@ -34,7 +34,7 @@ case $SLURM_ARRAY_TASK_ID in
         eps=30
         ;;
     5)
-        ds='emnist cifar100'
+        ds='emnist cifar100_n47'
         eps=30
         ;;
 esac

@@ -20,7 +20,7 @@ case $SLURM_ARRAY_TASK_ID in
         ds='cifar10_gray svhn_gray'
         ;;
     2)
-        ds='emnist cifar100'
+        ds='emnist cifar100_n47'
         ;;
 esac
 
