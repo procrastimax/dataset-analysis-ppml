@@ -49,6 +49,9 @@ info_key = args.parameter
 is_class_wise = args.is_class_wise
 y_name = args.yName
 
+# sort the filenames so the order is the same as is the code
+file_names.sort()
+
 # get current script dir
 curr_dir = os.path.abspath(os.getcwd())
 
