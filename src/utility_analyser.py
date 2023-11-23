@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -88,7 +88,7 @@ class UtilityAnalyser:
             run_range=self.run_numbers,
             yLabel="Accuracy",
             xLabel="Run Number",
-            title="Model Accuracy Comparison - Mutliple Runs",
+            default_value_indicator=0.5,
         )
         print(f"Saving accuracy comparison figure to {acc_vis_filename}")
         acc_fig.savefig(acc_vis_filename)
@@ -110,7 +110,8 @@ class UtilityAnalyser:
             run_range=self.run_numbers,
             yLabel="F1-Score",
             xLabel="Run Number",
-            title="Model F1-Score Comparison - Mutliple Runs",
+            default_value_indicator=0.5,
+
         )
         print(f"Saving f1-score comparison figure to {f1score_vis_filename}")
         f1_fig.savefig(f1score_vis_filename)
@@ -125,6 +126,7 @@ class UtilityAnalyser:
             run_range=self.run_numbers,
             yLabel="F1-Score",
             xLabel="Class",
+            default_value_indicator=0.5,
         )
         print(
             f"Saving f1-score bar chart comparison figure to {f1score_bar_chart_vis_filename}"
@@ -147,7 +149,6 @@ class UtilityAnalyser:
             run_range=self.run_numbers,
             yLabel="Loss",
             xLabel="Run Number",
-            title="Model Loss Comparison - Mutliple Runs",
         )
         print(f"Saving loss comparison figure to {f1score_vis_filename}")
         loss_fig.savefig(loss_vis_filename)
@@ -169,7 +170,6 @@ class UtilityAnalyser:
             run_range=self.run_numbers,
             yLabel="Train/ Test Gap",
             xLabel="Run Number",
-            title="Model Train/ Test Gap Comparison - Mutliple Runs",
         )
         print(f"Saving train/test gap comparison figure to {gap_vis_filename}")
         gap_fig.savefig(gap_vis_filename)
@@ -215,6 +215,7 @@ class UtilityAnalyser:
             fontsize="small",
             markerscale=0.8,
         )
+        plt.axhline(y=0.5, linestyle='-', color="k")
         ax.grid()
         plt.xticks(self.run_numbers)
         class_wise_f1_df_filename = os.path.join(
@@ -262,6 +263,7 @@ class UtilityAnalyser:
                 ax.bar(x + offset, values, width, label=ds_name)
                 multiplier += 1
 
+            plt.axhline(y=0.5, linestyle='-', color="k")
             ax.set_ylabel("F1-Score")
             ax.set_xlabel("Class")
             ax.set_xticks(x + width, x)
@@ -402,6 +404,7 @@ class UtilityAnalyser:
         yLabel: str,
         use_grid: bool = True,
         use_legend: bool = True,
+        default_value_indicator : Optional[float] = None
     ) -> matplotlib.figure.Figure:
         x = np.arange(len(run_range))
         width = 0.22
@@ -427,6 +430,11 @@ class UtilityAnalyser:
         else:
             ax.set_xlabel(xLabel)
         ax.set_xticks(x + width, run_range)
+
+        # draw a fine line to indicate default values (like 0.5 in accuracy)
+        if default_value_indicator is not None:
+            plt.axhline(y=default_value_indicator, linestyle='-', color="k")
+
         ax.legend(loc="lower right")
         return fig
 
@@ -436,9 +444,9 @@ class UtilityAnalyser:
         run_range: List[int],
         xLabel: str,
         yLabel: str,
-        title: str,
         use_grid: bool = True,
         use_legend: bool = True,
+        default_value_indicator : Optional[float] = None
     ) -> matplotlib.figure.Figure:
         fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
         for name, values in df.items():
@@ -460,6 +468,10 @@ class UtilityAnalyser:
                     if "-" in name:
                         name = name.split("-")[0]
                     ax.plot(run_range, values, label=name, marker="x")
+
+        # draw a fine line to indicate default values (like 0.5 in accuracy)
+        if default_value_indicator is not None:
+            plt.axhline(y=default_value_indicator, linestyle='-', color="k")
 
         if self.x_axis_name is not None:
             ax.set(xlabel=self.x_axis_name, ylabel=yLabel)

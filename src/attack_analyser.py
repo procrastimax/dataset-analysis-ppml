@@ -676,6 +676,7 @@ class AttackAnalyser:
             fontsize="small",
             markerscale=0.8,
         )
+        plt.axhline(y=0.5, linestyle='-', color="k")
         plt.grid(True)
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -709,6 +710,7 @@ class AttackAnalyser:
             fontsize="small",
             markerscale=0.8,
         )
+        plt.axhline(y=0.1, linestyle='-', color="k")
         plt.grid(True)
         plt_name = os.path.join(
             self.analysis_combined_runs,
@@ -743,6 +745,7 @@ class AttackAnalyser:
             markerscale=0.8,
         )
         plt.grid(True)
+        plt.axhline(y=0.001, linestyle='-', color="k")
         plt_name = os.path.join(
             self.analysis_combined_runs,
             f"class_wise_fpr0001_over_runs_{''.join(map(str,runs))}.png",
@@ -794,6 +797,7 @@ class AttackAnalyser:
             linewidth=3,
             label="average",
         )
+        plt.axhline(y=0.5, linestyle='-', color="k")
 
         x_name = "Run"
         if self.x_axis_name is not None:
@@ -852,6 +856,7 @@ class AttackAnalyser:
             linewidth=3,
             label="average",
         )
+        plt.axhline(y=0.1, linestyle='-', color="k")
 
         x_name = "Run"
         if self.x_axis_name is not None:
@@ -1022,6 +1027,8 @@ class AttackAnalyser:
             linewidth=3,
             label="average",
         )
+
+        plt.axhline(y=0.001, linestyle='-', color="k")
 
         x_name = "Run"
         if self.x_axis_name is not None:
