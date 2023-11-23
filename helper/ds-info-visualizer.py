@@ -65,7 +65,7 @@ ds_info_list = []
 for f in file_names:
     with open(f, "r") as f:
         data = json.load(f)
-        if info_key not in data:
+        if info_key != "inter_class_std" and info_key not in data:
             print("------------------------------")
             print(f"Could not find key {info_key} in ds-info.json!")
             print("------------------------------")
@@ -81,7 +81,12 @@ if not is_class_wise:
         name = info["name"]
         if name == "emnist-medium-balanced":
             name = "emnist"
-        value = info[info_key]
+
+        if info_key == "inter_class_std":
+            value = info["class_std"]
+            value = np.array(list(value.values())).std()
+        else:
+            value = info[info_key]
         name_list.append(name)
         value_list.append(value)
 
