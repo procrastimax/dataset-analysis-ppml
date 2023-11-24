@@ -16,6 +16,10 @@ from util import save_dataframe
 pd.options.mode.chained_assignment = None
 
 FIGSIZE = (5, 3)
+AXHLINE_COLOR = "tab:gray"
+AXHLINE_WIDTH = 1.0
+AXHLINE_STYLE = "-"
+LEGEND_ALPHA = 0.65
 
 
 class UtilityAnalyser:
@@ -111,7 +115,6 @@ class UtilityAnalyser:
             yLabel="F1-Score",
             xLabel="Run Number",
             default_value_indicator=0.5,
-
         )
         print(f"Saving f1-score comparison figure to {f1score_vis_filename}")
         f1_fig.savefig(f1score_vis_filename)
@@ -175,108 +178,117 @@ class UtilityAnalyser:
         gap_fig.savefig(gap_vis_filename)
         save_dataframe(gap_df, gap_df_filename)
 
-        ###
-        # Class Wise F1
-        # calculate average f1 scores for every class and visalize these averages over the runs
-        ###
-        max_run = class_wise_f1_df["Run"].max()
-        # only use the _test datasets
-        class_wise_f1_df_test = class_wise_f1_df[
-            class_wise_f1_df["Dataset"].str.endswith("_test")]
+        if class_wise_f1_df is not None:
+            ###
+            # Class Wise F1
+            # calculate average f1 scores for every class and visalize these averages over the runs
+            ###
+            max_run = class_wise_f1_df["Run"].max()
+            # only use the _test datasets
+            class_wise_f1_df_test = class_wise_f1_df[
+                class_wise_f1_df["Dataset"].str.endswith("_test")]
 
-        # a dict to contain a series of f1-scores for every class
-        class_wise_f1_dict: Dict[int, List[float]] = defaultdict(list)
+            # a dict to contain a series of f1-scores for every class
+            class_wise_f1_dict: Dict[int, List[float]] = defaultdict(list)
 
-        # iterate over all runs
-        for i in range(max_run + 1):
-            class_avg = class_wise_f1_df_test.loc[class_wise_f1_df["Run"] ==
-                                                  i].mean()
-            for class_num, j in enumerate(class_avg):
-                if class_num > 0:
-                    class_wise_f1_dict[class_num - 1].append(j)
+            # iterate over all runs
+            for i in range(max_run + 1):
+                class_avg = class_wise_f1_df_test.loc[class_wise_f1_df["Run"] ==
+                                                      i].mean()
+                for class_num, j in enumerate(class_avg):
+                    if class_num > 0:
+                        class_wise_f1_dict[class_num - 1].append(j)
 
-        x_values = self.run_numbers
-        if self.settings.x_axis_values is not None:
-            x_values = self.settings.x_axis_values
-
-        fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
-
-        for class_num, f1scores in class_wise_f1_dict.items():
-            ax.plot(x_values, f1scores, label=f"Class {class_num}", marker="x")
-        ax.set(xlabel=self.x_axis_name, ylabel="F1-Score")
-        plt.legend(
-            loc="lower left",
-            labelspacing=0.4,
-            columnspacing=1,
-            framealpha=0.5,
-            handlelength=1.2,
-            handletextpad=0.3,
-            ncols=3,
-            fontsize="small",
-            markerscale=0.8,
-        )
-        plt.axhline(y=0.5, linestyle='-', color="k")
-        ax.grid()
-        plt.xticks(self.run_numbers)
-        class_wise_f1_df_filename = os.path.join(
-            self.combined_result_folder,
-            f"class_wise_f1_r{''.join(map(str,self.run_numbers))}.csv",
-        )
-        class_wise_f1_vis_filename: str = os.path.join(
-            self.combined_result_folder,
-            f"class_wise_f1_r{''.join(map(str,self.run_numbers))}.png",
-        )
-        print(
-            f"Saving class wise f1-scores figure to {class_wise_f1_vis_filename}"
-        )
-        plt.savefig(class_wise_f1_vis_filename)
-        save_dataframe(class_wise_f1_df, class_wise_f1_df_filename)
-
-        # --------
-        # create for every run a grouped bar chart to show the F1-scores of each class
-        # --------
-        fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
-        # iterate over all runs
-        for idx in range(max_run + 1):
-            run_f1_scores = class_wise_f1_df_test.loc[class_wise_f1_df["Run"]
-                                                      == idx]
-
-            class_wise_value_dict: Dict[str, List[float]] = defaultdict(list)
-
-            for i in run_f1_scores.iterrows():
-                ds_name = i[1]["Dataset"]
-                for j in i[1][2:]:
-                    class_wise_value_dict[ds_name].append(j)
-
-            x = np.arange(len(list(class_wise_value_dict.values())[0]))
-            width = 0.22
-            multiplier = 0
-
-            name_list = []
+            x_values = self.run_numbers
+            if self.settings.x_axis_values is not None:
+                x_values = self.settings.x_axis_values
 
             fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
-            for ds_name, values in class_wise_value_dict.items():
-                ds_name = ds_name.removesuffix("_test")
-                name_list.append(ds_name)
 
-                offset = width * multiplier
-                ax.bar(x + offset, values, width, label=ds_name)
-                multiplier += 1
-
-            plt.axhline(y=0.5, linestyle='-', color="k")
-            ax.set_ylabel("F1-Score")
-            ax.set_xlabel("Class")
-            ax.set_xticks(x + width, x)
-            ax.legend(loc="lower right")
-
-            bar_chart_class_wise_f1_vis_filename: str = os.path.join(
+            for class_num, f1scores in class_wise_f1_dict.items():
+                ax.plot(x_values, f1scores, label=f"Class {class_num}", marker="x")
+            ax.set(xlabel=self.x_axis_name, ylabel="F1-Score")
+            plt.legend(
+                loc="lower left",
+                labelspacing=0.4,
+                columnspacing=1,
+                framealpha=0.5,
+                handlelength=1.2,
+                handletextpad=0.3,
+                ncols=3,
+                fontsize="small",
+                markerscale=0.8,
+            )
+            ax.axhline(y=0.5,
+                       linestyle=AXHLINE_STYLE,
+                       color=AXHLINE_COLOR,
+                       linewidth=AXHLINE_WIDTH)
+            ax.grid()
+            plt.xticks(self.run_numbers)
+            class_wise_f1_df_filename = os.path.join(
                 self.combined_result_folder,
-                f"bar_chart_class_wise_f1_{''.join(name_list)}_r{idx}.png",
+                f"class_wise_f1_r{''.join(map(str,self.run_numbers))}.csv",
+            )
+            class_wise_f1_vis_filename: str = os.path.join(
+                self.combined_result_folder,
+                f"class_wise_f1_r{''.join(map(str,self.run_numbers))}.png",
             )
             print(
-                f"Saving class wise bar chart f1-scores figure to {bar_chart_class_wise_f1_vis_filename}"
+                f"Saving class wise f1-scores figure to {class_wise_f1_vis_filename}"
             )
-            plt.savefig(bar_chart_class_wise_f1_vis_filename)
+            plt.savefig(class_wise_f1_vis_filename)
+            save_dataframe(class_wise_f1_df, class_wise_f1_df_filename)
+
+            # --------
+            # create for every run a grouped bar chart to show the F1-scores of each class
+            # --------
+            fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
+            # iterate over all runs
+            for idx in range(max_run + 1):
+                run_f1_scores = class_wise_f1_df_test.loc[class_wise_f1_df["Run"]
+                                                          == idx]
+
+                class_wise_value_dict: Dict[str, List[float]] = defaultdict(list)
+
+                for i in run_f1_scores.iterrows():
+                    ds_name = i[1]["Dataset"]
+                    for j in i[1][2:]:
+                        class_wise_value_dict[ds_name].append(j)
+
+                x = np.arange(len(list(class_wise_value_dict.values())[0]))
+                width = 0.22
+                multiplier = 0
+
+                name_list = []
+
+                fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
+                for ds_name, values in class_wise_value_dict.items():
+                    ds_name = ds_name.removesuffix("_test")
+                    name_list.append(ds_name)
+
+                    offset = width * multiplier
+                    ax.bar(x + offset, values, width, label=ds_name)
+                    multiplier += 1
+
+                ax.axhline(
+                    y=0.5,
+                    linestyle=AXHLINE_STYLE,
+                    color=AXHLINE_COLOR,
+                    linewidth=AXHLINE_WIDTH,
+                )
+                ax.set_ylabel("F1-Score")
+                ax.set_xlabel("Class")
+                ax.set_xticks(x + width, x)
+                ax.legend(loc="lower right")
+
+                bar_chart_class_wise_f1_vis_filename: str = os.path.join(
+                    self.combined_result_folder,
+                    f"bar_chart_class_wise_f1_{''.join(name_list)}_r{idx}.png",
+                )
+                print(
+                    f"Saving class wise bar chart f1-scores figure to {bar_chart_class_wise_f1_vis_filename}"
+                )
+                plt.savefig(bar_chart_class_wise_f1_vis_filename)
 
         plt.close()
 
@@ -326,19 +338,24 @@ class UtilityAnalyser:
                 run_dict_f1score[ds_name + "_train"].append(i[1]["f1-score"])
                 run_dict_loss[ds_name + "_train"].append(i[1]["loss"])
 
-                # we have to replace the '' with "" in order to parse it with the json module
-                class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
-                run_dict_class_f1[ds_name + "_train"].append(
-                    json.loads(class_wise_str_dict))
+                if "class-wise" in i[1]:
+                    if not pd.isna(i[1]["class-wise"]):
+                        # we have to replace the '' with "" in order to parse it with the json module
+                        class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
+                        run_dict_class_f1[ds_name + "_train"].append(
+                            json.loads(class_wise_str_dict))
+
 
             elif i[1]["type"] == "test":
                 run_dict_accuracy[ds_name + "_test"].append(i[1]["accuracy"])
                 run_dict_f1score[ds_name + "_test"].append(i[1]["f1-score"])
                 run_dict_loss[ds_name + "_test"].append(i[1]["loss"])
 
-                class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
-                run_dict_class_f1[ds_name + "_test"].append(
-                    json.loads(class_wise_str_dict))
+                if "class-wise" in i[1]:
+                    if not pd.isna(i[1]["class-wise"]):
+                        class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
+                        run_dict_class_f1[ds_name + "_test"].append(
+                            json.loads(class_wise_str_dict))
 
             # add all accuracy values either test or train to the list to later calculate the difference
             run_dict_gap[ds_name + "_test"].append(i[1]["accuracy"])
@@ -355,19 +372,24 @@ class UtilityAnalyser:
         6     svhn_train       4       1.0  0.998701  0.999444  0.998122  0.998709   0.99799  0.998588   0.99924   0.99694  0.996778
         7      svhn_test       4  0.861136  0.915769  0.877148  0.804523  0.871628  0.836205  0.783949  0.886783  0.804243  0.780851"
         """
-        cols = list(list(run_dict_class_f1.values())[0][0].keys())
-        cols.insert(0, "Run")
-        cols.insert(0, "Dataset")
-        df_class_f1 = pd.DataFrame(columns=cols,
-                                   index=range(
-                                       len(runs) * len(run_dict_class_f1)))
+        # check if dict is empty -> if so, dont create class wise f1 df
+        if run_dict_class_f1:
+            cols = list(list(run_dict_class_f1.values())[0][0].keys())
+            cols.insert(0, "Run")
+            cols.insert(0, "Dataset")
+            df_class_f1 = pd.DataFrame(columns=cols,
+                                       index=range(
+                                           len(runs) * len(run_dict_class_f1)))
 
-        num_idx = 0
-        for ds_name, class_wise_f1_list in run_dict_class_f1.items():
-            for i, class_wise_f1 in enumerate(class_wise_f1_list):
-                df_class_f1.iloc[num_idx] = [ds_name, i] + list(
-                    class_wise_f1.values())
-                num_idx += 1
+            num_idx = 0
+            for ds_name, class_wise_f1_list in run_dict_class_f1.items():
+                for i, class_wise_f1 in enumerate(class_wise_f1_list):
+                    print(class_wise_f1)
+                    df_class_f1.iloc[num_idx] = [ds_name, i] + list(
+                        class_wise_f1.values())
+                    num_idx += 1
+        else:
+            df_class_f1 = None
 
         df_acc = pd.DataFrame.from_dict(run_dict_accuracy)
         df_acc["avg_train"] = df_acc.filter(like="_train").mean(axis=1)
@@ -404,7 +426,7 @@ class UtilityAnalyser:
         yLabel: str,
         use_grid: bool = True,
         use_legend: bool = True,
-        default_value_indicator : Optional[float] = None
+        default_value_indicator: Optional[float] = None,
     ) -> matplotlib.figure.Figure:
         x = np.arange(len(run_range))
         width = 0.22
@@ -433,7 +455,12 @@ class UtilityAnalyser:
 
         # draw a fine line to indicate default values (like 0.5 in accuracy)
         if default_value_indicator is not None:
-            plt.axhline(y=default_value_indicator, linestyle='-', color="k")
+            ax.axhline(
+                y=default_value_indicator,
+                linestyle=AXHLINE_STYLE,
+                color=AXHLINE_COLOR,
+                linewidth=AXHLINE_WIDTH,
+            )
 
         ax.legend(loc="lower right")
         return fig
@@ -446,7 +473,7 @@ class UtilityAnalyser:
         yLabel: str,
         use_grid: bool = True,
         use_legend: bool = True,
-        default_value_indicator : Optional[float] = None
+        default_value_indicator: Optional[float] = None,
     ) -> matplotlib.figure.Figure:
         fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
         for name, values in df.items():
@@ -471,7 +498,12 @@ class UtilityAnalyser:
 
         # draw a fine line to indicate default values (like 0.5 in accuracy)
         if default_value_indicator is not None:
-            plt.axhline(y=default_value_indicator, linestyle='-', color="k")
+            ax.axhline(
+                y=default_value_indicator,
+                linestyle=AXHLINE_STYLE,
+                color=AXHLINE_COLOR,
+                linewidth=AXHLINE_WIDTH,
+            )
 
         if self.x_axis_name is not None:
             ax.set(xlabel=self.x_axis_name, ylabel=yLabel)
