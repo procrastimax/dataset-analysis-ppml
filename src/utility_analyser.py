@@ -2,7 +2,7 @@ import json
 import os
 import sys
 from collections import defaultdict
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Optional, Tuple
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -19,7 +19,7 @@ FIGSIZE = (5, 3)
 AXHLINE_COLOR = "tab:gray"
 AXHLINE_WIDTH = 1.0
 AXHLINE_STYLE = "-"
-LEGEND_ALPHA = 0.65
+LEGEND_ALPHA = 0.5
 
 
 class UtilityAnalyser:
@@ -193,8 +193,8 @@ class UtilityAnalyser:
 
             # iterate over all runs
             for i in range(max_run + 1):
-                class_avg = class_wise_f1_df_test.loc[class_wise_f1_df["Run"] ==
-                                                      i].mean()
+                class_avg = class_wise_f1_df_test.loc[class_wise_f1_df["Run"]
+                                                      == i].mean()
                 for class_num, j in enumerate(class_avg):
                     if class_num > 0:
                         class_wise_f1_dict[class_num - 1].append(j)
@@ -206,7 +206,10 @@ class UtilityAnalyser:
             fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
 
             for class_num, f1scores in class_wise_f1_dict.items():
-                ax.plot(x_values, f1scores, label=f"Class {class_num}", marker="x")
+                ax.plot(x_values,
+                        f1scores,
+                        label=f"Class {class_num}",
+                        marker="x")
             ax.set(xlabel=self.x_axis_name, ylabel="F1-Score")
             plt.legend(
                 loc="lower left",
@@ -219,10 +222,12 @@ class UtilityAnalyser:
                 fontsize="small",
                 markerscale=0.8,
             )
-            ax.axhline(y=0.5,
-                       linestyle=AXHLINE_STYLE,
-                       color=AXHLINE_COLOR,
-                       linewidth=AXHLINE_WIDTH)
+            ax.axhline(
+                y=0.5,
+                linestyle=AXHLINE_STYLE,
+                color=AXHLINE_COLOR,
+                linewidth=AXHLINE_WIDTH,
+            )
             ax.grid()
             plt.xticks(self.run_numbers)
             class_wise_f1_df_filename = os.path.join(
@@ -245,10 +250,11 @@ class UtilityAnalyser:
             fig, ax = plt.subplots(figsize=FIGSIZE, layout="constrained")
             # iterate over all runs
             for idx in range(max_run + 1):
-                run_f1_scores = class_wise_f1_df_test.loc[class_wise_f1_df["Run"]
-                                                          == idx]
+                run_f1_scores = class_wise_f1_df_test.loc[
+                    class_wise_f1_df["Run"] == idx]
 
-                class_wise_value_dict: Dict[str, List[float]] = defaultdict(list)
+                class_wise_value_dict: Dict[str,
+                                            List[float]] = defaultdict(list)
 
                 for i in run_f1_scores.iterrows():
                     ds_name = i[1]["Dataset"]
@@ -341,10 +347,10 @@ class UtilityAnalyser:
                 if "class-wise" in i[1]:
                     if not pd.isna(i[1]["class-wise"]):
                         # we have to replace the '' with "" in order to parse it with the json module
-                        class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
+                        class_wise_str_dict = i[1]["class-wise"].replace(
+                            "'", '"')
                         run_dict_class_f1[ds_name + "_train"].append(
                             json.loads(class_wise_str_dict))
-
 
             elif i[1]["type"] == "test":
                 run_dict_accuracy[ds_name + "_test"].append(i[1]["accuracy"])
@@ -353,7 +359,8 @@ class UtilityAnalyser:
 
                 if "class-wise" in i[1]:
                     if not pd.isna(i[1]["class-wise"]):
-                        class_wise_str_dict = i[1]["class-wise"].replace("'", '"')
+                        class_wise_str_dict = i[1]["class-wise"].replace(
+                            "'", '"')
                         run_dict_class_f1[ds_name + "_test"].append(
                             json.loads(class_wise_str_dict))
 
@@ -372,6 +379,7 @@ class UtilityAnalyser:
         6     svhn_train       4       1.0  0.998701  0.999444  0.998122  0.998709   0.99799  0.998588   0.99924   0.99694  0.996778
         7      svhn_test       4  0.861136  0.915769  0.877148  0.804523  0.871628  0.836205  0.783949  0.886783  0.804243  0.780851"
         """
+        largest_class_count = None
         # check if dict is empty -> if so, dont create class wise f1 df
         if run_dict_class_f1:
             cols = list(list(run_dict_class_f1.values())[0][0].keys())
@@ -384,9 +392,19 @@ class UtilityAnalyser:
             num_idx = 0
             for ds_name, class_wise_f1_list in run_dict_class_f1.items():
                 for i, class_wise_f1 in enumerate(class_wise_f1_list):
-                    print(class_wise_f1)
-                    df_class_f1.iloc[num_idx] = [ds_name, i] + list(
-                        class_wise_f1.values())
+                    # this is for the case of class the class count experiment
+                    # there the number of classes reduces, so we have to fill the value array with values
+                    if largest_class_count is None:
+                        largest_class_count = len(class_wise_f1.values())
+
+                    if len(class_wise_f1.values()) < largest_class_count:
+                        padded_class_wise_value_list = list(class_wise_f1.values())
+                        padded_class_wise_value_list += [0.0] * (largest_class_count - len(padded_class_wise_value_list))
+                        print(padded_class_wise_value_list)
+                        df_class_f1.iloc[num_idx] = [ds_name, i] + padded_class_wise_value_list
+                    else:
+                        df_class_f1.iloc[num_idx] = [ds_name, i] + list(
+                            class_wise_f1.values())
                     num_idx += 1
         else:
             df_class_f1 = None
