@@ -400,7 +400,6 @@ class UtilityAnalyser:
                     if len(class_wise_f1.values()) < largest_class_count:
                         padded_class_wise_value_list = list(class_wise_f1.values())
                         padded_class_wise_value_list += [0.0] * (largest_class_count - len(padded_class_wise_value_list))
-                        print(padded_class_wise_value_list)
                         df_class_f1.iloc[num_idx] = [ds_name, i] + padded_class_wise_value_list
                     else:
                         df_class_f1.iloc[num_idx] = [ds_name, i] + list(

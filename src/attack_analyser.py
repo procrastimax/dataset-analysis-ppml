@@ -20,7 +20,7 @@ FIGSIZE = (5, 3)
 AXHLINE_COLOR = "tab:gray"
 AXHLINE_WIDTH = 1.0
 AXHLINE_STYLE = "-"
-LEGEND_ALPHA = 0.65
+LEGEND_ALPHA = 0.50
 
 
 class AttackAnalyser:
@@ -669,6 +669,10 @@ class AttackAnalyser:
 
         fig_auc, ax_auc = plt.subplots(figsize=FIGSIZE, layout="constrained")
         for k, v in avg_auc_dict.items():
+            # handle the case for the class count experiment, pad v to math x_values length
+            if len(x_values) != len(v):
+                v += [0] * (len(x_values) - len(v))
+
             ax_auc.plot(
                 x_values,
                 v,
@@ -707,6 +711,9 @@ class AttackAnalyser:
         fig_fpr01, ax_fpr01 = plt.subplots(figsize=FIGSIZE,
                                            layout="constrained")
         for k, v in avg_fpr01_dict.items():
+            # handle the case for the class count experiment, pad v to math x_values length
+            if len(x_values) != len(v):
+                v += [0] * (len(x_values) - len(v))
             ax_fpr01.plot(
                 x_values,
                 v,
@@ -747,6 +754,9 @@ class AttackAnalyser:
         fig_fpr001, ax_fpr0001 = plt.subplots(figsize=FIGSIZE,
                                               layout="constrained")
         for k, v in avg_fpr0001_dict.items():
+            # handle the case for the class count experiment, pad v to math x_values length
+            if len(x_values) != len(v):
+                v += [0] * (len(x_values) - len(v))
             ax_fpr0001.plot(
                 x_values,
                 v,
