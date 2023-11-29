@@ -80,16 +80,10 @@ class AbstractDataset:
     ds_info_path: str = "ds-info"
     ds_train: tf.data.Dataset = field(init=False, repr=False)
     ds_val: tf.data.Dataset = field(init=False, repr=False, default=None)
-    ds_test: Optional[tf.data.Dataset] = field(init=False,
-                                               repr=False,
-                                               default=None)
+    ds_test: Optional[tf.data.Dataset] = field(init=False, repr=False, default=None)
 
-    ds_attack_train: tf.data.Dataset = field(init=False,
-                                             repr=False,
-                                             default=None)
-    ds_attack_test: tf.data.Dataset = field(init=False,
-                                            repr=False,
-                                            default=None)
+    ds_attack_train: tf.data.Dataset = field(init=False, repr=False, default=None)
+    ds_attack_test: tf.data.Dataset = field(init=False, repr=False, default=None)
 
     def _load_dataset(self):
         """Load dataset from tfds library.
@@ -110,9 +104,7 @@ class AbstractDataset:
     def _load_from_tfds(self):
         """Load dataset from tensorflow_datasets via 'dataset_name'."""
         if not self.is_tfds_ds:
-            print(
-                "Cannot load dataset from tfds since it is not a tfds dataset!"
-            )
+            print("Cannot load dataset from tfds since it is not a tfds dataset!")
             return
 
         if self.dataset_path is not None:
@@ -120,10 +112,9 @@ class AbstractDataset:
         else:
             data_dir = None
 
-        ds_dict: dict = tfds.load(name=self.tfds_name,
-                                  data_dir=data_dir,
-                                  as_supervised=True,
-                                  with_info=False)
+        ds_dict: dict = tfds.load(
+            name=self.tfds_name, data_dir=data_dir, as_supervised=True, with_info=False
+        )
 
         if "val" in ds_dict.keys():
             self.ds_val = ds_dict["val"]
@@ -137,8 +128,9 @@ class AbstractDataset:
             self.ds_train = ds_dict["train"]
             print("Loaded train DS")
 
-    def convert_ds_to_one_hot_encoding(self, ds: tf.data.Dataset,
-                                       unbatch: bool) -> (np.array, np.array):
+    def convert_ds_to_one_hot_encoding(
+        self, ds: tf.data.Dataset, unbatch: bool
+    ) -> (np.array, np.array):
         (samples, labels) = get_ds_as_numpy(ds, unbatch=unbatch)
         labels = tf.one_hot(labels, self.num_classes)
         labels = np.array(labels, dtype=np.int32)
@@ -163,8 +155,7 @@ class AbstractDataset:
             ds = ds.concatenate(self.ds_val)
 
         if percentage_loaded_data != 100:
-            new_ds_size = math.ceil(
-                len(ds) * (self.percentage_loaded_data / 100.0))
+            new_ds_size = math.ceil(len(ds) * (self.percentage_loaded_data / 100.0))
             ds = ds.take(new_ds_size)
 
         train_split = self.train_val_test_split[0]
@@ -172,7 +163,8 @@ class AbstractDataset:
         test_split = self.train_val_test_split[2]
 
         self.ds_train, right_ds = tf.keras.utils.split_dataset(
-            ds, left_size=train_split, shuffle=True, seed=self.random_seed)
+            ds, left_size=train_split, shuffle=True, seed=self.random_seed
+        )
 
         if val_split == 0.0:
             self.ds_test = right_ds
@@ -181,13 +173,12 @@ class AbstractDataset:
         else:
             # shuffling once should be enough
             self.ds_val, self.ds_test = tf.keras.utils.split_dataset(
-                right_ds,
-                left_size=val_split / (val_split + test_split),
-                shuffle=False)
+                right_ds, left_size=val_split / (val_split + test_split), shuffle=False
+            )
 
     def generate_class_dependent_in_indices(
-            self, values: np.array, labels: np.array,
-            reduction_factor: float) -> np.array:
+        self, values: np.array, labels: np.array, reduction_factor: float
+    ) -> np.array:
         """Generate a in_indices/keep list dependant on the class size. This reduces the dataset size not generally by a specific factor, but reduces each class by this factor.
 
         Parameter:
@@ -223,9 +214,9 @@ class AbstractDataset:
             keep = np.zeros(len(v), dtype=bool)
 
             # the replace flag indicates that no values shall appear twice
-            true_indices = np.random.choice(keep.size,
-                                            int(len(v) * reduction_factor),
-                                            replace=False)
+            true_indices = np.random.choice(
+                keep.size, int(len(v) * reduction_factor), replace=False
+            )
             keep[true_indices] = True
 
             # now we have a keep for every class, with exactly 'reduction_factor * N' TRUEs
@@ -242,9 +233,7 @@ class AbstractDataset:
 
         return np.array(in_indices)
 
-    def merge_all_datasets(self,
-                           percentage_loaded_data: int = 100
-                           ) -> tf.data.Dataset:
+    def merge_all_datasets(self, percentage_loaded_data: int = 100) -> tf.data.Dataset:
         """Merge all datasets (train, val, test) into train dataset.
 
         A percentage can be specified, than only this percentage of the old data is used for the new train_ds after merging.
@@ -257,8 +246,7 @@ class AbstractDataset:
             ds = ds.concatenate(self.ds_val)
 
         if percentage_loaded_data != 100:
-            new_ds_size = math.ceil(
-                len(ds) * (self.percentage_loaded_data / 100.0))
+            new_ds_size = math.ceil(len(ds) * (self.percentage_loaded_data / 100.0))
             ds = ds.take(new_ds_size)
 
         self.ds_train = ds
@@ -379,8 +367,9 @@ class AbstractDataset:
             preprocessing_layers.add(ModelPreprocessing(preprocessing_func))
 
         if convert_to_rgb or resize_rescale or preprocessing_func:
-            ds = ds.map(lambda x, y: (preprocessing_layers(x), y),
-                        num_parallel_calls=AUTOTUNE)
+            ds = ds.map(
+                lambda x, y: (preprocessing_layers(x), y), num_parallel_calls=AUTOTUNE
+            )
 
         if cache:
             if isinstance(cache, str):
@@ -406,7 +395,8 @@ class AbstractDataset:
 
             if self.random_rotation:
                 augmentation_layers.add(
-                    RandomRotation(self.random_rotation, fill_mode="constant"))
+                    RandomRotation(self.random_rotation, fill_mode="constant")
+                )
 
             if self.random_translation_width and self.random_translation_height:
                 augmentation_layers.add(
@@ -414,14 +404,15 @@ class AbstractDataset:
                         self.random_translation_height,
                         self.random_translation_width,
                         fill_mode="constant",
-                    ))
+                    )
+                )
             if self.random_zoom:
                 augmentation_layers.add(
-                    RandomZoom(self.random_zoom, fill_mode="constant"))
+                    RandomZoom(self.random_zoom, fill_mode="constant")
+                )
 
             if self.random_brightness:
-                augmentation_layers.add(
-                    RandomBrightness(self.random_brightness))
+                augmentation_layers.add(RandomBrightness(self.random_brightness))
 
             ds = ds.map(
                 lambda x, y: (augmentation_layers(x, training=True), y),
@@ -432,15 +423,16 @@ class AbstractDataset:
         return ds.prefetch(buffer_size=AUTOTUNE)
 
     def calculate_class_weights(
-        self, ) -> Tuple[Optional[Dict[int, int]], Optional[Dict[int, float]]]:
+        self,
+    ) -> Tuple[Optional[Dict[int, int]], Optional[Dict[int, float]]]:
         """Calculate class weights and class counts for train dataset."""
-        class_labels, class_counts, class_distribution = self.get_class_distribution(
-        )
+        class_labels, class_counts, class_distribution = self.get_class_distribution()
 
         class_counts_dict: Dict[str, int] = {}
         for y, count in zip(class_labels, class_counts):
-            if self.class_names is not None and len(
-                    self.class_names) == len(class_labels):
+            if self.class_names is not None and len(self.class_names) == len(
+                class_labels
+            ):
                 class_counts_dict[f"{self.class_names[y]}({y})"] = count
             else:
                 class_counts_dict[y] = count
@@ -452,17 +444,14 @@ class AbstractDataset:
         )
 
         class_weights: Dict[str, float] = {}
-        if self.class_names is not None and len(
-                self.class_names) == len(class_labels):
+        if self.class_names is not None and len(self.class_names) == len(class_labels):
             for i, weight in enumerate(weights):
                 class_weights[f"{self.class_names[y]}({y})"] = weight
         else:
             class_weights = dict(enumerate(weights))
         return class_counts_dict, class_weights
 
-    def _get_data_histogram(self,
-                            use_mean: bool = False
-                            ) -> Tuple[np.array, np.array]:
+    def _get_data_histogram(self, use_mean: bool = False) -> Tuple[np.array, np.array]:
         """Calculate histogram from train datasets.
 
         Return:
@@ -471,7 +460,8 @@ class AbstractDataset:
 
         """
         samples = np.array(
-            [sample for (sample, _) in list(tfds.as_numpy(self.ds_train))])
+            [sample for (sample, _) in list(tfds.as_numpy(self.ds_train))]
+        )
 
         if use_mean:
             samples = np.mean(samples, axis=(0))
@@ -494,8 +484,7 @@ class AbstractDataset:
         return ds_count
 
     def get_class_distribution(
-        self,
-        ds: Optional[tf.data.Dataset] = None
+        self, ds: Optional[tf.data.Dataset] = None
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Calculate and return absolute class distribution from train dataset.
 
@@ -526,11 +515,9 @@ class AbstractDataset:
         self.class_counts = distribution[1]
         self.class_distribution = y_train
 
-        return distribution + (y_train, )
+        return distribution + (y_train,)
 
-    def calculate_class_imbalance2(self,
-                                   ds: Optional[tf.data.Dataset] = None
-                                   ) -> float:
+    def calculate_class_imbalance2(self, ds: Optional[tf.data.Dataset] = None) -> float:
         if ds is None:
             ds = self.ds_train
         # Convert dataset to numpy arrays
@@ -565,9 +552,7 @@ class AbstractDataset:
         H = -sum([(c / n) * np.log(c / n) for c in class_counts])
         return float(H / np.log(k))
 
-    def calculate_imbalance_degree(self,
-                                   ds: Optional[tf.data.Dataset] = None
-                                   ) -> float:
+    def calculate_imbalance_degree(self, ds: Optional[tf.data.Dataset] = None) -> float:
         """Implement imbalance degree to determine a multi-class dataset imbalance value.
 
         Theory taken from: https://bird.bcamath.org/bitstream/handle/20.500.11824/716/PRL%20Jonathan.pdf
@@ -578,9 +563,13 @@ class AbstractDataset:
 
             Code taken from: https://stackoverflow.com/questions/45741850/python-hellinger-formula-explanation.
             """
-            return sum([(math.sqrt(t[0]) - math.sqrt(t[1])) *
-                        (math.sqrt(t[0]) - math.sqrt(t[1]))
-                        for t in zip(p, q)]) / math.sqrt(2.0)
+            return sum(
+                [
+                    (math.sqrt(t[0]) - math.sqrt(t[1]))
+                    * (math.sqrt(t[0]) - math.sqrt(t[1]))
+                    for t in zip(p, q)
+                ]
+            ) / math.sqrt(2.0)
 
         if ds is None:
             ds = self.ds_train
@@ -665,11 +654,11 @@ class AbstractDataset:
             # check if grayscale or color image
             if img.shape[2] == 1:
                 compressed_img = PIL.Image.fromarray(
-                    img[:, :, 0].numpy().astype("uint8"))
+                    img[:, :, 0].numpy().astype("uint8")
+                )
                 max_bytes = 256
             else:
-                compressed_img = PIL.Image.fromarray(
-                    img.numpy().astype("uint8"))
+                compressed_img = PIL.Image.fromarray(img.numpy().astype("uint8"))
                 max_bytes = 256 * 3
 
             entropy = compressed_img.entropy()
@@ -687,17 +676,13 @@ class AbstractDataset:
             png_ratio = png_size / uncompressed_size
 
             buffer = BytesIO()
-            compressed_img.save(buffer,
-                                format="JPEG",
-                                optimize=True,
-                                quality=75)
+            compressed_img.save(buffer, format="JPEG", optimize=True, quality=75)
             jpeg_size = buffer.tell()
             jpeg_ratio = jpeg_size / uncompressed_size
 
-            values = np.array([
-                entropy, uncompressed_size, png_size, png_ratio, jpeg_size,
-                jpeg_ratio
-            ])
+            values = np.array(
+                [entropy, uncompressed_size, png_size, png_ratio, jpeg_size, jpeg_ratio]
+            )
 
             if label not in class_dict:
                 class_dict[label] = values
@@ -766,8 +751,9 @@ class AbstractDataset:
                 # create enough boxes with height h to fill the fractal space
                 boxes = [[]] * ((G + h - 1) // h)
                 for row in image[
-                        i:i + L]:  # boxes that exceed bounds are shrunk to fit
-                    for pixel in row[i:i + L]:
+                    i : i + L
+                ]:  # boxes that exceed bounds are shrunk to fit
+                    for pixel in row[i : i + L]:
                         # lowest box is at G_min and each is h gray levels tall
                         height = (pixel - G_min) // h
                         boxes[height].append(
@@ -802,11 +788,11 @@ class AbstractDataset:
         lda.fit(values, labels)
 
         between_class_eigenvalues = lda.explained_variance_ratio_
-        within_class_eigenvalues = (lda.priors_ * (1 - lda.priors_) *
-                                    (lda.means_**2).sum(axis=1))
+        within_class_eigenvalues = (
+            lda.priors_ * (1 - lda.priors_) * (lda.means_**2).sum(axis=1)
+        )
 
-        fdr = np.sum(between_class_eigenvalues) / np.sum(
-            within_class_eigenvalues)
+        fdr = np.sum(between_class_eigenvalues) / np.sum(within_class_eigenvalues)
 
         print(f"Fisher's Discriminant Ratio (FDR): {fdr}")
         return fdr
@@ -868,55 +854,52 @@ class AbstractDataset:
             self.load_ds_info_from_json()
             print(self.ds_info)
 
-        self.ds_info["name"] = (str(self.dataset_name),
-                                )  # not useful for dataframe
+        self.ds_info["name"] = (str(self.dataset_name),)  # not useful for dataframe
         self.ds_info["dataset_img_shape"] = self.dataset_img_shape
         self.ds_info["model_img_shape"] = self.model_img_shape
 
-        count_keys = set([
-            "total_count",
-            "train_count",
-            "val_count",
-            "test_count",
-            "num_classes",
-            "class_weights",
-            "class_counts",
-        ])
+        count_keys = set(
+            [
+                "total_count",
+                "train_count",
+                "val_count",
+                "test_count",
+                "num_classes",
+                "class_weights",
+                "class_counts",
+            ]
+        )
         if not count_keys.issubset(set(self.ds_info.keys())):
             class_counts, class_weights = self.calculate_class_weights()
             ds_count = self.get_dataset_count()
             total_count: int = sum(ds_count.values())
             # convert int64 keys to int keys -> to jsonify
             class_counts = {str(k): int(v) for k, v in class_counts.items()}
-            class_weights = {
-                str(k): float(v)
-                for k, v in class_weights.items()
-            }
+            class_weights = {str(k): float(v) for k, v in class_weights.items()}
             self.ds_info["total_count"] = total_count
             self.ds_info["train_count"] = ds_count["train"]
             self.ds_info["val_count"] = ds_count["val"]
             self.ds_info["test_count"] = ds_count["test"]
             self.ds_info["num_classes"] = self.num_classes
-            self.ds_info[
-                "class_weights"] = class_weights  # not useful for dataframe
-            self.ds_info[
-                "class_counts"] = class_counts  # not useful for dataframe
+            self.ds_info["class_weights"] = class_weights  # not useful for dataframe
+            self.ds_info["class_counts"] = class_counts  # not useful for dataframe
 
-        pil_keys = set([
-            "avg_png_size",
-            "avg_jpeg_size",
-            "avg_png_ratio",
-            "avg_jpeg_ratio",
-            "avg_entropy",
-            "avg_byte_count",
-            "clas_avg_entropy",
-            "class_avg_png_size",
-            "class_avg_jpeg_size",
-            "class_avg_png_ratio",
-            "class_avg_jpeg_ratio",
-        ])
-        if (not pil_keys.issubset(set(
-                self.ds_info.keys()))) and include_compression:
+        pil_keys = set(
+            [
+                "avg_png_size",
+                "avg_jpeg_size",
+                "avg_png_ratio",
+                "avg_jpeg_ratio",
+                "avg_entropy",
+                "avg_byte_count",
+                "clas_avg_entropy",
+                "class_avg_png_size",
+                "class_avg_jpeg_size",
+                "class_avg_png_ratio",
+                "class_avg_jpeg_ratio",
+            ]
+        )
+        if (not pil_keys.issubset(set(self.ds_info.keys()))) and include_compression:
             compression_dict = self.calculate_compressed_image_size()
             # calculate metrics for every class and for the whole DS
             dataset_compression = None
@@ -952,29 +935,36 @@ class AbstractDataset:
                 avg_class_jpeg_size[int(k)] = avg_jpeg_size
                 avg_class_jpeg_ratio[int(k)] = avg_jpeg_ratio
 
-            self.ds_info["avg_byte_count"] = (avg_ds_byte_size, )
-            self.ds_info["avg_entropy"] = (avg_ds_entropy, )
-            self.ds_info["avg_png_size"] = (avg_ds_png_size, )
-            self.ds_info["avg_png_ratio"] = (avg_ds_png_ratio, )
-            self.ds_info["avg_jpeg_size"] = (avg_ds_jpeg_size, )
-            self.ds_info["avg_jpeg_ratio"] = (avg_ds_jpeg_ratio, )
-            self.ds_info["class_avg_entropy"] = (avg_class_entropy,
-                                                 )  # not useful for dataframe
-            self.ds_info["class_avg_png_size"] = (avg_class_png_size,
-                                                  )  # not useful for dataframe
+            self.ds_info["avg_byte_count"] = (avg_ds_byte_size,)
+            self.ds_info["avg_entropy"] = (avg_ds_entropy,)
+            self.ds_info["avg_png_size"] = (avg_ds_png_size,)
+            self.ds_info["avg_png_ratio"] = (avg_ds_png_ratio,)
+            self.ds_info["avg_jpeg_size"] = (avg_ds_jpeg_size,)
+            self.ds_info["avg_jpeg_ratio"] = (avg_ds_jpeg_ratio,)
+            self.ds_info["class_avg_entropy"] = (
+                avg_class_entropy,
+            )  # not useful for dataframe
+            self.ds_info["class_avg_png_size"] = (
+                avg_class_png_size,
+            )  # not useful for dataframe
             self.ds_info["class_avg_png_ratio"] = (
-                avg_class_png_ratio, )  # not useful for dataframe
+                avg_class_png_ratio,
+            )  # not useful for dataframe
             self.ds_info["class_avg_jpeg_size"] = (
-                avg_class_jpeg_size, )  # not useful for dataframe
+                avg_class_jpeg_size,
+            )  # not useful for dataframe
             self.ds_info["class_avg_jpeg_ratio"] = (
-                avg_class_jpeg_ratio, )  # not useful for dataframe
+                avg_class_jpeg_ratio,
+            )  # not useful for dataframe
 
         if "class_imbalance" not in self.ds_info:
             # not useful for dataframe
             self.ds_info["class_imbalance"] = self.calculate_class_imbalance()
 
-        if (("class_avg_fractal_dim" not in self.ds_info) or
-            ("avg_fractal_dim" not in self.ds_info)) and include_fract_dim:
+        if (
+            ("class_avg_fractal_dim" not in self.ds_info)
+            or ("avg_fractal_dim" not in self.ds_info)
+        ) and include_fract_dim:
             avg_class_fractal_dim: Dict[int, float] = {}
             avg_ds_fractal_dim: float = 0.0
             fractal_dim_dict = self.calculate_image_fractal_dimension()
@@ -983,16 +973,16 @@ class AbstractDataset:
                 avg_ds_fractal_dim += np.sum(v)
                 avg_class_fractal_dim[k] = np.mean(v)
 
-            avg_ds_fractal_dim = avg_ds_fractal_dim / len([
-                item for sublist in fractal_dim_dict.values()
-                for item in sublist
-            ])
+            avg_ds_fractal_dim = avg_ds_fractal_dim / len(
+                [item for sublist in fractal_dim_dict.values() for item in sublist]
+            )
 
             self.ds_info["avg_fractal_dim"] = avg_ds_fractal_dim
             self.ds_info["class_avg_fractal_dim"] = avg_class_fractal_dim
 
-        if ("class_avg_piqe" not in self.ds_info
-                or "avg_piqe" not in self.ds_info) and include_piqe:
+        if (
+            "class_avg_piqe" not in self.ds_info or "avg_piqe" not in self.ds_info
+        ) and include_piqe:
             avg_class_piqe: Dict[int, float] = {}
             avg_ds_piqe: float = 0.0
             piqe_dict = self.calculate_piqe_score()
@@ -1002,7 +992,8 @@ class AbstractDataset:
                 avg_class_piqe[k] = np.mean(v)
 
             avg_ds_piqe = avg_ds_piqe / len(
-                [item for sublist in piqe_dict.values() for item in sublist])
+                [item for sublist in piqe_dict.values() for item in sublist]
+            )
 
             self.ds_info["avg_piqe"] = avg_ds_piqe
             self.ds_info["class_avg_piqe"] = avg_class_piqe
@@ -1023,7 +1014,7 @@ class AbstractDataset:
             if isinstance(v, tuple):
                 if len(v) == 1:
                     # unpack tupled values
-                    (self.ds_info[k], ) = v
+                    (self.ds_info[k],) = v
         print(self.ds_info)
 
     def get_ds_info_as_df(self) -> pd.DataFrame:
@@ -1042,9 +1033,9 @@ class AbstractDataset:
         del dict_cpy["name"]
 
         dict_cpy["dataset_img_shape"] = "/".join(
-            map(str, dict_cpy["dataset_img_shape"]))
-        dict_cpy["model_img_shape"] = "/".join(
-            map(str, dict_cpy["model_img_shape"]))
+            map(str, dict_cpy["dataset_img_shape"])
+        )
+        dict_cpy["model_img_shape"] = "/".join(map(str, dict_cpy["model_img_shape"]))
 
         df = pd.DataFrame(dict_cpy, index=[self.dataset_name])
 
@@ -1052,15 +1043,17 @@ class AbstractDataset:
 
     def save_ds_info_as_json(self):
         """Save the ds_info dictionary to a json file."""
-        ds_info_json_file = os.path.join(self.ds_info_path, self.dataset_name,
-                                         f"{self.dataset_name}_ds_info.json")
+        ds_info_json_file = os.path.join(
+            self.ds_info_path, self.dataset_name, f"{self.dataset_name}_ds_info.json"
+        )
         check_create_folder(os.path.dirname(ds_info_json_file))
         save_dict_as_json(self.ds_info, ds_info_json_file)
 
     def load_ds_info_from_json(self):
         """Load the ds_info dictionary from a json file."""
-        ds_info_json_file = os.path.join(self.ds_info_path, self.dataset_name,
-                                         f"{self.dataset_name}_ds_info.json")
+        ds_info_json_file = os.path.join(
+            self.ds_info_path, self.dataset_name, f"{self.dataset_name}_ds_info.json"
+        )
         if not os.path.isfile(ds_info_json_file):
             print(
                 f"Cannot load ds-info dict from json, since json file {ds_info_json_file} does not exists"
@@ -1105,9 +1098,9 @@ class AbstractDataset:
             ylabel="Probability",
         )
 
-    def get_train_ds_subset(self,
-                            keep: np.ndarray,
-                            apply_processing: bool = False) -> tf.data.Dataset:
+    def get_train_ds_subset(
+        self, keep: np.ndarray, apply_processing: bool = False
+    ) -> tf.data.Dataset:
         """Return only a subset of datapoints from the training dataset.
 
         The subset is specified by a boolean numpy array.
@@ -1136,39 +1129,41 @@ class AbstractDataset:
                 augment=self.augment_train,
             )
         else:
-            ds = (ds.cache().batch(
-                self.batch_size, num_parallel_calls=tf.data.AUTOTUNE).prefetch(
-                    buffer_size=tf.data.AUTOTUNE))
+            ds = (
+                ds.cache()
+                .batch(self.batch_size, num_parallel_calls=tf.data.AUTOTUNE)
+                .prefetch(buffer_size=tf.data.AUTOTUNE)
+            )
 
         return ds
 
-    def get_train_ds_as_numpy(self,
-                              unbatch: bool = True
-                              ) -> Tuple[np.ndarray, np.ndarray]:
+    def get_train_ds_as_numpy(
+        self, unbatch: bool = True
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Return Train Dataset as unbatched (values, labels) numpy arrays."""
         return get_ds_as_numpy(self.ds_train, unbatch=unbatch)
 
-    def get_test_ds_as_numpy(self,
-                             unbatch: bool = True
-                             ) -> Tuple[np.ndarray, np.ndarray]:
+    def get_test_ds_as_numpy(
+        self, unbatch: bool = True
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Return Test Dataset as unbatched (values, labels) numpy arrays."""
         return get_ds_as_numpy(self.ds_test, unbatch)
 
-    def get_val_ds_as_numpy(self,
-                            unbatch: bool = True
-                            ) -> Tuple[np.ndarray, np.ndarray]:
+    def get_val_ds_as_numpy(
+        self, unbatch: bool = True
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Return Validation Dataset as unbatched (values, labels) numpy arrays."""
         return get_ds_as_numpy(self.ds_val, unbatch)
 
-    def get_attack_train_ds_as_numpy(self,
-                                     unbatch: bool = True
-                                     ) -> Tuple[np.ndarray, np.ndarray]:
+    def get_attack_train_ds_as_numpy(
+        self, unbatch: bool = True
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Return Attack Train Dataset as unbatched (values, labels) numpy arrays."""
         return get_ds_as_numpy(self.ds_attack_train, unbatch)
 
-    def get_attack_test_ds_as_numpy(self,
-                                    unbatch: bool = True
-                                    ) -> Tuple[np.ndarray, np.ndarray]:
+    def get_attack_test_ds_as_numpy(
+        self, unbatch: bool = True
+    ) -> Tuple[np.ndarray, np.ndarray]:
         """Return Attack Test Dataset as unbatched (values, labels) numpy arrays."""
         return get_ds_as_numpy(self.ds_attack_test, unbatch)
 
@@ -1223,8 +1218,7 @@ class ModelPreprocessing(Layer):
 class AbstractDatasetClassSize(AbstractDataset):
     class_size: int = field(init=False, repr=True)
 
-    def reduce_samples_per_class_train_ds(self,
-                                          max_samples_per_class: int) -> None:
+    def reduce_samples_per_class_train_ds(self, max_samples_per_class: int) -> None:
         """Reduce all samples in the train_ds per class to a specific value.
 
         The train_ds is directly modified, no dataset copy is returned.
@@ -1252,7 +1246,8 @@ class AbstractDatasetClassSize(AbstractDataset):
         self.ds_train = reduced_dataset
         ds_len = sum(1 for _ in self.ds_train)
         self.ds_train = self.ds_train.apply(
-            tf.data.experimental.assert_cardinality(ds_len))
+            tf.data.experimental.assert_cardinality(ds_len)
+        )
         print(f"Reduced class size to {max_samples_per_class}")
 
     def _load_dataset(self):
@@ -1268,10 +1263,9 @@ class AbstractDatasetClassImbalance(AbstractDataset):
     imbalance_mode: str = field(init=False, repr=True)
     imbalance_ratio: str = field(init=False, repr=True)
 
-    def make_unbalanced_dataset(self,
-                                ds: tf.data.Dataset,
-                                imbalance_ratio: float,
-                                distribution: str = "N"):
+    def make_unbalanced_dataset(
+        self, ds: tf.data.Dataset, imbalance_ratio: float, distribution: str = "N"
+    ):
         """Create an unbalanced dataset from a balanced one.
 
         Parameter:
@@ -1292,9 +1286,9 @@ class AbstractDatasetClassImbalance(AbstractDataset):
         if distribution == "L":
             classes_class_count = zip(classes, class_count)
             # sort classes by class count, first entry is largest class
-            classes_class_count = sorted(classes_class_count,
-                                         key=lambda x: x[1],
-                                         reverse=True)
+            classes_class_count = sorted(
+                classes_class_count, key=lambda x: x[1], reverse=True
+            )
 
             # create the imbalanced class counts
             # the smallest class size is multiplied with the imbalance_ratio factor, therefore decreasing its size
@@ -1326,8 +1320,8 @@ class AbstractDatasetClassImbalance(AbstractDataset):
 
         elif distribution == "N":
             class_count_dict_path = os.path.join(
-                self.ds_info_path,
-                f"{self.dataset_name}_class_count_dict.json")
+                self.ds_info_path, f"{self.dataset_name}_class_count_dict.json"
+            )
             # check if we can load a previous class_count_dict, and then load it
             class_count_dict = load_dict_from_json(class_count_dict_path)
             if class_count_dict is None:
@@ -1373,22 +1367,19 @@ class AbstractDatasetClassImbalance(AbstractDataset):
             f"Creating {self.dataset_name} dataset with imbalance of {self.imbalance_ratio} in {self.imbalance_mode} mode"
         )
         self.ds_train = self.make_unbalanced_dataset(
-            self.ds_train,
-            self.imbalance_ratio,
-            distribution=self.imbalance_mode)
+            self.ds_train, self.imbalance_ratio, distribution=self.imbalance_mode
+        )
 
 
 @dataclass
 class AbstractDatasetGray(AbstractDataset):
-
     def convertds_to_grayscale(self, ds: tf.data.Dataset) -> tf.data.Dataset:
         to_grayscale = tf.keras.Sequential([RgbToGrayscale()])
         ds = ds.map(lambda x, y: (to_grayscale(x, training=True), y))
         return ds
 
     def _load_dataset(self):
-        print(
-            f"Creating {self.dataset_name} dataset with only grayscale images")
+        print(f"Creating {self.dataset_name} dataset with only grayscale images")
 
         if self.ds_test is not None:
             self.ds_test = self.convertds_to_grayscale(self.ds_test)
@@ -1430,7 +1421,7 @@ class AbstractDatasetCustomClasses(AbstractDataset):
             )
             sys.exit(1)
 
-        self.kept_classes = classes[:self.new_num_classes]
+        self.kept_classes = classes[: self.new_num_classes]
 
         print(
             f"Creating {self.dataset_name} dataset with changed number of classes ({self.new_num_classes} classes, which are classes with labels: {self.kept_classes}.)"
