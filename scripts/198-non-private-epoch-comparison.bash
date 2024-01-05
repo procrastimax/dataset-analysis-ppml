@@ -1,18 +1,18 @@
 #!/bin/bash
-#SBATCH -J non-private-epochs-comparison
+#SBATCH -J epochs-comparison
 #SBATCH --ntasks=1
-#SBATCH --mem=40G
+#SBATCH --mem=20G
 #SBATCH --partition=clara
 #SBATCH --gres=gpu:v100:1
-#SBATCH --time=0-10:00:00
+#SBATCH --time=0-01:00:00
 #SBATCH -o logs/%A-%x-%a.out
 #SBATCH -e logs/%A-%x-%a.error
 #SBATCH --mail-type=FAIL
 
 ds='mnist fmnist svhn cifar10'
 model="cnn"
-batch=600
-run_name="non-private-epochs-comparison"
+batch=256
+run_name="epochs-comparison"
 
 # get correct run for array id
 case $SLURM_ARRAY_TASK_ID in

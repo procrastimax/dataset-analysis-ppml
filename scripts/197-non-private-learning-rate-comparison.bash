@@ -1,18 +1,18 @@
 #!/bin/bash
-#SBATCH -J non-private-learning-rate-comparison
+#SBATCH -J learning-rate-comparison
 #SBATCH --ntasks=1
-#SBATCH --mem=40G
+#SBATCH --mem=20G
 #SBATCH --partition=clara
 #SBATCH --gres=gpu:v100:1
-#SBATCH --time=0-5:00:00
+#SBATCH --time=0-0:30:00
 #SBATCH -o logs/%A-%x-%a.out
 #SBATCH -e logs/%A-%x-%a.error
 #SBATCH --mail-type=FAIL
 
 ds='mnist fmnist svhn cifar10'
 model="cnn"
-batch=600
-run_name="non-private-learning-rate-comparison"
+batch=256
+run_name="learning-rate-comparison"
 epochs=30
 
 # get correct run for array id
