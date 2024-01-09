@@ -233,7 +233,7 @@ class AttackAnalyser:
             _, fpr_0001 = store.get_fpr_at_fixed_tpr(best_attack)
             fpr = best_attack.roc_curve.fpr
             tpr = best_attack.roc_curve.tpr
-            ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.001={fpr_0001:.3f}")
+            ax.plot(fpr, tpr, label=f"{store.ds_name} TPR@0.001={fpr_0001:.3f}")
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
@@ -268,7 +268,7 @@ class AttackAnalyser:
             fpr_01, _ = store.get_fpr_at_fixed_tpr(best_attack)
             fpr = best_attack.roc_curve.fpr
             tpr = best_attack.roc_curve.tpr
-            ax.plot(fpr, tpr, label=f"{store.ds_name} FPR@0.1={fpr_01:.3f}")
+            ax.plot(fpr, tpr, label=f"{store.ds_name} TPR@0.1={fpr_01:.3f}")
 
         ax.set(xlabel="FPR", ylabel="TPR")
         ax.set(aspect=1, xscale="log", yscale="log")
@@ -406,7 +406,7 @@ class AttackAnalyser:
         print(f"Saving class wise bar chart AUC figure to {auc_bar_chart_fn}")
         fig_auc.savefig(auc_bar_chart_fn)
 
-        ax_fpr01.set_ylabel("FPR@0.1")
+        ax_fpr01.set_ylabel("TPR@0.1")
         ax_fpr01.set_xlabel("Classes")
         ax_fpr01.set_xticks(x + width, x)
         ax_fpr01.legend(framealpha=LEGEND_ALPHA)
@@ -415,10 +415,10 @@ class AttackAnalyser:
             self.get_combined_ds_analysis_folder(run_number),
             f"bar_chart_class_wise_FPR01_{''.join(name_list)}_r{run_number}.png",
         )
-        print(f"Saving class wise bar chart FPR@0.1 figure to {fpr01_bar_chart_fn}")
+        print(f"Saving class wise bar chart TPR@0.1 figure to {fpr01_bar_chart_fn}")
         fig_fpr01.savefig(fpr01_bar_chart_fn)
 
-        ax_fpr0001.set_ylabel("FPR@0.001")
+        ax_fpr0001.set_ylabel("TPR@0.001")
         ax_fpr0001.set_xlabel("Classes")
         ax_fpr0001.set_xticks(x + width, x)
         ax_fpr0001.legend(framealpha=LEGEND_ALPHA)
@@ -427,7 +427,7 @@ class AttackAnalyser:
             self.get_combined_ds_analysis_folder(run_number),
             f"bar_chart_class_wise_FPR0001_{''.join(name_list)}_r{run_number}.png",
         )
-        print(f"Saving class wise bar chart FPR@0.001 figure to {fpr0001_bar_chart_fn}")
+        print(f"Saving class wise bar chart TPR@0.001 figure to {fpr0001_bar_chart_fn}")
         fig_fpr0001.savefig(fpr0001_bar_chart_fn)
 
         plt.close()
@@ -711,7 +711,7 @@ class AttackAnalyser:
         x_name = "Run"
         if self.x_axis_name is not None:
             x_name = self.x_axis_name
-        ax_fpr01.set(xlabel=x_name, ylabel="FPR@0.1")
+        ax_fpr01.set(xlabel=x_name, ylabel="TPR@0.1")
         plt.xticks(x_values)
         plt.legend(
             loc="lower left",
@@ -734,7 +734,7 @@ class AttackAnalyser:
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
-        print(f"Saved compiled class wise FPR@0.1 over all runs graph {plt_name}")
+        print(f"Saved compiled class wise TPR@0.1 over all runs graph {plt_name}")
 
         fig_fpr001, ax_fpr0001 = plt.subplots(figsize=FIGSIZE, layout="constrained")
         for k, v in avg_fpr0001_dict.items():
@@ -750,7 +750,7 @@ class AttackAnalyser:
         x_name = "Run"
         if self.x_axis_name is not None:
             x_name = self.x_axis_name
-        ax_fpr0001.set(xlabel=x_name, ylabel="FPR@0.001")
+        ax_fpr0001.set(xlabel=x_name, ylabel="TPR@0.001")
         plt.xticks(x_values)
         plt.legend(
             loc="lower left",
@@ -776,7 +776,7 @@ class AttackAnalyser:
         )
         os.makedirs(os.path.dirname(plt_name), exist_ok=True)
         plt.savefig(plt_name)
-        print(f"Saved compiled class wise FPR@0.001 over all runs graph {plt_name}")
+        print(f"Saved compiled class wise TPR@0.001 over all runs graph {plt_name}")
 
         plt.close()
 
@@ -889,7 +889,7 @@ class AttackAnalyser:
         x_name = "Run"
         if self.x_axis_name is not None:
             x_name = self.x_axis_name
-        ax_fpr01.set(xlabel=x_name, ylabel="FPR@0.1")
+        ax_fpr01.set(xlabel=x_name, ylabel="TPR@0.1")
         plt.xticks(x_values)
         # plt.yticks(np.arange(0.1, 0.6, 0.05))
         plt.grid(True)
@@ -946,7 +946,7 @@ class AttackAnalyser:
         x_name = "Run"
         if self.x_axis_name is not None:
             x_name = self.x_axis_name
-        ax_fpr01.set(xlabel=x_name, ylabel="FPR@0.1")
+        ax_fpr01.set(xlabel=x_name, ylabel="TPR@0.1")
         plt.xticks(x_values)
         plt.grid(True)
         ax_fpr01.legend(framealpha=LEGEND_ALPHA)
@@ -1002,7 +1002,7 @@ class AttackAnalyser:
         x_name = "Run"
         if self.x_axis_name is not None:
             x_name = self.x_axis_name
-        ax_fpr01.set(xlabel=x_name, ylabel="FPR@0.1")
+        ax_fpr01.set(xlabel=x_name, ylabel="TPR@0.1")
         plt.xticks(x_values)
         plt.grid(True)
         ax_fpr01.legend(framealpha=LEGEND_ALPHA)
@@ -1066,7 +1066,7 @@ class AttackAnalyser:
         x_name = "Run"
         if self.x_axis_name is not None:
             x_name = self.x_axis_name
-        ax_fpr0001.set(xlabel=x_name, ylabel="FPR@0.001")
+        ax_fpr0001.set(xlabel=x_name, ylabel="TPR@0.001")
         plt.xticks(x_values)
         # plt.yticks(np.arange(0.00, 0.15, 0.02))
         plt.grid(True)
@@ -1124,7 +1124,7 @@ class AttackAnalyser:
         x_name = "Run"
         if self.x_axis_name is not None:
             x_name = self.x_axis_name
-        ax_fpr0001.set(xlabel=x_name, ylabel="FPR@0.001")
+        ax_fpr0001.set(xlabel=x_name, ylabel="TPR@0.001")
         plt.xticks(x_values)
         plt.grid(True)
         plt.legend(framealpha=LEGEND_ALPHA)
@@ -1181,7 +1181,7 @@ class AttackAnalyser:
         x_name = "Run"
         if self.x_axis_name is not None:
             x_name = self.x_axis_name
-        ax_fpr0001.set(xlabel=x_name, ylabel="FPR@0.001")
+        ax_fpr0001.set(xlabel=x_name, ylabel="TPR@0.001")
         plt.xticks(x_values)
         plt.grid(True)
         plt.legend(framealpha=LEGEND_ALPHA)
