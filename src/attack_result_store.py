@@ -45,8 +45,7 @@ class AttackResultStore:
     mean_tpr: np.ndarray = None
 
     def get_statistics_folder(self) -> str:
-        return os.path.join(self.base_path, str(self.run_number),
-                            "attack-statistics")
+        return os.path.join(self.base_path, str(self.run_number), "attack-statistics")
 
     def get_analysis_folder(self) -> str:
         return os.path.join(
@@ -102,8 +101,7 @@ class AttackResultStore:
             fpr_at_01_list = []
             fpr_at_001_list = []
             for single_result in results.single_attack_results:
-                fpr_at_01, fpr_at_001 = self.get_fpr_at_fixed_tpr(
-                    single_result)
+                fpr_at_01, fpr_at_001 = self.get_fpr_at_fixed_tpr(single_result)
 
                 fpr_at_01_list.append(fpr_at_01)
                 fpr_at_001_list.append(fpr_at_001)
@@ -114,16 +112,19 @@ class AttackResultStore:
             df.reset_index(inplace=True)
             df = df.reindex(columns, axis=1)
 
-            attack_result_frame = pd.concat([attack_result_frame, df],
-                                            ignore_index=True)
+            attack_result_frame = pd.concat(
+                [attack_result_frame, df], ignore_index=True
+            )
 
-        group = attack_result_frame.groupby(["slice feature", "slice value"])[[
-            "Attacker advantage",
-            "Positive predictive value",
-            "AUC",
-            "fpr@0.1",
-            "fpr@0.001",
-        ]]
+        group = attack_result_frame.groupby(["slice feature", "slice value"])[
+            [
+                "Attacker advantage",
+                "Positive predictive value",
+                "AUC",
+                "fpr@0.1",
+                "fpr@0.001",
+            ]
+        ]
         mean_df = group.mean(numeric_only=True)
         max_df = group.max(numeric_only=True)
         std_df = group.std(numeric_only=True)
@@ -143,8 +144,8 @@ class AttackResultStore:
         std_df["attack type"] = self.attack_type.value
 
         attack_result_df = pd.concat(
-            [attack_result_frame, mean_df, std_df, max_df],
-            ignore_index=False).round(decimals=4)
+            [attack_result_frame, mean_df, std_df, max_df], ignore_index=False
+        ).round(decimals=4)
 
         df_filename = os.path.join(
             self.get_analysis_folder(),
@@ -157,8 +158,8 @@ class AttackResultStore:
         return attack_result_df
 
     def get_fpr_at_fixed_tpr(
-            self,
-            single_attack_result: SingleAttackResult) -> Tuple[float, float]:
+        self, single_attack_result: SingleAttackResult
+    ) -> Tuple[float, float]:
         """Caclulate FPR @ (0.1, 0.001) TPR.
 
         Return:
@@ -181,8 +182,9 @@ class AttackResultStore:
 
         print("Generating all in one ROC curve plot")
         _, ax = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
-        for res, title in zip(entire_ds_attack_list,
-                              range(len(self.attack_result_list))):
+        for res, title in zip(
+            entire_ds_attack_list, range(len(self.attack_result_list))
+        ):
             label = f"Model #{title} auc={res.get_auc():.3f}"
             plotting.plot_roc_curve(
                 res.roc_curve,
@@ -206,12 +208,12 @@ class AttackResultStore:
     def get_single_entire_ds_attack_results(self) -> List[SingleAttackResult]:
         result_list = []
         for attack_results in self.attack_result_list:
-            result_list.append(
-                self._extract_entire_dataset_slice(attack_results))
+            result_list.append(self._extract_entire_dataset_slice(attack_results))
         return result_list
 
     def get_single_class_attack_result_dict(
-        self, ) -> Dict[str, List[SingleAttackResult]]:
+        self,
+    ) -> Dict[str, List[SingleAttackResult]]:
         single_attack_dict = defaultdict(list)
 
         # these are the attack_results for every shadow model
@@ -238,7 +240,8 @@ class AttackResultStore:
 
         for k, v in class_attack_dict.items():
             mean_tpr, _, grid_fpr = self.calculate_mean_tpr_and_fpr(
-                v, fpr_grid=fpr_grid)
+                v, fpr_grid=fpr_grid
+            )
             class_wise_mean_tpr_dict[k] = mean_tpr
 
         _, ax = plt.subplots(1, 1, figsize=FIGSIZE, layout="constrained")
@@ -296,8 +299,7 @@ class AttackResultStore:
         """
         entire_ds_results = self.get_single_entire_ds_attack_results()
 
-        mean_tpr, tpr_int, fpr_grid = self.calculate_mean_tpr_and_fpr(
-            entire_ds_results)
+        mean_tpr, tpr_int, fpr_grid = self.calculate_mean_tpr_and_fpr(entire_ds_results)
 
         self.mean_tpr = mean_tpr
         self.fpr_grid = fpr_grid
@@ -310,11 +312,7 @@ class AttackResultStore:
             std_tpr = tpr_int.std(axis=0)
             tprs_upper = np.minimum(mean_tpr + std_tpr, 1)
             tprs_lower = mean_tpr - std_tpr
-            plt.fill_between(fpr_grid,
-                             tprs_lower,
-                             tprs_upper,
-                             color="grey",
-                             alpha=0.3)
+            plt.fill_between(fpr_grid, tprs_lower, tprs_upper, color="grey", alpha=0.3)
 
         ax.plot([0, 1], [0, 1], "k--", lw=1.0)
         ax.plot(
@@ -322,8 +320,7 @@ class AttackResultStore:
             mean_tpr,
             "b",
             lw=2,
-            label=
-            f"AUC={avg_auc:.3f}\nTPR@0.001={fpr0001:.3f}\nTPR@0.1={fpr01:.3f}",
+            label=f"AUC={avg_auc:.3f}\nTPR@0.001={fpr0001:.3f}\nTPR@0.1={fpr01:.3f}",
         )
         ax.set(xlabel="TPR", ylabel="FPR")
         ax.set(aspect=1, xscale="log", yscale="log")
@@ -347,11 +344,13 @@ class AttackResultStore:
 
     def get_attack_df_entire_dataset_only(self) -> pd.DataFrame:
         """Return a dataframe, which only represents the Entire dataset attack slice."""
-        return self.attack_result_df[self.attack_result_df["slice feature"] ==
-                                     "Entire dataset"]
+        return self.attack_result_df[
+            self.attack_result_df["slice feature"] == "Entire dataset"
+        ]
 
     def _extract_entire_dataset_slice(
-            self, result: AttackResults) -> SingleAttackResult:
+        self, result: AttackResults
+    ) -> SingleAttackResult:
         """Extract the Entire Dataset slice from an AttackResult object."""
         for i in result.single_attack_results:
             if i.slice_spec.feature is None:
@@ -370,8 +369,7 @@ class AttackResultStore:
         # get ID of best Entire dataset X (fpr@0.001, auc, ...)
         best_idx = self.get_attack_df_entire_dataset_only()[col_name].idxmax()
 
-        shadow_model_number = self.attack_result_df.loc[best_idx][
-            "shadow model"]
+        shadow_model_number = self.attack_result_df.loc[best_idx]["shadow model"]
 
         attack_results = self.attack_result_list[shadow_model_number]
         return self._extract_entire_dataset_slice(attack_results)

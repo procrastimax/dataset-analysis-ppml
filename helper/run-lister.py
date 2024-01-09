@@ -7,10 +7,9 @@ import os
 from collections import defaultdict
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-f",
-                    "--filedir",
-                    type=str,
-                    help="The base filedir to start searching for runs.")
+parser.add_argument(
+    "-f", "--filedir", type=str, help="The base filedir to start searching for runs."
+)
 args = parser.parse_args()
 
 base_folder = args.filedir

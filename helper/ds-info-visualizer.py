@@ -17,8 +17,7 @@ parser.add_argument(
     type=str,
     nargs="+",
     required=True,
-    help=
-    "List of/ Single Files to be used for creating visualizations. Must be one of the ds-info.json files.",
+    help="List of/ Single Files to be used for creating visualizations. Must be one of the ds-info.json files.",
 )
 
 parser.add_argument(
@@ -32,8 +31,7 @@ parser.add_argument(
     "-c",
     "--is-class-wise",
     action="store_true",
-    help=
-    "Flag to indicate if the used '-p' parameter specifies a class-wise attribute. The kind of visualization changes if this is the case.",
+    help="Flag to indicate if the used '-p' parameter specifies a class-wise attribute. The kind of visualization changes if this is the case.",
 )
 
 parser.add_argument(
@@ -119,7 +117,8 @@ else:
     multiplier = 0
 
     figure_filename = (
-        f"class_wise_bar_chart_{info_key}_{'_'.join(value_dict.keys())}.png")
+        f"class_wise_bar_chart_{info_key}_{'_'.join(value_dict.keys())}.png"
+    )
 
     for ds_name, values in value_dict.items():
         offset = width * multiplier
