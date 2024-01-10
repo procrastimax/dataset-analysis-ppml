@@ -397,6 +397,9 @@ class AttackAnalyser:
         ax_auc.set_ylabel("AUC")
         ax_auc.set_xlabel("Classes")
         ax_auc.set_xticks(x + width, x)
+        ax_auc.axhline(
+            y=0.5, linestyle=AXHLINE_STYLE, color=AXHLINE_COLOR, linewidth=AXHLINE_WIDTH
+        )
         ax_auc.legend(loc="lower right", framealpha=LEGEND_ALPHA)
 
         auc_bar_chart_fn: str = os.path.join(
@@ -409,6 +412,9 @@ class AttackAnalyser:
         ax_fpr01.set_ylabel("TPR@0.1")
         ax_fpr01.set_xlabel("Classes")
         ax_fpr01.set_xticks(x + width, x)
+        ax_fpr01.axhline(
+            y=0.1, linestyle=AXHLINE_STYLE, color=AXHLINE_COLOR, linewidth=AXHLINE_WIDTH
+        )
         ax_fpr01.legend(framealpha=LEGEND_ALPHA)
 
         fpr01_bar_chart_fn: str = os.path.join(
@@ -421,6 +427,9 @@ class AttackAnalyser:
         ax_fpr0001.set_ylabel("TPR@0.001")
         ax_fpr0001.set_xlabel("Classes")
         ax_fpr0001.set_xticks(x + width, x)
+        ax_fpr0001.axhline(
+            y=0.001, linestyle=AXHLINE_STYLE, color=AXHLINE_COLOR, linewidth=AXHLINE_WIDTH
+        )
         ax_fpr0001.legend(framealpha=LEGEND_ALPHA)
 
         fpr0001_bar_chart_fn: str = os.path.join(
